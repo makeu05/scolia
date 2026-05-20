@@ -1,228 +1,184 @@
-/**
- * auth.tsx — Système d'authentification SGS
- *
- * Ce fichier contient :
- *   1. AuthContext       → stocke l'utilisateur connecté
- *   2. AuthProvider      → enveloppe toute l'app
- *   3. useAuth()         → hook pour accéder à l'auth partout
- *   4. ProtectedRoute    → redirige vers /login si pas connecté
- *
- * Placer dans : src/auth.tsx
- *
- * Intégration Laravel Sanctum :
- *   - login()   → POST /api/login
- *   - logout()  → POST /api/logout
- *   - Le token est stocké dans localStorage sous "sgs_token"
- */
+const API = 'http://localhost:8000/api';
 
-import React, { createContext, useContext, useState, useEffect } from "react";
-import { Navigate, useLocation } from "react-router-dom";
-
-// ─────────────────────────────────────────────────────────────────────────────
-// TYPES
-// ─────────────────────────────────────────────────────────────────────────────
-
-export interface AuthUser {
+// ─── Types ───────────────────────────────────────────────
+export interface User {
   id: number;
-  nom: string;
+  name: string;
   email: string;
-  role: "admin" | "directeur" | "enseignant" | "comptable" | "parent";
+  role: string;
+}
+
+export interface AuthResponse {
   token: string;
+  user: User;
 }
 
-interface AuthContextType {
-  user: AuthUser | null;
-  isLoading: boolean;
-  login: (email: string, password: string) => Promise<void>;
-  logout: () => void;
-  isAuthenticated: boolean;
+export interface VilleNaissance {
+  idVille: number;
+  libelle: string;
+  actif: number;
 }
 
-// ─────────────────────────────────────────────────────────────────────────────
-// CONTEXT
-// ─────────────────────────────────────────────────────────────────────────────
+let villesCache: VilleNaissance[] | null = null;
 
-const AuthContext = createContext<AuthContextType | null>(null);
+// ─── Login ───────────────────────────────────────────────
+export async function login(email: string, password: string): Promise<AuthResponse> {
+  const res = await fetch(`${API}/login`, {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify({ email, password }),
+  });
 
-// ─────────────────────────────────────────────────────────────────────────────
-// PROVIDER
-// ─────────────────────────────────────────────────────────────────────────────
+  const data = await res.json();
 
-export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children }) => {
-  const [user, setUser] = useState<AuthUser | null>(null);
-  const [isLoading, setIsLoading] = useState(true); // true au démarrage → vérifie le token stocké
+  if (!res.ok) {
+    throw new Error(data.message ?? 'Identifiants invalides');
+  }
 
-  const API_BASE = import.meta.env.VITE_API_URL ?? "http://localhost:8000";
+  if (typeof window !== 'undefined') {
+    if (data.token) localStorage.setItem('token', data.token);
+    if (data.user) localStorage.setItem('user', JSON.stringify(data.user));
+  }
 
-  // ── Au démarrage : vérifier si un token est déjà stocké ──
-  useEffect(() => {
-    const storedUser = localStorage.getItem("sgs_user");
-    const storedToken = localStorage.getItem("sgs_token");
+  return data;
+}
 
-    if (storedUser && storedToken) {
-      try {
-        const parsed = JSON.parse(storedUser) as AuthUser;
-        setUser({ ...parsed, token: storedToken });
+// ─── Register ────────────────────────────────────────────
+export async function register(
+  name: string,
+  email: string,
+  password: string,
+  role: string
+): Promise<AuthResponse> {
+  const res = await fetch(`${API}/register`, {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify({ name, email, password, role }),
+  });
 
-        // TODO Laravel : vérifier que le token est encore valide
-        // axios.get(`${API_BASE}/api/me`, {
-        //   headers: { Authorization: `Bearer ${storedToken}` }
-        // }).catch(() => {
-        //   localStorage.removeItem("sgs_user");
-        //   localStorage.removeItem("sgs_token");
-        //   setUser(null);
-        // });
+  const data = await res.json();
 
-      } catch {
-        localStorage.removeItem("sgs_user");
-        localStorage.removeItem("sgs_token");
-      }
+  if (!res.ok) {
+    throw new Error(data.message ?? 'Erreur lors de la création du compte');
+  }
+
+  if (typeof window !== 'undefined') {
+    localStorage.setItem('token', data.token);
+    localStorage.setItem('user', JSON.stringify(data.user));
+  }
+
+  return data;
+}
+
+// ─── Logout ──────────────────────────────────────────────
+export async function logout(): Promise<void> {
+  const token = getToken();
+
+  try {
+    if (token) {
+      await fetch(`${API}/logout`, {
+        method: 'POST',
+        headers: {
+          Authorization: `Bearer ${token}`,
+        },
+      });
     }
-    setIsLoading(false);
-  }, []);
+  } catch (e) {
+    console.warn('Logout API error ignored');
+  }
 
-  // ── Login ──
-  const login = async (email: string, password: string): Promise<void> => {
+  if (typeof window !== 'undefined') {
+    localStorage.removeItem('token');
+    localStorage.removeItem('user');
+  }
+}
 
-    // TODO Laravel — décommenter quand le backend est prêt :
-    // await axios.get(`${API_BASE}/sanctum/csrf-cookie`, { withCredentials: true });
-    // const res = await axios.post(`${API_BASE}/api/login`, { email, password });
-    // const { token, user: userData } = res.data;
+// ─── Forgot password ─────────────────────────────────────
+export async function forgotPassword(email: string): Promise<void> {
+  const res = await fetch(`${API}/forgot-password`, {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify({ email }),
+  });
 
-    // ── MOCK (retirer quand Laravel est prêt) ──
-    await new Promise((r) => setTimeout(r, 1000));
+  const data = await res.json().catch(() => ({}));
 
-    if (email === "wrong@test.com") {
-      throw new Error("Identifiants incorrects. Vérifiez votre email et mot de passe.");
-    }
+  if (!res.ok) {
+    throw new Error(data.message ?? "Erreur lors de l'envoi");
+  }
+}
 
-    // Simuler différents rôles selon l'email
-    let mockRole: AuthUser["role"] = "admin";
-    if (email.includes("enseignant")) mockRole = "enseignant";
-    if (email.includes("comptable")) mockRole = "comptable";
-    if (email.includes("parent")) mockRole = "parent";
-    if (email.includes("directeur")) mockRole = "directeur";
+// ─── Helpers ─────────────────────────────────────────────
+export function getToken(): string | null {
+  if (typeof window === 'undefined') return null;
+  return localStorage.getItem('token');
+}
 
-    const mockUser: AuthUser = {
-      id: 1,
-      nom: "Administrateur",
-      email,
-      role: mockRole,
-      token: "mock-token-" + Date.now(),
-    };
-    const token = mockUser.token;
-    // ── Fin mock ──
+export function getUser(): User | null {
+  if (typeof window === 'undefined') return null;
 
-    // Stocker dans localStorage
-    localStorage.setItem("sgs_token", token);
-    localStorage.setItem("sgs_user", JSON.stringify(mockUser));
-    setUser(mockUser);
+  const raw = localStorage.getItem('user');
+  if (!raw) return null;
+
+  try {
+    return JSON.parse(raw);
+  } catch {
+    return null;
+  }
+}
+
+export function isAuthenticated(): boolean {
+  return !!getToken();
+}
+
+// ─── Auth Fetch ──────────────────────────────────────────
+export async function authFetch(url: string, options: RequestInit = {}): Promise<Response> {
+  const token = getToken();
+
+  const headers: Record<string, string> = {
+    Accept: 'application/json',
+    ...(options.headers as Record<string, string>),
   };
 
-  // ── Logout ──
-  const logout = () => {
-    // TODO Laravel — décommenter quand le backend est prêt :
-    // axios.post(`${API_BASE}/api/logout`, {}, {
-    //   headers: { Authorization: `Bearer ${user?.token}` }
-    // }).finally(() => { ... });
+  if (token) {
+    headers.Authorization = `Bearer ${token}`;
+  }
 
-    localStorage.removeItem("sgs_token");
-    localStorage.removeItem("sgs_user");
-    setUser(null);
-  };
-
-  return (
-    <AuthContext.Provider
-      value={{
-        user,
-        isLoading,
-        login,
-        logout,
-        isAuthenticated: !!user,
-      }}
-    >
-      {children}
-    </AuthContext.Provider>
-  );
-};
-
-// ─────────────────────────────────────────────────────────────────────────────
-// HOOK useAuth
-// ─────────────────────────────────────────────────────────────────────────────
-
-export const useAuth = (): AuthContextType => {
-  const ctx = useContext(AuthContext);
-  if (!ctx) throw new Error("useAuth doit être utilisé dans <AuthProvider>");
-  return ctx;
-};
-
-// ─────────────────────────────────────────────────────────────────────────────
-// ROUTE PROTÉGÉE
-// ─────────────────────────────────────────────────────────────────────────────
-
-/**
- * Enveloppe une page protégée.
- * Si l'utilisateur n'est pas connecté → redirige vers /login
- * Si un rôle est requis et ne correspond pas → redirige vers /dashboard
- *
- * Utilisation dans App.tsx :
- *   <Route path="/dashboard" element={<ProtectedRoute><Dashboard /></ProtectedRoute>} />
- *   <Route path="/finance"   element={<ProtectedRoute roles={["admin","comptable"]}><Finance /></ProtectedRoute>} />
- */
-
-interface ProtectedRouteProps {
-  children: React.ReactNode;
-  roles?: AuthUser["role"][]; // si vide → tous les rôles connectés ont accès
+  return fetch(url, {
+    ...options,
+    headers,
+  });
 }
 
-export const ProtectedRoute: React.FC<ProtectedRouteProps> = ({ children, roles }) => {
-  const { isAuthenticated, isLoading, user } = useAuth();
-  const location = useLocation();
+// ─── Villes ─────────────────────────────────────────────
+export async function getVilles(): Promise<VilleNaissance[]> {
+  if (villesCache) return villesCache;
 
-  // Pendant la vérification du token au démarrage → écran de chargement
-  if (isLoading) {
-    return (
-      <div className="min-h-screen flex items-center justify-center bg-gray-50">
-        <div className="flex flex-col items-center gap-3">
-          <div className="h-10 w-10 rounded-2xl bg-[#1a3a5c] flex items-center justify-center animate-pulse">
-            <svg className="h-5 w-5 text-white" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2}
-                d="M12 14l9-5-9-5-9 5 9 5z" />
-              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2}
-                d="M12 14l6.16-3.422a12.083 12.083 0 01.665 6.479A11.952 11.952 0 0012 20.055a11.952 11.952 0 00-6.824-2.998 12.078 12.078 0 01.665-6.479L12 14z" />
-            </svg>
-          </div>
-          <p className="text-sm text-gray-400">Chargement…</p>
-        </div>
-      </div>
-    );
+  const res = await authFetch(`${API}/villes`);
+
+  if (!res.ok) {
+    throw new Error('Erreur lors du chargement des villes');
   }
 
-  // Pas connecté → login
-  if (!isAuthenticated) {
-    return <Navigate to="/login" state={{ from: location }} replace />;
+  villesCache = await res.json();
+  return villesCache as VilleNaissance[];
+}
+
+import { useState } from "react";
+
+export function useAuth() {
+  const [user, setUser] = useState(getUser());
+
+  async function loginUser(email: string, password: string) {
+    const data = await login(email, password);
+    setUser(data.user);
+    return data;
   }
 
-  // Rôle non autorisé → dashboard
-  if (roles && user && !roles.includes(user.role)) {
-    return <Navigate to="/dashboard" replace />;
-  }
-
-  return <>{children}</>;
-};
-
-// ─────────────────────────────────────────────────────────────────────────────
-// REDIRECT SI DÉJÀ CONNECTÉ (pour la page login)
-// ─────────────────────────────────────────────────────────────────────────────
-
-/**
- * Si l'utilisateur est déjà connecté et va sur /login → redirige vers /dashboard
- */
-export const PublicRoute: React.FC<{ children: React.ReactNode }> = ({ children }) => {
-  const { isAuthenticated, isLoading } = useAuth();
-
-  if (isLoading) return null;
-  if (isAuthenticated) return <Navigate to="/dashboard" replace />;
-
-  return <>{children}</>;
-};
+  return {
+    user,
+    token: getToken(),
+    login: loginUser,
+    isAuthenticated: !!getToken(),
+  };
+}

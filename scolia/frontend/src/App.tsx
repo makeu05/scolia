@@ -1,7 +1,12 @@
 import { Routes, Route, Navigate } from "react-router-dom"
-import { ProtectedRoute, PublicRoute } from "./auth"
 import Login from "./pages/Login"
 import Dashboard from "./pages/Dashboard"
+import Register from "./pages/register"
+import ElevesPage from "./pages/eleves/eleve"
+
+
+const PublicRoute = ({ children }: { children: React.ReactNode }) => children
+const ProtectedRoute = ({ children }: { children: React.ReactNode }) => children
 
 export default function App() {
   return (
@@ -12,9 +17,19 @@ export default function App() {
           <Login />
         </PublicRoute>
       } />
+      <Route path="/register" element={
+        <PublicRoute>
+          <Register />
+        </PublicRoute>
+      } />
       <Route path="/dashboard" element={
         <ProtectedRoute>
           <Dashboard />
+        </ProtectedRoute>
+      } />
+      <Route path="/eleves" element={
+        <ProtectedRoute>
+          <ElevesPage />
         </ProtectedRoute>
       } />
     </Routes>
