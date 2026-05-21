@@ -8,50 +8,54 @@ use Illuminate\Http\Request;
 class CoursController extends Controller
 {
     public function index(Request $request)
-{
-    $query = Cours::with(['classe', 'enseignant.personne']);  // ← ajoute enseignant.personne
+    {
+        $query = Cours::with(['classe', 'enseignant.personne']);
 
-    if ($request->filled('idClasse')) {
-        $query->where('idClasse', $request->idClasse);
-    }
-    if ($request->filled('actif')) {
-        $query->where('actif', $request->actif);
-    }
-    if ($request->filled('search')) {
-        $query->where('libelle', 'like', '%' . $request->search . '%');
-    }
+        if ($request->filled('idClasse')) {
+            $query->where('idClasse', $request->idClasse);
+        }
+        if ($request->filled('actif')) {
+            $query->where('actif', $request->actif);
+        }
+        if ($request->filled('search')) {
+            $query->where('libelle', 'like', '%' . $request->search . '%');
+        }
 
-    if ($request->get('paginate') === 'false') {
-        return response()->json($query->get());
-    }
+        if ($request->get('paginate') === 'false') {
+            return response()->json($query->get());
+        }
 
-    return response()->json($query->paginate(15));
-}
+        return response()->json($query->paginate(15));
+    }
 
     public function store(Request $request)
-{
-    $data = $request->validate([
-        'libelle'     => 'required|string|max:255',
-        'note'        => 'nullable|numeric|min:0',
-        'coefficient' => 'nullable|numeric|min:0',
-        'description' => 'nullable|string',
-        'idClasse'    => 'required|integer|exists:Classe,idClasse',  // ← ajoute
-        'idAdmin'     => 'required|integer',
-    ]);
+    {
+        $data = $request->validate([
+            'libelle'      => 'required|string|max:255',
+            'note'         => 'nullable|numeric|min:0',
+            'coefficient'  => 'nullable|numeric|min:0',
+            'description'  => 'nullable|string',
+            'idClasse'     => 'required|integer|exists:classe,idClasse',   // ← corrige le nom de table si besoin
+            'idAdmin'      => 'required|integer',
+            'idLivre'      => 'nullable|integer',
+        ]);
 
-    $data['actif'] = 1;
-    $data['idLivre'] = $data['idLivre'] ?? 1;
-    $cours = Cours::create($data);
+        $data['actif'] = 1;
+        $data['idLivre'] = $data['idLivre'] ?? 1;
 
-    return response()->json([
-        'message' => 'Cours créé',
-        'cours'   => $cours,
-    ], 201);
-}
+        // Important : on ne passe pas 'idCours' dans $data
+        $cours = Cours::create($data);
+
+        return response()->json([
+            'message' => 'Cours créé avec succès',
+            'cours'   => $cours,
+        ], 201);
+    }
 
     public function show($idCours)
     {
-        $cours = Cours::findOrFail($idCours);
+        $cours = Cours::with(['classe', 'enseignant.personne'])
+                      ->findOrFail($idCours);
         return response()->json($cours);
     }
 
@@ -64,15 +68,16 @@ class CoursController extends Controller
             'coefficient' => 'sometimes|numeric|min:0',
             'description' => 'nullable|string',
             'actif'       => 'sometimes|boolean',
+            'idClasse'    => 'sometimes|integer|exists:Classe,idClasse',
         ]);
 
         $cours->update($request->only([
-            'libelle', 'coefficient', 'description', 'actif'
+            'libelle', 'coefficient', 'description', 'actif', 'idClasse'
         ]));
 
         return response()->json([
             'message' => 'Cours mis à jour',
-            'cours'   => $cours,
+            'cours'   => $cours->fresh(),
         ]);
     }
 
@@ -80,6 +85,7 @@ class CoursController extends Controller
     {
         $cours = Cours::findOrFail($idCours);
         $cours->delete();
-        return response()->json(['message' => 'Cours supprimé']);
+
+        return response()->json(['message' => 'Cours supprimé avec succès']);
     }
 }

@@ -5,11 +5,11 @@ use Illuminate\Database\Eloquent\Model;
 class Cours extends Model {
     protected $table = 'Cours';
     protected $primaryKey = 'idCours';
-    public $incrementing = false;
+    public $incrementing = true;
     public $timestamps = false;
  
     protected $fillable = [
-        'idCours', 'libelle', 'note', 'coefficient',
+         'libelle', 'note', 'coefficient',
         'description', 'idClasse', 'actif', 'idAdmin',
     ];
  
