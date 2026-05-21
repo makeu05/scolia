@@ -112,6 +112,7 @@ Route::middleware('auth:sanctum')->group(function () {
 
     Route::get('/salles', [SalleController::class, 'index']);
     Route::post('/salles', [SalleController::class, 'store']);
+    Route::get('/salles/{id}', [SalleController::class, 'show']);
     Route::put('/salles/{id}', [SalleController::class, 'update']);
     Route::delete('/salles/{id}', [SalleController::class, 'destroy']);
 

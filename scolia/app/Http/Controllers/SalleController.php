@@ -66,4 +66,11 @@ class SalleController extends Controller
         $salle->delete();
         return response()->json(['message' => 'Salle supprimée']);
     }
+
+    public function show($id)
+{
+    $salle = Salle::with('classe')->findOrFail($id);
+
+    return response()->json($salle);
+}
 }

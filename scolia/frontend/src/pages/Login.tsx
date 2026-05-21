@@ -28,7 +28,7 @@ import {
   Users, BookOpen, CreditCard, Calendar,
   MessageSquare, Award, Shield, ChevronRight,
 } from "lucide-react";
-import { useAuth } from "../auth";
+import { useAuth } from "../service/auth";
 
 // ─────────────────────────────────────────────────────────────────────────────
 // TYPES
@@ -472,6 +472,18 @@ const Login: React.FC = () => {
               )}
             </button>
           </form>
+          <div className="mt-4 text-center">
+            <p className="text-sm text-gray-500">
+              Nouveau sur l'application ?{" "}
+              <button
+                type="button"
+                onClick={() => navigate("/register")} // Ou le chemin vers votre route d'inscription (ex: /signup)
+                className="font-semibold text-[#1a3a5c] hover:underline transition-colors"
+              >
+                Créer un compte
+              </button>
+            </p>
+          </div>
 
           {/* Rôles disponibles (aide visuelle) */}
           <div className="mt-8 p-4 bg-white rounded-2xl border border-gray-100">
