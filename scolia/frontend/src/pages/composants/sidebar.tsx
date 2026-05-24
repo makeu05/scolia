@@ -1,7 +1,4 @@
-// ─────────────────────────────────────────────────────────────
-// SIDEBAR SGS AVEC GESTION DES RÔLES
-// ─────────────────────────────────────────────────────────────
-
+// src/components/Sidebar.tsx
 import {
   LayoutDashboard,
   Users,
@@ -17,6 +14,7 @@ import {
   ChevronDown,
   X,
   BarChart2,
+  UserCircle,
 } from "lucide-react";
 
 import { useState } from "react";
@@ -39,17 +37,9 @@ const NAV_ITEMS: NavItem[] = [
     label: "Tableau de bord",
     icon: LayoutDashboard,
     section: "principal",
-    path: "/",
-    roles: [
-      "root",
-      "admin",
-      "directeur",
-      "fondateur",
-      "enseignant",
-      "parent",
-    ],
+    path: "/dashboard",
+    roles: ["root", "admin", "directeur", "fondateur", "enseignant", "parent"],
   },
-
   {
     id: "eleves",
     label: "Élèves",
@@ -58,7 +48,6 @@ const NAV_ITEMS: NavItem[] = [
     path: "/eleves",
     roles: ["root", "admin", "directeur"],
   },
-
   {
     id: "enseignants",
     label: "Enseignants",
@@ -67,7 +56,6 @@ const NAV_ITEMS: NavItem[] = [
     path: "/enseignants",
     roles: ["root", "admin", "directeur"],
   },
-
   {
     id: "structure",
     label: "Structure pédagogique",
@@ -76,7 +64,6 @@ const NAV_ITEMS: NavItem[] = [
     path: "/cours",
     roles: ["root", "admin", "directeur"],
   },
-
   {
     id: "inscriptions",
     label: "Inscriptions",
@@ -85,22 +72,14 @@ const NAV_ITEMS: NavItem[] = [
     path: "/inscriptions",
     roles: ["root", "admin", "directeur"],
   },
-
   {
     id: "notes",
     label: "Notes & Évaluations",
     icon: ClipboardList,
     section: "gestion",
     path: "/notes",
-    roles: [
-      "root",
-      "admin",
-      "directeur",
-      "enseignant",
-      "parent",
-    ],
+    roles: ["root", "admin", "directeur", "enseignant", "parent"],
   },
-
   {
     id: "annees",
     label: "Années académiques",
@@ -109,7 +88,6 @@ const NAV_ITEMS: NavItem[] = [
     path: "/annees",
     roles: ["root", "admin"],
   },
-
   {
     id: "classes",
     label: "Classes et cycles",
@@ -118,7 +96,6 @@ const NAV_ITEMS: NavItem[] = [
     path: "/classes",
     roles: ["root", "admin", "directeur"],
   },
-
   {
     id: "salles",
     label: "Salles de classe",
@@ -127,16 +104,6 @@ const NAV_ITEMS: NavItem[] = [
     path: "/salles",
     roles: ["root", "admin", "directeur"],
   },
-
-  {
-    id: "emploi",
-    label: "Emploi du temps",
-    icon: Calendar,
-    section: "gestion",
-    path: "/emploi-du-temps",
-    roles: ["root", "admin", "directeur", "enseignant"],
-  },
-
   {
     id: "scolarites",
     label: "Scolarités",
@@ -145,7 +112,6 @@ const NAV_ITEMS: NavItem[] = [
     path: "/scolarites",
     roles: ["root", "admin", "fondateur"],
   },
-
   {
     id: "finance",
     label: "Finances",
@@ -154,47 +120,13 @@ const NAV_ITEMS: NavItem[] = [
     path: "/finance",
     roles: ["root", "admin", "directeur", "fondateur"],
   },
-
   {
     id: "paiements-stats",
-    label: "Statistiques paiements",
+    label: "Statistiques Paiements",
     icon: BarChart2,
     section: "gestion",
     path: "/paiements/stats",
     roles: ["root", "admin", "directeur", "fondateur"],
-  },
-
-  {
-    id: "communication",
-    label: "Communication",
-    icon: MessageSquare,
-    section: "outils",
-    path: "/communication",
-    roles: ["root", "admin", "directeur", "enseignant"],
-  },
-
-  {
-    id: "discipline",
-    label: "Discipline",
-    icon: AlertTriangle,
-    section: "outils",
-    path: "/discipline",
-    roles: ["root", "admin", "directeur"],
-  },
-
-  {
-    id: "bibliotheque",
-    label: "Bibliothèque",
-    icon: Library,
-    section: "outils",
-    path: "/bibliotheque",
-    roles: [
-      "root",
-      "admin",
-      "directeur",
-      "enseignant",
-      "parent",
-    ],
   },
 ];
 
@@ -216,20 +148,16 @@ const Sidebar: React.FC<SidebarProps> = ({
 
   const [isDropdownOpen, setIsDropdownOpen] = useState(false);
 
-  const sections = ["principal", "gestion", "outils"];
-
+  const sections = ["principal", "gestion"];
   const sectionLabels: Record<string, string> = {
     principal: "Principal",
     gestion: "Gestion scolaire",
-    outils: "Outils",
   };
 
-  // ─────────────────────────────────────────────
-  // FILTRAGE PAR RÔLE
-  // ─────────────────────────────────────────────
-
   const userRole = user?.role ?? "";
+  const userFullname = user?.name ?? "Utilisateur";
 
+  // Filtrage selon le rôle de l'utilisateur
   const NAV_ITEMS_FILTERED = NAV_ITEMS.filter((item) => {
     if (!item.roles) return true;
     return item.roles.includes(userRole);
@@ -237,7 +165,6 @@ const Sidebar: React.FC<SidebarProps> = ({
 
   function getInitials(name?: string): string {
     if (!name) return "SG";
-
     return name
       .split(" ")
       .map((n) => n[0])
@@ -246,13 +173,15 @@ const Sidebar: React.FC<SidebarProps> = ({
       .toUpperCase();
   }
 
-  function handleLogout() {
+  const handleLogout = () => {
     logout();
     navigate("/login");
-  }
+  };
 
-  const userFullname = user?.name ?? "Utilisateur";
-  user?.username ?? "";
+  const goToProfile = () => {
+    navigate("/mon-profil");
+    onClose();
+  };
 
   return (
     <>
@@ -265,13 +194,9 @@ const Sidebar: React.FC<SidebarProps> = ({
       )}
 
       <aside
-        className={`
-          fixed top-0 left-0 h-full z-40 flex flex-col
-          w-[250px] bg-white border-r border-gray-100
-          transition-transform duration-300 ease-in-out
-          lg:relative lg:translate-x-0 lg:flex-shrink-0
-          ${open ? "translate-x-0" : "-translate-x-full"}
-        `}
+        className={`fixed top-0 left-0 h-full z-40 flex flex-col w-[250px] bg-white border-r border-gray-100 transition-transform duration-300 lg:relative lg:translate-x-0 ${
+          open ? "translate-x-0" : "-translate-x-full"
+        }`}
       >
         {/* Logo */}
         <div className="flex items-center justify-between px-4 py-4 border-b border-gray-100">
@@ -279,12 +204,9 @@ const Sidebar: React.FC<SidebarProps> = ({
             <div className="h-10 w-10 rounded-xl bg-[#1a3a5c] flex items-center justify-center">
               <GraduationCap className="h-5 w-5 text-white" />
             </div>
-
             <div>
               <p className="text-sm font-bold text-gray-900">SGS</p>
-              <p className="text-[10px] text-gray-400">
-                Gestion scolaire
-              </p>
+              <p className="text-[10px] text-gray-400">Gestion scolaire</p>
             </div>
           </div>
 
@@ -305,56 +227,47 @@ const Sidebar: React.FC<SidebarProps> = ({
               </p>
 
               <div className="mt-2 space-y-1">
-                {NAV_ITEMS_FILTERED.filter(
-                  (item) => item.section === section
-                ).map((item) => (
-                  <button
-                    key={item.id}
-                    onClick={() => {
-                      onNav(item.id);
-
-                      if (item.path) {
-                        navigate(item.path);
-                      }
-
-                      onClose();
-                    }}
-                    className={`
-                      flex items-center gap-3 w-full px-3 py-2.5 rounded-xl
-                      transition-all duration-200 text-sm text-left
-                      ${
+                {NAV_ITEMS_FILTERED.filter((item) => item.section === section).map(
+                  (item) => (
+                    <button
+                      key={item.id}
+                      onClick={() => {
+                        onNav(item.id);
+                        if (item.path) navigate(item.path);
+                        onClose();
+                      }}
+                      className={`flex items-center gap-3 w-full px-3 py-2.5 rounded-xl transition-all duration-200 text-sm text-left ${
                         activeNav === item.id
                           ? "bg-[#eaf0f8] text-[#1a3a5c] font-semibold"
                           : "text-gray-600 hover:bg-gray-50 hover:text-gray-900"
-                      }
-                    `}
-                  >
-                    <item.icon
-                      className={`h-4 w-4 flex-shrink-0 ${
-                        activeNav === item.id
-                          ? "text-[#1a3a5c]"
-                          : "text-gray-400"
                       }`}
-                    />
-
-                    <span className="flex-1 truncate">
-                      {item.label}
-                    </span>
-
-                    {item.badge && (
-                      <span className="bg-red-100 text-red-600 text-[10px] font-semibold px-1.5 py-0.5 rounded-full">
-                        {item.badge}
-                      </span>
-                    )}
-                  </button>
-                ))}
+                    >
+                      <item.icon
+                        className={`h-4 w-4 flex-shrink-0 ${
+                          activeNav === item.id ? "text-[#1a3a5c]" : "text-gray-400"
+                        }`}
+                      />
+                      <span className="flex-1 truncate">{item.label}</span>
+                    </button>
+                  )
+                )}
               </div>
             </div>
           ))}
         </nav>
 
-        {/* User */}
-        <div className="p-3 border-t border-gray-100 relative">
+        {/* ===================== MON PROFIL ===================== */}
+        <div className="p-3 border-t border-gray-100">
+          {/* Bouton Mon Profil */}
+          <button
+            onClick={goToProfile}
+            className="w-full flex items-center gap-3 px-3 py-3 rounded-xl hover:bg-gray-50 text-gray-700 hover:text-[#1a3a5c] transition mb-3"
+          >
+            <UserCircle className="h-5 w-5" />
+            <span className="font-medium">Mon Profil</span>
+          </button>
+
+          {/* Informations utilisateur + Dropdown */}
           <div
             onClick={() => setIsDropdownOpen(!isDropdownOpen)}
             className="flex items-center gap-3 p-2 rounded-xl hover:bg-gray-50 cursor-pointer transition"
@@ -367,9 +280,8 @@ const Sidebar: React.FC<SidebarProps> = ({
               <p className="text-xs font-semibold text-gray-800 truncate">
                 {userFullname}
               </p>
-
               <p className="text-[10px] text-gray-400 truncate">
-                {user?.username ?? "username"} {/* Affiche le username ou "username" si non disponible */}
+                {user?.username}
               </p>
             </div>
 
@@ -380,18 +292,17 @@ const Sidebar: React.FC<SidebarProps> = ({
             />
           </div>
 
-          {/* Dropdown */}
+          {/* Dropdown Menu */}
           {isDropdownOpen && (
             <>
               <div
                 className="fixed inset-0 z-10"
                 onClick={() => setIsDropdownOpen(false)}
               />
-
               <div className="absolute bottom-full left-3 right-3 mb-2 bg-white rounded-xl border border-gray-100 shadow-xl z-20 overflow-hidden">
                 <div className="px-3 py-2 border-b border-gray-50">
                   <span className="text-[10px] font-bold text-blue-600 bg-blue-50 px-2 py-1 rounded-full uppercase tracking-wider">
-                    {userRole}
+                    {userRole.toUpperCase()}
                   </span>
                 </div>
 

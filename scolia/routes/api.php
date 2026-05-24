@@ -19,6 +19,7 @@ use App\Http\Controllers\FrequenteController;
 use App\Http\Controllers\FicheEnseignantController;
 use App\Http\Controllers\PaiementController;
 use App\Http\Controllers\ScolariteController;
+use App\Http\Controllers\UserController;
 use App\Http\Controllers\ModeController;
 use Illuminate\Support\Facades\Route;
 
@@ -96,6 +97,16 @@ Route::middleware('auth:sanctum')->group(function () {
     // ── PARENT — seulement ses enfants ────────────────────────
     Route::middleware('role:parent')->group(function () {
         Route::get('/parent/enfants',                   [ParentsController::class, 'mesEnfants']);
+    });
+    Route::prefix('admin')->group(function () {
+
+        Route::get('/utilisateurs', [UserController::class, 'index']);
+        Route::post('/utilisateurs', [UserController::class, 'store']);
+        Route::get('/utilisateurs/{id}', [UserController::class, 'show']);
+        Route::put('/utilisateurs/{id}', [UserController::class, 'update']);
+        Route::put('/utilisateurs/{id}/toggle-actif', [UserController::class, 'toggleActif']);
+        Route::post('/utilisateurs/{id}/reset-password', [UserController::class, 'resetPassword']);
+        Route::delete('/utilisateurs/{id}', [UserController::class, 'destroy']); // optionnel
     });
 
 });

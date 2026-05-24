@@ -70,6 +70,10 @@ import PaiementParClasse from "./pages/paiements/PaiementParClasse";
 import ScolariteForm from "./pages/scolarites/ScolariteForm";
 import ScolariteDetail from "./pages/scolarites/ScolariteDetail";
 import ScolaritePage from "./pages/scolarites/ScolaritePage";
+import UserManagementPage from "./pages/admin/UserManagementPage";
+import UserForm from "./pages/admin/UserForm";
+import UserDetail from "./pages/admin/UserDetail";
+import MonProfil from "./pages/mon-profil/MonProfil";
 
 // ==================== RÔLES ====================
 const ADMIN_ROLES = ["root", "admin", "directeur"];
@@ -575,6 +579,50 @@ export default function App() {
           </div>
         }
       />
+     {/* ==================== GESTION UTILISATEURS (Root + Admin) ==================== */}
+<Route
+  path="/admin/utilisateurs"
+  element={
+    <ProtectedRoute roles={['root', 'admin']}>
+      <UserManagementPage />
+    </ProtectedRoute>
+  }
+/>
+
+<Route
+  path="/admin/utilisateurs/nouveau"
+  element={
+    <ProtectedRoute roles={['root', 'admin']}>
+      <UserForm />
+    </ProtectedRoute>
+  }
+/>
+
+<Route
+  path="/admin/utilisateurs/:id/modifier"
+  element={
+    <ProtectedRoute roles={['root', 'admin']}>
+      <UserForm />
+    </ProtectedRoute>
+  }
+/>
+
+<Route
+  path="/admin/utilisateurs/:id"
+  element={
+    <ProtectedRoute roles={['root', 'admin']}>
+      <UserDetail />
+    </ProtectedRoute>
+  }
+/>
+<Route
+  path="/mon-profil"
+  element={
+    <ProtectedRoute>
+      <MonProfil />
+    </ProtectedRoute>
+  }
+/>
     </Routes>
   );
 }
