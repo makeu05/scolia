@@ -34,12 +34,16 @@ Route::get('/villes', [VilleNaissanceController::class, 'index']);
 Route::apiResource('fiches-enseignants', FicheEnseignantController::class);
 
 
+
 Route::middleware('auth:sanctum')->group(function () {
 
     Route::post('/logout', [AuthController::class, 'logout']);
     Route::get('/me',      [AuthController::class, 'me']);
      Route::apiResource('annees',       AnneeAcademiqueController::class);
     Route::apiResource('trimestres',   TrimestreController::class);
+    Route::get('/parent/enfants', [ParentsController::class, 'mesEnfants']);
+
+
 
     // ── ROOT + ADMIN + DIRECTEUR ──────────────────────────────
     Route::middleware('role:root,admin,directeur')->group(function () {
@@ -100,10 +104,7 @@ Route::get('/personnes', [PersonneController::class, 'index']);
         Route::get('/evaluations/classement',           [EvaluationController::class, 'classement']);
     });
 
-    // ── PARENT — seulement ses enfants ────────────────────────
-    Route::middleware('role:parent')->group(function () {
-        Route::get('/parent/enfants',                   [ParentsController::class, 'mesEnfants']);
-    });
+   
     Route::prefix('admin')->group(function () {
 
         Route::get('/utilisateurs', [UserController::class, 'index']);
@@ -114,7 +115,8 @@ Route::get('/personnes', [PersonneController::class, 'index']);
         Route::post('/utilisateurs/{id}/reset-password', [UserController::class, 'resetPassword']);
         Route::delete('/utilisateurs/{id}', [UserController::class, 'destroy']); // optionnel
     });
-
+     // ── PARENT — seulement ses enfants ────────────────────────
+   
 });
 
 
