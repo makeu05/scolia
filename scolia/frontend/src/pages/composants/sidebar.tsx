@@ -1,5 +1,5 @@
 // ─────────────────────────────────────────────────────────────
-// SIDEBAR SGS
+// SIDEBAR SGS AVEC GESTION DES RÔLES
 // ─────────────────────────────────────────────────────────────
 
 import {
@@ -16,6 +16,7 @@ import {
   LogOut,
   ChevronDown,
   X,
+  BarChart2,
 } from "lucide-react";
 
 import { useState } from "react";
@@ -29,6 +30,7 @@ interface NavItem {
   badge?: number;
   section?: string;
   path?: string;
+  roles?: string[];
 }
 
 const NAV_ITEMS: NavItem[] = [
@@ -37,98 +39,162 @@ const NAV_ITEMS: NavItem[] = [
     label: "Tableau de bord",
     icon: LayoutDashboard,
     section: "principal",
-    path: "/dashboard",
+    path: "/",
+    roles: [
+      "root",
+      "admin",
+      "directeur",
+      "fondateur",
+      "enseignant",
+      "parent",
+    ],
   },
+
   {
     id: "eleves",
     label: "Élèves",
     icon: Users,
     section: "gestion",
     path: "/eleves",
+    roles: ["root", "admin", "directeur"],
   },
+
   {
     id: "enseignants",
     label: "Enseignants",
     icon: Users,
     section: "gestion",
     path: "/enseignants",
+    roles: ["root", "admin", "directeur"],
   },
+
   {
     id: "structure",
     label: "Structure pédagogique",
     icon: BookOpen,
     section: "gestion",
     path: "/cours",
+    roles: ["root", "admin", "directeur"],
   },
+
   {
     id: "inscriptions",
     label: "Inscriptions",
     icon: BookOpen,
     section: "gestion",
     path: "/inscriptions",
+    roles: ["root", "admin", "directeur"],
   },
+
   {
     id: "notes",
     label: "Notes & Évaluations",
     icon: ClipboardList,
     section: "gestion",
     path: "/notes",
+    roles: [
+      "root",
+      "admin",
+      "directeur",
+      "enseignant",
+      "parent",
+    ],
   },
+
   {
     id: "annees",
     label: "Années académiques",
     icon: GraduationCap,
     section: "gestion",
     path: "/annees",
+    roles: ["root", "admin"],
   },
+
   {
     id: "classes",
     label: "Classes et cycles",
     icon: GraduationCap,
     section: "gestion",
     path: "/classes",
+    roles: ["root", "admin", "directeur"],
   },
+
   {
     id: "salles",
     label: "Salles de classe",
     icon: GraduationCap,
     section: "gestion",
     path: "/salles",
+    roles: ["root", "admin", "directeur"],
   },
+
   {
     id: "emploi",
     label: "Emploi du temps",
     icon: Calendar,
     section: "gestion",
     path: "/emploi-du-temps",
+    roles: ["root", "admin", "directeur", "enseignant"],
   },
+
+  {
+    id: "scolarites",
+    label: "Scolarités",
+    icon: CreditCard,
+    section: "gestion",
+    path: "/scolarites",
+    roles: ["root", "admin", "fondateur"],
+  },
+
   {
     id: "finance",
-    label: "Finance",
+    label: "Finances",
     icon: CreditCard,
     section: "gestion",
     path: "/finance",
+    roles: ["root", "admin", "directeur", "fondateur"],
   },
+
+  {
+    id: "paiements-stats",
+    label: "Statistiques paiements",
+    icon: BarChart2,
+    section: "gestion",
+    path: "/paiements/stats",
+    roles: ["root", "admin", "directeur", "fondateur"],
+  },
+
   {
     id: "communication",
     label: "Communication",
     icon: MessageSquare,
     section: "outils",
     path: "/communication",
+    roles: ["root", "admin", "directeur", "enseignant"],
   },
+
   {
     id: "discipline",
     label: "Discipline",
     icon: AlertTriangle,
     section: "outils",
     path: "/discipline",
+    roles: ["root", "admin", "directeur"],
   },
+
   {
     id: "bibliotheque",
     label: "Bibliothèque",
     icon: Library,
     section: "outils",
     path: "/bibliotheque",
+    roles: [
+      "root",
+      "admin",
+      "directeur",
+      "enseignant",
+      "parent",
+    ],
   },
 ];
 
@@ -147,6 +213,7 @@ const Sidebar: React.FC<SidebarProps> = ({
 }) => {
   const { user, logout } = useAuth();
   const navigate = useNavigate();
+
   const [isDropdownOpen, setIsDropdownOpen] = useState(false);
 
   const sections = ["principal", "gestion", "outils"];
@@ -157,8 +224,20 @@ const Sidebar: React.FC<SidebarProps> = ({
     outils: "Outils",
   };
 
+  // ─────────────────────────────────────────────
+  // FILTRAGE PAR RÔLE
+  // ─────────────────────────────────────────────
+
+  const userRole = user?.role ?? "";
+
+  const NAV_ITEMS_FILTERED = NAV_ITEMS.filter((item) => {
+    if (!item.roles) return true;
+    return item.roles.includes(userRole);
+  });
+
   function getInitials(name?: string): string {
     if (!name) return "SG";
+
     return name
       .split(" ")
       .map((n) => n[0])
@@ -172,9 +251,8 @@ const Sidebar: React.FC<SidebarProps> = ({
     navigate("/login");
   }
 
-  const userFullname = user?.name  ?? "Utilisateur";
-  const userEmail    = user?.email ?? "email@example.com";
-  const userRole     = user?.role  ?? "admin";
+  const userFullname = user?.name ?? "Utilisateur";
+  user?.username ?? "";
 
   return (
     <>
@@ -201,11 +279,15 @@ const Sidebar: React.FC<SidebarProps> = ({
             <div className="h-10 w-10 rounded-xl bg-[#1a3a5c] flex items-center justify-center">
               <GraduationCap className="h-5 w-5 text-white" />
             </div>
+
             <div>
               <p className="text-sm font-bold text-gray-900">SGS</p>
-              <p className="text-[10px] text-gray-400">Gestion scolaire</p>
+              <p className="text-[10px] text-gray-400">
+                Gestion scolaire
+              </p>
             </div>
           </div>
+
           <button
             onClick={onClose}
             className="lg:hidden p-1.5 rounded-lg hover:bg-gray-100 text-gray-400"
@@ -221,15 +303,20 @@ const Sidebar: React.FC<SidebarProps> = ({
               <p className="px-2 py-1 text-[10px] font-semibold uppercase tracking-widest text-gray-400">
                 {sectionLabels[section]}
               </p>
+
               <div className="mt-2 space-y-1">
-                {NAV_ITEMS.filter(
+                {NAV_ITEMS_FILTERED.filter(
                   (item) => item.section === section
                 ).map((item) => (
                   <button
                     key={item.id}
                     onClick={() => {
                       onNav(item.id);
-                      if (item.path) navigate(item.path);
+
+                      if (item.path) {
+                        navigate(item.path);
+                      }
+
                       onClose();
                     }}
                     className={`
@@ -249,7 +336,11 @@ const Sidebar: React.FC<SidebarProps> = ({
                           : "text-gray-400"
                       }`}
                     />
-                    <span className="flex-1 truncate">{item.label}</span>
+
+                    <span className="flex-1 truncate">
+                      {item.label}
+                    </span>
+
                     {item.badge && (
                       <span className="bg-red-100 text-red-600 text-[10px] font-semibold px-1.5 py-0.5 rounded-full">
                         {item.badge}
@@ -271,14 +362,17 @@ const Sidebar: React.FC<SidebarProps> = ({
             <div className="h-9 w-9 rounded-full bg-[#1a3a5c] flex items-center justify-center text-white text-xs font-bold uppercase">
               {getInitials(userFullname)}
             </div>
+
             <div className="flex-1 min-w-0">
               <p className="text-xs font-semibold text-gray-800 truncate">
                 {userFullname}
               </p>
+
               <p className="text-[10px] text-gray-400 truncate">
-                {userEmail}
+                {user?.username ?? "username"} {/* Affiche le username ou "username" si non disponible */}
               </p>
             </div>
+
             <ChevronDown
               className={`h-4 w-4 text-gray-400 transition-transform ${
                 isDropdownOpen ? "rotate-180" : ""
@@ -293,12 +387,14 @@ const Sidebar: React.FC<SidebarProps> = ({
                 className="fixed inset-0 z-10"
                 onClick={() => setIsDropdownOpen(false)}
               />
+
               <div className="absolute bottom-full left-3 right-3 mb-2 bg-white rounded-xl border border-gray-100 shadow-xl z-20 overflow-hidden">
                 <div className="px-3 py-2 border-b border-gray-50">
                   <span className="text-[10px] font-bold text-blue-600 bg-blue-50 px-2 py-1 rounded-full uppercase tracking-wider">
                     {userRole}
                   </span>
                 </div>
+
                 <button
                   onClick={handleLogout}
                   className="w-full flex items-center gap-2 px-3 py-3 text-sm text-red-600 hover:bg-red-50 transition"

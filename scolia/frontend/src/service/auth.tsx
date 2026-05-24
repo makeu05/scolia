@@ -1,39 +1,53 @@
-const API = "http://localhost:8000/api";
+import { useState } from 'react';
 
-// ─────────────────────────────────────────────
-// TYPES
-// ─────────────────────────────────────────────
+const API = import.meta.env.VITE_API_URL ?? 'http://localhost:8000/api';
 
 export interface User {
   id: number;
   name: string;
-  email: string;
-  role: string;
+  username: string;
+  role:
+    | 'root'
+    | 'admin'
+    | 'fondateur'
+    | 'directeur'
+    | 'enseignant'
+    | 'parent';
+
+  type: 'admin' | 'personne';
+  typeCode: number;
+
+  // Enseignant
+  idEnseignant?: number;
+  idCours?: number;
+
+  // Parent
+  enfants?: number[];
 }
 
-export interface AuthResponse {
-  token: string;
-  user: User;
-}
-
-// ─────────────────────────────────────────────
-// TOKEN STORAGE
-// ─────────────────────────────────────────────
+/* =========================================================
+   TOKEN
+========================================================= */
 
 export function getToken(): string | null {
-  return localStorage.getItem("token");
+  return localStorage.getItem('token');
 }
 
 export function setToken(token: string) {
-  localStorage.setItem("token", token);
+  localStorage.setItem('token', token);
 }
 
+/* =========================================================
+   USER
+========================================================= */
+
 export function setUser(user: User) {
-  localStorage.setItem("user", JSON.stringify(user));
+  localStorage.setItem('user', JSON.stringify(user));
 }
 
 export function getUser(): User | null {
-  const data = localStorage.getItem("user");
+  const data = localStorage.getItem('user');
+
   if (!data) return null;
 
   try {
@@ -43,118 +57,99 @@ export function getUser(): User | null {
   }
 }
 
+/* =========================================================
+   LOGOUT
+========================================================= */
+
 export function logout() {
-  localStorage.removeItem("token");
-  localStorage.removeItem("user");
+  localStorage.removeItem('token');
+  localStorage.removeItem('user');
 }
 
-// ─────────────────────────────────────────────
-// AUTH REQUESTS
-// ─────────────────────────────────────────────
-
-export async function login(
-  email: string,
-  password: string
-): Promise<AuthResponse> {
-  const res = await fetch(`${API}/login`, {
-    method: "POST",
-    headers: {
-      "Content-Type": "application/json",
-      Accept: "application/json",
-    },
-    body: JSON.stringify({ email, password }),
-  });
-
-  const data = await res.json();
-
-  if (!res.ok) {
-    throw new Error(data.message ?? "Identifiants invalides");
-  }
-
-  if (data.token) setToken(data.token);
-  if (data.user) setUser(data.user);
-
-  return data;
-}
-
-export async function register(
-  name: string,
-  email: string,
-  password: string,
-  role: string
-): Promise<AuthResponse> {
-  const res = await fetch(`${API}/register`, {
-    method: "POST",
-    headers: {
-      "Content-Type": "application/json",
-      Accept: "application/json",
-    },
-    body: JSON.stringify({ name, email, password, role }),
-  });
-
-  const data = await res.json();
-
-  if (!res.ok) {
-    throw new Error(data.message ?? "Erreur création compte");
-  }
-
-  if (data.token) setToken(data.token);
-  if (data.user) setUser(data.user);
-
-  return data;
-}
-
-// ─────────────────────────────────────────────
-// AUTH FETCH (IMPORTANT)
-// ─────────────────────────────────────────────
+/* =========================================================
+   AUTH FETCH
+========================================================= */
 
 export async function authFetch(
   url: string,
   options: RequestInit = {}
 ): Promise<Response> {
+
+  // IMPORTANT :
+  // le token est lu AU MOMENT DE L'APPEL
   const token = getToken();
 
   const headers: Record<string, string> = {
-    Accept: "application/json",
+    Accept: 'application/json',
     ...(options.headers as Record<string, string>),
   };
 
-  // JSON default
+  // Ne pas forcer Content-Type avec FormData
   if (!(options.body instanceof FormData)) {
-    headers["Content-Type"] = "application/json";
+    headers['Content-Type'] = 'application/json';
   }
 
-  // JWT HEADER
+  // Injection Bearer
   if (token) {
     headers.Authorization = `Bearer ${token}`;
   }
 
-  const res = await fetch(url, {
+  return fetch(url, {
     ...options,
     headers,
   });
-
-  // AUTH ERROR HANDLING
-  if (res.status === 401) {
-    logout();
-    throw new Error("Session expirée, reconnecte-toi");
-  }
-
-  return res;
 }
 
-// ─────────────────────────────────────────────
-// AUTH HOOK
-// ─────────────────────────────────────────────
+/* =========================================================
+   LOGIN
+========================================================= */
 
-import { useState } from "react";
+export async function login(
+  username: string,
+  password: string
+): Promise<{ token: string; user: User }> {
+
+  const res = await fetch(`${API}/login`, {
+    method: 'POST',
+    headers: {
+      'Content-Type': 'application/json',
+      Accept: 'application/json',
+    },
+    body: JSON.stringify({
+      username,
+      password,
+    }),
+  });
+
+  const data = await res.json();
+
+  if (!res.ok) {
+    throw new Error(data.message ?? 'Identifiants invalides');
+  }
+
+  // stockage
+  setToken(data.token);
+  setUser(data.user);
+
+  return data;
+}
+
+/* =========================================================
+   HOOK AUTH
+========================================================= */
 
 export function useAuth() {
+
   const [user, setUserState] = useState<User | null>(getUser());
 
-  async function loginUser(email: string, password: string) {
-    const data = await login(email, password);
+  async function loginUser(
+    username: string,
+    password: string
+  ) {
+    const data = await login(username, password);
+
     setUserState(data.user);
+
     return data;
   }
 
@@ -164,10 +159,47 @@ export function useAuth() {
   }
 
   return {
+
     user,
+
     token: getToken(),
-    login: loginUser,
-    logout: logoutUser,
+
     isAuthenticated: !!getToken(),
+
+    login: loginUser,
+
+    logout: logoutUser,
+
+    // =====================================================
+    // HELPERS ROLES
+    // =====================================================
+
+    isRoot:
+      user?.role === 'root',
+
+    isAdmin:
+      ['root', 'admin'].includes(user?.role ?? ''),
+
+    isDirecteur:
+      ['root', 'admin', 'directeur']
+        .includes(user?.role ?? ''),
+
+    isFondateur:
+      ['root', 'fondateur']
+        .includes(user?.role ?? ''),
+
+    isEnseignant:
+      user?.role === 'enseignant',
+
+    isParent:
+      user?.role === 'parent',
+
+    canManageNotes:
+      ['root', 'admin', 'directeur', 'enseignant']
+        .includes(user?.role ?? ''),
+
+    canManagePaiements:
+      ['root', 'admin', 'directeur', 'fondateur']
+        .includes(user?.role ?? ''),
   };
 }

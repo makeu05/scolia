@@ -1,5 +1,6 @@
-import { useEffect, useState } from "react";
+import { useEffect, useState, useCallback } from "react";
 import { Link } from "react-router-dom";
+import { Plus, Trash2, Eye, Edit } from "lucide-react";
 
 import {
   getClasses,
@@ -17,7 +18,6 @@ import {
 export default function ClassesPage() {
   const [classes, setClasses] = useState<Classe[]>([]);
   const [cycles, setCycles] = useState<Cycle[]>([]);
-
   const [loading, setLoading] = useState(false);
 
   const [page, setPage] = useState(1);
@@ -26,40 +26,35 @@ export default function ClassesPage() {
   const [search, setSearch] = useState("");
   const [idCycle, setIdCycle] = useState("");
 
-  /* ================= CYCLE FORM ================= */
-
-  const [showCycleForm, setShowCycleForm] =
-    useState(false);
-
+  // Cycle Form
+  const [showCycleForm, setShowCycleForm] = useState(false);
   const [cycleForm, setCycleForm] = useState({
     libelle: "",
     description: "",
     idAdmin: "1",
   });
 
-  /* ================= LOAD ================= */
-
-  async function fetchClassesData() {
+  const fetchClassesData = useCallback(async () => {
+    setLoading(true);
     try {
-      setLoading(true);
-
-      const data = await getClasses(
-        page,
-        idCycle,
-        search
-      );
-
-      setClasses(data.data);
+      const data = await getClasses(page, idCycle, search);
+      setClasses(data.data || []);
       setMeta(data);
+    } catch (err) {
+      console.error(err);
     } finally {
       setLoading(false);
     }
-  }
+  }, [page, idCycle, search]);
 
-  async function fetchCyclesData() {
-    const data = await getCycles();
-    setCycles(data);
-  }
+  const fetchCyclesData = async () => {
+    try {
+      const data = await getCycles();
+      setCycles(data);
+    } catch (err) {
+      console.error(err);
+    }
+  };
 
   useEffect(() => {
     fetchCyclesData();
@@ -67,191 +62,126 @@ export default function ClassesPage() {
 
   useEffect(() => {
     fetchClassesData();
-  }, [page, idCycle]);
+  }, [fetchClassesData]);
 
-  /* ================= DELETE CLASSE ================= */
+  async function handleCreateCycle(e: React.FormEvent) {
+    e.preventDefault();
+    try {
+      await createCycle(cycleForm);
+      setCycleForm({ libelle: "", description: "", idAdmin: "1" });
+      setShowCycleForm(false);
+      fetchCyclesData();
+      fetchClassesData();
+    } catch (err) {
+      alert("Erreur lors de la création du cycle");
+    }
+  }
 
   async function handleDeleteClasse(id: number) {
     if (!confirm("Supprimer cette classe ?")) return;
-
     await deleteClasse(id);
-
     fetchClassesData();
   }
 
-  /* ================= CREATE CYCLE ================= */
-
-  async function handleCreateCycle(
-    e: React.FormEvent
-  ) {
-    e.preventDefault();
-
-    await createCycle(cycleForm);
-
-    setCycleForm({
-      libelle: "",
-      description: "",
-      idAdmin: "1",
-    });
-
-    setShowCycleForm(false);
-
-    fetchCyclesData();
-  }
-
-  /* ================= DELETE CYCLE ================= */
-
   async function handleDeleteCycle(id: number) {
     if (!confirm("Supprimer ce cycle ?")) return;
-
     await deleteCycle(id);
-
     fetchCyclesData();
+    fetchClassesData();
   }
 
   return (
     <div className="p-6 max-w-7xl mx-auto">
-
-      {/* HEADER */}
-      <div className="flex items-center justify-between mb-6">
-
+      {/* Header */}
+      <div className="flex justify-between items-center mb-8">
         <div>
-          <h1 className="text-2xl font-bold text-foreground">
-            Classes
-          </h1>
-
-          <p className="text-sm text-muted-foreground">
-            Gestion des classes et cycles
-          </p>
+          <h1 className="text-3xl font-bold text-gray-900">Gestion des Classes</h1>
+          <p className="text-gray-500 mt-1">Cycles et Classes</p>
         </div>
 
         <div className="flex gap-3">
-
           <button
-            onClick={() =>
-              setShowCycleForm(!showCycleForm)
-            }
-            className="bg-secondary text-secondary-foreground px-4 py-2 rounded-lg text-sm"
+            onClick={() => setShowCycleForm(!showCycleForm)}
+            className="border border-gray-300 hover:bg-gray-50 text-gray-700 px-5 py-3 rounded-xl text-sm font-medium transition"
           >
-            {showCycleForm
-              ? "Annuler"
-              : "+ Cycle"}
+            {showCycleForm ? "Annuler" : "+ Cycle"}
           </button>
 
           <Link
             to="/classes/nouveau"
-            className="bg-primary text-primary-foreground px-4 py-2 rounded-lg text-sm"
+            className="flex items-center gap-2 bg-[#1a3a5c] text-white px-5 py-3 rounded-xl hover:bg-[#16324f] transition"
           >
-            + Ajouter Classe
+            <Plus size={20} />
+            Nouvelle Classe
           </Link>
-
         </div>
       </div>
 
-      {/* FORMULAIRE CYCLE */}
+      {/* Formulaire Cycle */}
       {showCycleForm && (
-        <form
-          onSubmit={handleCreateCycle}
-          className="bg-card border border-border rounded-xl p-4 mb-6 space-y-3"
-        >
+        <div className="bg-white border border-gray-200 rounded-2xl p-6 mb-8 shadow-sm">
+          <h2 className="text-lg font-semibold mb-4">Nouveau Cycle</h2>
+          <form onSubmit={handleCreateCycle} className="space-y-4">
+            <input
+              type="text"
+              placeholder="Libellé du cycle (ex: Primaire, Secondaire...)"
+              value={cycleForm.libelle}
+              onChange={(e) => setCycleForm({ ...cycleForm, libelle: e.target.value })}
+              className="w-full border border-gray-300 rounded-xl px-4 py-3 focus:outline-none focus:border-[#1a3a5c]"
+              required
+            />
 
-          <h2 className="text-sm font-medium text-foreground">
-            Nouveau cycle
-          </h2>
+            <textarea
+              placeholder="Description (optionnel)"
+              value={cycleForm.description}
+              onChange={(e) => setCycleForm({ ...cycleForm, description: e.target.value })}
+              className="w-full border border-gray-300 rounded-xl px-4 py-3 focus:outline-none focus:border-[#1a3a5c]"
+              rows={3}
+            />
 
-          <input
-            type="text"
-            placeholder="Libellé"
-            value={cycleForm.libelle}
-            onChange={(e) =>
-              setCycleForm({
-                ...cycleForm,
-                libelle: e.target.value,
-              })
-            }
-            className="w-full bg-background border border-border rounded-lg px-3 py-2 text-sm"
-            required
-          />
-
-          <textarea
-            placeholder="Description"
-            value={cycleForm.description}
-            onChange={(e) =>
-              setCycleForm({
-                ...cycleForm,
-                description: e.target.value,
-              })
-            }
-            className="w-full bg-background border border-border rounded-lg px-3 py-2 text-sm"
-          />
-
-          <button
-            className="bg-primary text-primary-foreground px-4 py-2 rounded-lg text-sm"
-          >
-            Enregistrer
-          </button>
-
-        </form>
+            <button
+              type="submit"
+              className="bg-[#1a3a5c] text-white px-6 py-3 rounded-xl hover:bg-[#16324f] transition"
+            >
+              Enregistrer le Cycle
+            </button>
+          </form>
+        </div>
       )}
 
-      {/* LISTE DES CYCLES */}
-      <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4 mb-6">
-
+      {/* Liste des Cycles */}
+      <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4 mb-10">
         {cycles.map((cycle) => (
-          <div
-            key={cycle.idCycle}
-            className="bg-card border border-border rounded-xl p-4"
-          >
-
-            <div className="flex justify-between items-start mb-2">
-
+          <div key={cycle.idCycle} className="bg-white border border-gray-200 rounded-2xl p-6 shadow-sm">
+            <div className="flex justify-between items-start">
               <div>
-                <h2 className="font-semibold text-foreground">
-                  {cycle.libelle}
-                </h2>
-
-                <p className="text-sm text-muted-foreground">
-                  {cycle.description ||
-                    "Aucune description"}
+                <h3 className="font-semibold text-lg">{cycle.libelle}</h3>
+                <p className="text-gray-500 text-sm mt-1">
+                  {cycle.description || "Aucune description"}
                 </p>
               </div>
-
               <button
-                onClick={() =>
-                  handleDeleteCycle(cycle.idCycle)
-                }
-                className="text-red-400 text-xs"
+                onClick={() => handleDeleteCycle(cycle.idCycle)}
+                className="text-red-600 hover:text-red-700"
               >
-                Supprimer
+                <Trash2 size={18} />
               </button>
-
             </div>
-
-            <div className="text-xs text-muted-foreground">
+            <p className="text-sm text-gray-500 mt-4">
               {cycle.classes?.length ?? 0} classe(s)
-            </div>
-
+            </p>
           </div>
         ))}
       </div>
 
-      {/* FILTERS */}
-      <div className="flex gap-3 mb-6">
-
+      {/* Filtres */}
+      <div className="flex flex-wrap gap-3 mb-6">
         <input
           type="text"
-          placeholder="Rechercher..."
+          placeholder="Rechercher une classe..."
           value={search}
-          onChange={(e) =>
-            setSearch(e.target.value)
-          }
-          onKeyDown={(e) => {
-            if (e.key === "Enter") {
-              setPage(1);
-              fetchClassesData();
-            }
-          }}
-          className="flex-1 bg-background border border-border rounded-lg px-4 py-2 text-sm"
+          onChange={(e) => setSearch(e.target.value)}
+          className="flex-1 border border-gray-300 rounded-xl px-4 py-3 focus:outline-none focus:border-[#1a3a5c]"
         />
 
         <select
@@ -260,150 +190,95 @@ export default function ClassesPage() {
             setIdCycle(e.target.value);
             setPage(1);
           }}
-          className="bg-background border border-border rounded-lg px-3 py-2 text-sm"
+          className="border border-gray-300 rounded-xl px-4 py-3 focus:outline-none focus:border-[#1a3a5c]"
         >
-          <option value="">
-            Tous les cycles
-          </option>
-
+          <option value="">Tous les cycles</option>
           {cycles.map((c) => (
-            <option
-              key={c.idCycle}
-              value={c.idCycle}
-            >
+            <option key={c.idCycle} value={c.idCycle}>
               {c.libelle}
             </option>
           ))}
         </select>
       </div>
 
-      {/* TABLE */}
-      {loading ? (
-        <p className="text-muted-foreground">
-          Chargement...
-        </p>
-      ) : (
-        <div className="overflow-x-auto border border-border rounded-xl">
-
-          <table className="w-full text-sm">
-
-            <thead className="bg-card">
-              <tr className="border-b border-border">
-
-                <th className="text-left px-4 py-3">
-                  Classe
-                </th>
-
-                <th className="text-left px-4 py-3">
-                  Cycle
-                </th>
-
-                <th className="text-left px-4 py-3">
-                  Cours
-                </th>
-
-                <th className="text-left px-4 py-3">
-                  Actions
-                </th>
-
+      {/* Tableau des Classes */}
+      <div className="bg-white border border-gray-200 rounded-2xl overflow-hidden shadow-sm">
+        <table className="w-full">
+          <thead className="bg-gray-50 border-b">
+            <tr>
+              <th className="px-6 py-4 text-left">Classe</th>
+              <th className="px-6 py-4 text-left">Cycle</th>
+              <th className="px-6 py-4 text-left">Nombre de Cours</th>
+              <th className="px-6 py-4 text-center">Actions</th>
+            </tr>
+          </thead>
+          <tbody className="divide-y">
+            {loading ? (
+              <tr>
+                <td colSpan={4} className="text-center py-12 text-gray-500">
+                  Chargement...
+                </td>
               </tr>
-            </thead>
-
-            <tbody>
-
-              {classes.map((cl) => (
-                <tr
-                  key={cl.idClasse}
-                  className="border-b border-border hover:bg-secondary/30"
-                >
-
-                  <td className="px-4 py-3 font-medium">
-                    {cl.libelle}
+            ) : classes.length === 0 ? (
+              <tr>
+                <td colSpan={4} className="text-center py-12 text-gray-500">
+                  Aucune classe trouvée
+                </td>
+              </tr>
+            ) : (
+              classes.map((cl) => (
+                <tr key={cl.idClasse} className="hover:bg-gray-50 transition-colors">
+                  <td className="px-6 py-4 font-medium">{cl.libelle}</td>
+                  <td className="px-6 py-4 text-gray-600">{cl.cycle?.libelle ?? "—"}</td>
+                  <td className="px-6 py-4 text-gray-600">{cl.cours_count ?? 0}</td>
+                  <td className="px-6 py-4">
+                    <div className="flex justify-center gap-4">
+                      <Link to={`/classes/${cl.idClasse}`} className="text-blue-600 hover:text-blue-700">
+                        <Eye size={20} />
+                      </Link>
+                      <Link to={`/classes/${cl.idClasse}/modifier`} className="text-amber-600 hover:text-amber-700">
+                        <Edit size={20} />
+                      </Link>
+                      <button onClick={() => handleDeleteClasse(cl.idClasse)} className="text-red-600 hover:text-red-700">
+                        <Trash2 size={20} />
+                      </button>
+                    </div>
                   </td>
-
-                  <td className="px-4 py-3">
-                    {cl.cycle?.libelle ?? "—"}
-                  </td>
-
-                  <td className="px-4 py-3">
-                    {cl.cours_count ?? 0}
-                  </td>
-
-                  <td className="px-4 py-3 flex gap-3">
-
-                    <Link
-                      to={`/classes/${cl.idClasse}`}
-                      className="text-primary text-xs"
-                    >
-                      Voir
-                    </Link>
-
-                    <Link
-                      to={`/classes/${cl.idClasse}/modifier`}
-                      className="text-blue-400 text-xs"
-                    >
-                      Modifier
-                    </Link>
-
-                    <button
-                      onClick={() =>
-                        handleDeleteClasse(
-                          cl.idClasse
-                        )
-                      }
-                      className="text-red-400 text-xs"
-                    >
-                      Supprimer
-                    </button>
-
-                  </td>
-
                 </tr>
-              ))}
+              ))
+            )}
+          </tbody>
+        </table>
+      </div>
 
-            </tbody>
-          </table>
-        </div>
-      )}
-
-      {/* PAGINATION */}
-      {meta && (
-        <div className="flex justify-between mt-4">
-
-          <span className="text-sm text-muted-foreground">
+      {/* Pagination */}
+      {meta && meta.last_page > 1 && (
+        <div className="flex items-center justify-between mt-6">
+          <span className="text-sm text-gray-500">
             {meta.total} classe(s)
           </span>
 
-          <div className="flex gap-2">
-
+          <div className="flex items-center gap-3">
             <button
               disabled={page === 1}
-              onClick={() =>
-                setPage((p) => p - 1)
-              }
-              className="bg-secondary px-3 py-1 rounded text-sm disabled:opacity-40"
+              onClick={() => setPage((p) => p - 1)}
+              className="px-5 py-2 border border-gray-300 rounded-xl hover:bg-gray-50 disabled:opacity-50"
             >
-              ←
+              Précédent
             </button>
 
-            <span className="px-3 py-1 text-sm">
-              {page} / {meta.last_page}
+            <span className="text-sm text-gray-600">
+              Page <strong>{page}</strong> sur {meta.last_page}
             </span>
 
             <button
-              disabled={
-                page === meta.last_page
-              }
-              onClick={() =>
-                setPage((p) => p + 1)
-              }
-              className="bg-secondary px-3 py-1 rounded text-sm disabled:opacity-40"
+              disabled={page === meta.last_page}
+              onClick={() => setPage((p) => p + 1)}
+              className="px-5 py-2 border border-gray-300 rounded-xl hover:bg-gray-50 disabled:opacity-50"
             >
-              →
+              Suivant
             </button>
-
           </div>
-
         </div>
       )}
     </div>

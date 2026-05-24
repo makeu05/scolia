@@ -1,5 +1,7 @@
 import { useEffect, useState } from 'react';
 import { useNavigate } from 'react-router-dom';
+import { Plus, Eye, Edit, Trash2 } from 'lucide-react';
+
 import {
   getInscriptions,
   deleteInscription,
@@ -14,18 +16,18 @@ export default function InscriptionPage() {
   const navigate = useNavigate();
 
   const [inscriptions, setInscriptions] = useState<Inscription[]>([]);
-  const [classes, setClasses]           = useState<Classe[]>([]);
-  const [annees, setAnnees]             = useState<AnneeAcademique[]>([]);
-  const [idClasse, setIdClasse]         = useState('');
-  const [idAcademi, setIdAcademi]       = useState('');
-  const [search, setSearch]             = useState('');
-  const [page, setPage]                 = useState(1);
-  const [lastPage, setLastPage]         = useState(1);
-  const [total, setTotal]               = useState(0);
-  const [loading, setLoading]           = useState(false);
-  const [error, setError]               = useState('');
+  const [classes, setClasses] = useState<Classe[]>([]);
+  const [annees, setAnnees] = useState<AnneeAcademique[]>([]);
 
-  /* ─── Chargement ─── */
+  const [idClasse, setIdClasse] = useState('');
+  const [idAcademi, setIdAcademi] = useState('');
+  const [search, setSearch] = useState('');
+  const [page, setPage] = useState(1);
+  const [lastPage, setLastPage] = useState(1);
+  const [total, setTotal] = useState(0);
+
+  const [loading, setLoading] = useState(false);
+  const [error, setError] = useState('');
 
   async function load() {
     try {
@@ -46,9 +48,9 @@ export default function InscriptionPage() {
     getAnnees().then(setAnnees).catch(() => {});
   }, []);
 
-  useEffect(() => { load(); }, [page, idClasse, idAcademi]);
-
-  /* ─── Suppression ─── */
+  useEffect(() => {
+    load();
+  }, [page, idClasse, idAcademi]);
 
   async function handleDelete(id: number) {
     if (!confirm('Supprimer cette inscription ?')) return;
@@ -60,176 +62,158 @@ export default function InscriptionPage() {
     }
   }
 
-  /* ─── Recherche ─── */
-
-  function handleSearch(e: React.FormEvent) {
-    e.preventDefault();
-    setPage(1);
-    load();
-  }
-
   return (
     <div className="p-6 max-w-6xl mx-auto">
-
-      {/* HEADER */}
-      <div className="flex items-center justify-between mb-6">
+      {/* Header */}
+      <div className="flex items-center justify-between mb-8">
         <div>
-          <h1 className="text-2xl font-bold text-foreground">Inscriptions</h1>
-          <p className="text-sm text-muted-foreground">
-            Gestion des inscriptions des élèves
-          </p>
+          <h1 className="text-3xl font-bold text-gray-900">Inscriptions</h1>
+          <p className="text-gray-500 mt-1">{total} inscription(s) enregistrée(s)</p>
         </div>
+
         <button
           onClick={() => navigate('/inscriptions/ajouter')}
-          className="bg-primary text-primary-foreground px-4 py-2 rounded-lg text-sm hover:opacity-90 transition"
+          className="flex items-center gap-2 bg-[#1a3a5c] text-white px-5 py-3 rounded-xl hover:bg-[#16324f] transition"
         >
-          + Inscrire un élève
+          <Plus size={20} />
+          Inscrire un élève
         </button>
       </div>
 
-      {/* ERREUR */}
+      {/* Error */}
       {error && (
-        <div className="bg-red-500/10 border border-red-500/20 text-red-400 px-4 py-3 rounded-xl text-sm mb-4">
+        <div className="bg-red-50 border border-red-200 text-red-700 px-5 py-4 rounded-2xl mb-6">
           {error}
         </div>
       )}
 
-      {/* FILTRES */}
-      <div className="bg-card border border-border rounded-2xl p-4 mb-6">
-        <form onSubmit={handleSearch} className="flex flex-wrap gap-3">
+      {/* Filtres */}
+      <div className="bg-white border border-gray-200 rounded-2xl p-5 mb-6">
+        <div className="flex flex-wrap gap-4">
           <input
             type="text"
-            placeholder="Rechercher un élève..."
+            placeholder="Rechercher un élève (nom, prénom, matricule)..."
             value={search}
-            onChange={e => setSearch(e.target.value)}
-            className="flex-1 min-w-[200px] bg-background border border-border rounded-lg px-4 py-2 text-sm"
+            onChange={(e) => setSearch(e.target.value)}
+            onKeyDown={(e) => { if (e.key === 'Enter') { setPage(1); load(); } }}
+            className="flex-1 min-w-[280px] border border-gray-300 rounded-xl px-4 py-3 focus:outline-none focus:border-[#1a3a5c]"
           />
+
           <select
             value={idAcademi}
-            onChange={e => { setIdAcademi(e.target.value); setPage(1); }}
-            className="bg-background border border-border rounded-lg px-3 py-2 text-sm"
+            onChange={(e) => { setIdAcademi(e.target.value); setPage(1); }}
+            className="border border-gray-300 rounded-xl px-4 py-3 focus:outline-none focus:border-[#1a3a5c]"
           >
             <option value="">Toutes les années</option>
             {annees.map(a => (
               <option key={a.idAnnee} value={a.idAnnee}>{a.libelle}</option>
             ))}
           </select>
+
           <select
             value={idClasse}
-            onChange={e => { setIdClasse(e.target.value); setPage(1); }}
-            className="bg-background border border-border rounded-lg px-3 py-2 text-sm"
+            onChange={(e) => { setIdClasse(e.target.value); setPage(1); }}
+            className="border border-gray-300 rounded-xl px-4 py-3 focus:outline-none focus:border-[#1a3a5c]"
           >
             <option value="">Toutes les classes</option>
             {classes.map(c => (
               <option key={c.idClasse} value={c.idClasse}>{c.libelle}</option>
             ))}
           </select>
+
           <button
-            type="submit"
-            className="bg-primary text-primary-foreground px-4 py-2 rounded-lg text-sm hover:opacity-90 transition"
+            onClick={() => { setPage(1); load(); }}
+            className="bg-[#1a3a5c] text-white px-6 py-3 rounded-xl hover:bg-[#16324f] transition"
           >
             Rechercher
           </button>
-        </form>
+        </div>
       </div>
 
-      {/* TABLEAU */}
-      {loading ? (
-        <div className="text-center py-12 text-muted-foreground text-sm">
-          Chargement...
-        </div>
-      ) : (
-        <div className="bg-card border border-border rounded-2xl overflow-hidden">
-          <table className="w-full text-sm">
-            <thead className="bg-muted/50 text-muted-foreground uppercase text-xs">
+      {/* Tableau */}
+      <div className="bg-white border border-gray-200 rounded-2xl overflow-hidden">
+        <table className="w-full">
+          <thead className="bg-gray-50 border-b">
+            <tr>
+              <th className="px-6 py-4 text-left">Élève</th>
+              <th className="px-6 py-4 text-left">Matricule</th>
+              <th className="px-6 py-4 text-left">Classe</th>
+              <th className="px-6 py-4 text-left">Salle</th>
+              <th className="px-6 py-4 text-left">Année</th>
+              <th className="px-6 py-4 text-center">Actions</th>
+            </tr>
+          </thead>
+          <tbody className="divide-y divide-gray-100">
+            {loading ? (
               <tr>
-                <th className="px-4 py-3 text-left">Élève</th>
-                <th className="px-4 py-3 text-left">Matricule</th>
-                <th className="px-4 py-3 text-left">Classe</th>
-                <th className="px-4 py-3 text-left">Salle</th>
-                <th className="px-4 py-3 text-left">Année</th>
-                <th className="px-4 py-3 text-left">Actions</th>
+                <td colSpan={6} className="py-12 text-center text-gray-500">Chargement des inscriptions...</td>
               </tr>
-            </thead>
-            <tbody className="divide-y divide-border">
-              {inscriptions.map(i => (
-                <tr
-                  key={i.idFrequente}
-                  className="hover:bg-muted/30 transition"
-                >
-                  <td className="px-4 py-3 font-medium">
+            ) : inscriptions.length === 0 ? (
+              <tr>
+                <td colSpan={6} className="py-12 text-center text-gray-500">Aucune inscription trouvée</td>
+              </tr>
+            ) : (
+              inscriptions.map(i => (
+                <tr key={i.idFrequente} className="hover:bg-gray-50 transition">
+                  <td className="px-6 py-4 font-medium">
                     {i.eleve?.prenom} {i.eleve?.nom}
                   </td>
-                  <td className="px-4 py-3 text-muted-foreground">
-                    {i.eleve?.matricule}
-                  </td>
-                  <td className="px-4 py-3">
-                    {i.salle?.classe?.libelle ?? '—'}
-                  </td>
-                  <td className="px-4 py-3 text-muted-foreground">
-                    {i.salle?.libelle ?? '—'}
-                  </td>
-                  <td className="px-4 py-3 text-muted-foreground">
+                  <td className="px-6 py-4 text-gray-600">#{i.eleve?.matricule}</td>
+                  <td className="px-6 py-4">{i.salle?.classe?.libelle ?? '—'}</td>
+                  <td className="px-6 py-4 text-gray-600">{i.salle?.libelle ?? '—'}</td>
+                  <td className="px-6 py-4 text-gray-600 text-sm">
                     {i.annee_academique?.libelle ?? '—'}
                   </td>
-                  <td className="px-4 py-3">
-                    <div className="flex gap-3">
+                  <td className="px-6 py-4">
+                    <div className="flex items-center justify-center gap-4">
                       <button
                         onClick={() => navigate(`/inscriptions/${i.idFrequente}`)}
-                        className="text-primary hover:underline text-xs"
+                        className="text-blue-600 hover:text-blue-700"
                       >
-                        Voir
+                        <Eye size={20} />
                       </button>
                       <button
                         onClick={() => navigate(`/inscriptions/${i.idFrequente}/modifier`)}
-                        className="text-blue-400 hover:underline text-xs"
+                        className="text-amber-600 hover:text-amber-700"
                       >
-                        Modifier
+                        <Edit size={20} />
                       </button>
                       <button
                         onClick={() => handleDelete(i.idFrequente)}
-                        className="text-red-400 hover:underline text-xs"
+                        className="text-red-600 hover:text-red-700"
                       >
-                        Supprimer
+                        <Trash2 size={20} />
                       </button>
                     </div>
                   </td>
                 </tr>
-              ))}
-              {inscriptions.length === 0 && (
-                <tr>
-                  <td
-                    colSpan={6}
-                    className="px-4 py-12 text-center text-muted-foreground"
-                  >
-                    Aucune inscription trouvée
-                  </td>
-                </tr>
-              )}
-            </tbody>
-          </table>
-        </div>
-      )}
+              ))
+            )}
+          </tbody>
+        </table>
+      </div>
 
-      {/* PAGINATION */}
+      {/* Pagination */}
       {lastPage > 1 && (
-        <div className="flex justify-between items-center mt-4 text-sm text-muted-foreground">
-          <span>{total} inscription(s)</span>
+        <div className="flex items-center justify-between mt-6 px-2">
+          <span className="text-sm text-gray-500">
+            {total} inscription(s) • Page {page} / {lastPage}
+          </span>
+
           <div className="flex gap-2">
             <button
               disabled={page === 1}
               onClick={() => setPage(p => p - 1)}
-              className="px-3 py-1 rounded-lg bg-card border border-border disabled:opacity-40 hover:bg-muted/30 transition"
+              className="px-5 py-2 border border-gray-300 rounded-xl hover:bg-gray-50 disabled:opacity-50"
             >
-              ← Préc
+              Précédent
             </button>
-            <span className="px-3 py-1">{page} / {lastPage}</span>
             <button
               disabled={page === lastPage}
               onClick={() => setPage(p => p + 1)}
-              className="px-3 py-1 rounded-lg bg-card border border-border disabled:opacity-40 hover:bg-muted/30 transition"
+              className="px-5 py-2 border border-gray-300 rounded-xl hover:bg-gray-50 disabled:opacity-50"
             >
-              Suiv →
+              Suivant
             </button>
           </div>
         </div>

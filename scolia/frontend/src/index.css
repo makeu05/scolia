@@ -1,3 +1,89 @@
 @tailwind base;
 @tailwind components;
 @tailwind utilities;
+
+/* ====================== DESIGN SYSTEM GLOBAL ====================== */
+
+@layer base {
+  body {
+    font-family: 'Inter', system-ui, sans-serif;
+  }
+}
+
+@layer components {
+  /* Cards principales */
+  .card {
+    @apply bg-white border border-gray-200 rounded-2xl shadow-sm;
+  }
+
+  /* Boutons principaux */
+  .btn-primary {
+    @apply bg-[#1a3a5c] hover:bg-[#16324f] text-white font-semibold py-3 px-6 rounded-xl transition-all duration-200 flex items-center justify-center gap-2;
+  }
+
+  .btn-secondary {
+    @apply border border-gray-300 hover:bg-gray-50 text-gray-700 font-medium py-3 px-6 rounded-xl transition-all;
+  }
+
+  /* Inputs */
+  .input {
+    @apply border border-gray-300 rounded-xl px-4 py-3 focus:outline-none focus:border-[#1a3a5c] focus:ring-1 focus:ring-[#1a3a5c]/30 w-full;
+  }
+
+  /* Selects */
+  .select {
+    @apply border border-gray-300 rounded-xl px-4 py-3 focus:outline-none focus:border-[#1a3a5c] bg-white;
+  }
+
+  /* Titres */
+  .page-title {
+    @apply text-3xl font-bold text-gray-900;
+  }
+
+  .section-title {
+    @apply text-xl font-semibold text-gray-800;
+  }
+
+  /* Tableaux */
+  .table-container {
+    @apply bg-white border border-gray-200 rounded-2xl overflow-hidden shadow-sm;
+  }
+
+  .table-th {
+    @apply px-6 py-4 text-left text-sm font-semibold text-gray-600 bg-gray-50 border-b;
+  }
+
+  .table-td {
+    @apply px-6 py-4 text-sm;
+  }
+
+  /* Badges / Statut */
+  .badge-actif {
+    @apply inline-block px-3 py-1 rounded-full text-xs font-medium bg-emerald-100 text-emerald-700;
+  }
+
+  .badge-inactif {
+    @apply inline-block px-3 py-1 rounded-full text-xs font-medium bg-gray-100 text-gray-600;
+  }
+
+  /* Messages */
+  .alert-success {
+    @apply bg-green-50 border border-green-200 text-green-700 px-4 py-3 rounded-xl;
+  }
+
+  .alert-error {
+    @apply bg-red-50 border border-red-200 text-red-700 px-4 py-3 rounded-xl;
+  }
+}
+
+/* Style pour l'impression (Bulletins) */
+@media print {
+  .print\:hidden {
+    display: none !important;
+  }
+  
+  .card {
+    box-shadow: none !important;
+    border: 1px solid #ddd !important;
+  }
+}

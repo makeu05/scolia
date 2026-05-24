@@ -3,63 +3,104 @@
 namespace App\Http\Controllers;
 
 use Illuminate\Http\Request;
-use Illuminate\Support\Facades\Auth;
+use App\Models\Admin;
+use App\Models\Personne;
 use App\Models\User;
+use Laravel\Sanctum\HasApiTokens;
+use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Hash;
-
+use Illuminate\Foundation\Auth\User as Authenticatable;
 class AuthController extends Controller
 {
-    public function register(Request $request)
-    {
-        $data = $request->validate([
-            'name'     => 'required|string|max:255',
-            'email'    => 'required|email|unique:users',
-            'password' => 'required|min:8',
-            'role'     => 'nullable|string',
-        ]);
-
-        $user = User::create([
-            'name'     => $data['name'],
-            'email'    => $data['email'],
-            'password' => Hash::make($data['password']),
-            'role'     => $data['role'] ?? 'Administrateur',
-        ]);
-
-        return response()->json([
-            'message' => 'Utilisateur créé avec succès',
-            'user'    => $user
-        ], 201);
-    }
-
     public function login(Request $request)
 {
     $request->validate([
-        'email'    => 'required|email',
-        'password' => 'required',
+        'username' => 'required|string',
+        'password' => 'required|string',
     ]);
 
-    $user = \App\Models\User::where('email', $request->email)->first();
+    // Chercher dans la table admin d'abord
+    $admin = DB::table('admin')
+        ->where('username', $request->username)
+        ->first();
 
-    if (!$user || !Hash::check($request->password, $user->password)) {
+    if ($admin && Hash::check($request->password, $admin->password)) {
+
+        // Mapper typeAdmin → rôle lisible
+        $roles = [0 => 'root', 1 => 'admin', 2 => 'fondateur', 3 => 'directeur'];
+        $role = $roles[$admin->typeAdmin] ?? 'admin';
+
+        // Trouver ou créer le User Sanctum correspondant
+        $user = \App\Models\User::firstOrCreate(
+            ['email' => $admin->username . '@scolia.local'],
+            [
+                'name'     => $admin->nom,
+                'email'    => $admin->username . '@scolia.local',
+                'password' => $admin->password, // déjà hashé
+                'role'     => $role,
+            ]
+        );
+
+        // Révoquer les anciens tokens, créer un nouveau
+        $user->tokens()->delete();
+        $token = $user->createToken('auth_token')->plainTextToken;
+
         return response()->json([
-            'message' => 'Identifiants invalides'
-        ], 401);
+            'token' => $token,
+            'user'  => [
+                'id'       => $user->id,
+                'name'     => $admin->nom,
+                'username' => $admin->username,
+                'role'     => $role,
+                'type'     => 'admin',
+                'typeCode' => $admin->typeAdmin,
+            ],
+        ]);
     }
 
-    $token = $user->createToken('auth_token')->plainTextToken;
+    // Chercher dans personne (enseignants/parents)
+    $personne = DB::table('personne')
+        ->where('username', $request->username)
+        ->first();
 
-    return response()->json([
-        'message' => 'Connexion réussie',
-        'user'    => $user,
-        'token'   => $token
-    ]);
+    if ($personne && Hash::check($request->password, $personne->password)) {
+
+        $roles = [1 => 'enseignant', 4 => 'parent'];
+        $role = $roles[$personne->typePersonne] ?? 'enseignant';
+
+        $user = \App\Models\User::firstOrCreate(
+            ['email' => $personne->username . '@scolia.local'],
+            [
+                'name'     => $personne->nom . ' ' . $personne->prenom,
+                'email'    => $personne->username . '@scolia.local',
+                'password' => $personne->password,
+                'role'     => $role,
+            ]
+        );
+
+        $user->tokens()->delete();
+        $token = $user->createToken('auth_token')->plainTextToken;
+
+        return response()->json([
+            'token' => $token,
+            'user'  => [
+                'id'       => $user->id,
+                'name'     => $personne->nom . ' ' . $personne->prenom,
+                'username' => $personne->username,
+                'role'     => $role,
+                'type'     => 'personne',
+                'typeCode' => $personne->typePersonne,
+            ],
+        ]);
+    }
+
+    return response()->json(['message' => 'Identifiants invalides'], 401);
 }
 
     public function logout(Request $request)
     {
-        return response()->json([
-            'message' => 'Déconnecté'
-        ]);
+        $request->user()->currentAccessToken()->delete();
+        return response()->json(['message' => 'Déconnecté']);
     }
 
     public function me(Request $request)
