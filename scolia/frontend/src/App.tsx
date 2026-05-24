@@ -74,6 +74,27 @@ import UserManagementPage from "./pages/admin/UserManagementPage";
 import UserForm from "./pages/admin/UserForm";
 import UserDetail from "./pages/admin/UserDetail";
 import MonProfil from "./pages/mon-profil/MonProfil";
+import ParentDashboard from "./pages/parent/ParentDashboard";
+
+import { getUser } from './service/auth';
+import EnseignantDashboard from "./pages/enseignants/EnseignantDashboard";
+
+// ─── Redirection intelligente selon rôle ───────────────────
+function HomeRedirect() {
+  const user = getUser();
+
+  if (!user) return <Navigate to="/login" replace />;
+
+  switch (user.role) {
+    case 'parent':     return <Navigate to="/dashboard-parent"     replace />;
+    case 'enseignant': return <Navigate to="/dashboard-enseignant" replace />;
+    case 'fondateur':  return <Navigate to="/finance"              replace />;
+    case 'directeur':  return <Navigate to="/dashboard"            replace />;
+    case 'admin':      return <Navigate to="/dashboard"            replace />;
+    case 'root':       return <Navigate to="/dashboard"            replace />;
+    default:           return <Navigate to="/login"                replace />;
+  }
+}
 
 // ==================== RÔLES ====================
 const ADMIN_ROLES = ["root", "admin", "directeur"];
@@ -620,6 +641,39 @@ export default function App() {
   element={
     <ProtectedRoute>
       <MonProfil />
+    </ProtectedRoute>
+  }
+/>
+
+{/* ─── Redirection racine selon rôle ─── */}
+<Route path="/" element={<HomeRedirect />} />
+
+{/* Dashboard admin/directeur/root/fondateur */}
+<Route
+  path="/dashboard"
+  element={
+    <ProtectedRoute roles={['root', 'admin', 'directeur', 'fondateur']}>
+      <Dashboard />
+    </ProtectedRoute>
+  }
+/>
+
+{/* Dashboard enseignant */}
+<Route
+  path="/dashboard-enseignant"
+  element={
+    <ProtectedRoute roles={['enseignant']}>
+      <EnseignantDashboard />
+    </ProtectedRoute>
+  }
+/>
+
+{/* Dashboard parent */}
+<Route
+  path="/dashboard-parent"
+  element={
+    <ProtectedRoute roles={['parent']}>
+      <ParentDashboard />
     </ProtectedRoute>
   }
 />

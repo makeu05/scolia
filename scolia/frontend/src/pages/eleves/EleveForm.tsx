@@ -46,12 +46,16 @@ export default function EleveForm() {
   });
 
   /* ─── Chargement villes ─── */
-  useEffect(() => {
-    authFetch(`${API}/villes`)
-      .then(r => r.json())
-      .then(data => setVilles(data.data ?? data))
-      .catch(() => {});
-  }, []);
+ // ✅ CORRECT — se déclenche une seule fois
+useEffect(() => {
+  authFetch(`${API}/villes`)
+    .then(r => r.json())
+    .then(data => {
+      const liste = Array.isArray(data) ? data : (data.data ?? []);
+      setVilles(liste);
+    })
+    .catch(() => setVilles([]));
+}, []); // ← tableau vide OBLIGATOIRE
 
   /* ─── Chargement élève en mode édition ─── */
   useEffect(() => {

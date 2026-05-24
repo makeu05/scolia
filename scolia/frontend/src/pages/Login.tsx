@@ -39,7 +39,7 @@ const ROLE_REDIRECTS: Record<string, string> = {
   directeur:  "/dashboard",
   fondateur:  "/finance",
   enseignant: "/notes",
-  parent:     "/suivi",
+  parent:     "/dashboard-parent",
 };
 
 // ─────────────────────────────────────────────────────────────────────────────

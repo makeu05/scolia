@@ -21,6 +21,7 @@ use App\Http\Controllers\PaiementController;
 use App\Http\Controllers\ScolariteController;
 use App\Http\Controllers\UserController;
 use App\Http\Controllers\ModeController;
+use App\Http\Controllers\PersonneController;
 use Illuminate\Support\Facades\Route;
 
 
@@ -29,7 +30,7 @@ use Illuminate\Support\Facades\Route;
 Route::post('/login', [AuthController::class, 'login']);
 Route::post('/register', [AuthController::class, 'register']);
 Route::post('/password-reset', [AuthController::class, 'passwordReset']);
-Route::apiResource('villes-naissance', VilleNaissanceController::class)->only(['index', 'show']);
+Route::get('/villes', [VilleNaissanceController::class, 'index']);
 Route::apiResource('fiches-enseignants', FicheEnseignantController::class);
 
 
@@ -37,6 +38,8 @@ Route::middleware('auth:sanctum')->group(function () {
 
     Route::post('/logout', [AuthController::class, 'logout']);
     Route::get('/me',      [AuthController::class, 'me']);
+     Route::apiResource('annees',       AnneeAcademiqueController::class);
+    Route::apiResource('trimestres',   TrimestreController::class);
 
     // ── ROOT + ADMIN + DIRECTEUR ──────────────────────────────
     Route::middleware('role:root,admin,directeur')->group(function () {
@@ -48,11 +51,14 @@ Route::middleware('auth:sanctum')->group(function () {
         Route::apiResource('cycles',       CycleController::class);
         Route::apiResource('salles',       SalleController::class);
         Route::apiResource('cours',        CoursController::class);
-        Route::apiResource('annees',       AnneeAcademiqueController::class);
-        Route::apiResource('trimestres',   TrimestreController::class);
         Route::apiResource('sessions',     SessionController::class);
         Route::apiResource('epreuves',     EpreuveController::class);
         Route::apiResource('natures',      NatureEpreuveController::class);
+        Route::get('/eleves/{matricule}/parents',         [ParentsController::class, 'index']);
+Route::post('/eleves/{matricule}/parents',        [ParentsController::class, 'store']);
+Route::delete('/eleves/{matricule}/parents/{id}', [ParentsController::class, 'destroy']);
+        // Dans api.php
+Route::get('/personnes', [PersonneController::class, 'index']);
     });
 
     // ── FONDATEUR + ROOT ──────────────────────────────────────
