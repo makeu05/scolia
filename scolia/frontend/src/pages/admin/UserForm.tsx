@@ -1,97 +1,89 @@
-import { useEffect, useState } from 'react';
-import { useNavigate, useParams, Link } from 'react-router-dom';
-import { ArrowLeft, Save } from 'lucide-react';
-import { authFetch } from '../../service/auth';
+import { useEffect, useState } from "react";
+import { useNavigate, useParams } from "react-router-dom";
+import { Save, Eye, EyeOff, Shield } from "lucide-react";
+import PageLayout from "../../components/layout/PageLayout";
+import { authFetch } from "../../service/auth";
 
-const API = import.meta.env.VITE_API_URL ?? 'http://localhost:8000/api';
+const API = import.meta.env.VITE_API_URL ?? "http://localhost:8000/api";
+
+const ROLES = [
+  { value: "root",       label: "Root",       desc: "Accès total au système",             color: "border-red-200 bg-red-50/50 text-red-700" },
+  { value: "admin",      label: "Admin",      desc: "Gestion complète de l'école",        color: "border-blue-200 bg-blue-50/50 text-blue-700" },
+  { value: "fondateur",  label: "Fondateur",  desc: "Accès finance et paramètres",        color: "border-amber-200 bg-amber-50/50 text-amber-700" },
+  { value: "directeur",  label: "Directeur",  desc: "Gestion pédagogique et discipline",  color: "border-violet-200 bg-violet-50/50 text-violet-700" },
+  { value: "enseignant", label: "Enseignant", desc: "Saisie de notes et cours",           color: "border-emerald-200 bg-emerald-50/50 text-emerald-700" },
+  { value: "parent",     label: "Parent",     desc: "Consultation uniquement",            color: "border-pink-200 bg-pink-50/50 text-pink-700" },
+];
 
 export default function UserForm() {
-  const navigate = useNavigate();
-  const { id } = useParams<{ id: string }>();
-  const isEdit = !!id;
+  const navigate  = useNavigate();
+  const { id }    = useParams<{ id: string }>();
+  const isEdit    = !!id;
 
   const [loading, setLoading] = useState(false);
-  const [saving, setSaving] = useState(false);
-  const [error, setError] = useState('');
+  const [saving, setSaving]   = useState(false);
+  const [error, setError]     = useState("");
+  const [showPwd, setShowPwd] = useState(false);
 
   const [form, setForm] = useState({
-    nom: '',
-    prenom: '',
-    username: '',
-    password: '',
-    role: 'admin',
-    mobile: '',
-    dateNaissance: '',
-    lieuNaissance: '',
-    type: 'admin', // admin ou personne
+    nom: "", prenom: "", username: "", password: "",
+    role: "admin", mobile: "", dateNaissance: "",
+    lieuNaissance: "", type: "admin",
   });
 
-  // Chargement en mode édition
   useEffect(() => {
-    if (isEdit && id) {
-      const loadUser = async () => {
-        try {
-          setLoading(true);
-          const res = await authFetch(`${API}/admin/utilisateurs/${id}`);
-          const data = await res.json();
-
-          setForm({
-            nom: data.nom?.split(' ')[0] || data.nom || '',
-            prenom: data.nom?.includes(' ') ? data.nom.split(' ').slice(1).join(' ') : '',
-            username: data.username || '',
-            password: '',
-            role: data.role || 'admin',
-            mobile: data.mobile || '',
-            dateNaissance: data.dateNaissance || '',
-            lieuNaissance: '',
-            type: data.source || 'admin',
-          });
-        } catch (err: any) {
-          setError("Impossible de charger l'utilisateur");
-        } finally {
-          setLoading(false);
-        }
-      };
-      loadUser();
-    }
+    if (!isEdit || !id) return;
+    setLoading(true);
+    authFetch(`${API}/admin/utilisateurs/${id}`)
+      .then(r => r.json())
+      .then(data => {
+        setForm({
+          nom: data.nom?.split(" ")[0] || data.nom || "",
+          prenom: data.nom?.includes(" ") ? data.nom.split(" ").slice(1).join(" ") : "",
+          username: data.username || "",
+          password: "",
+          role: data.role || "admin",
+          mobile: data.mobile || "",
+          dateNaissance: data.dateNaissance || "",
+          lieuNaissance: "",
+          type: data.source || "admin",
+        });
+      })
+      .catch(() => setError("Impossible de charger l'utilisateur"))
+      .finally(() => setLoading(false));
   }, [id, isEdit]);
+
+  const update = (k: string, v: string) => setForm(prev => ({ ...prev, [k]: v }));
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
-    setSaving(true);
-    setError('');
-
+    setSaving(true); setError("");
     try {
       const payload = {
         nom: form.nom,
-        prenom: form.type === 'personne' ? form.prenom : undefined,
+        prenom: form.type === "personne" ? form.prenom : undefined,
         username: form.username,
         password: form.password || undefined,
         role: form.role,
         mobile: form.mobile,
-        dateNaissance: form.type === 'personne' ? form.dateNaissance : undefined,
-        lieuNaissance: form.type === 'personne' ? 'INDEFINI' : undefined,
+        dateNaissance: form.type === "personne" ? form.dateNaissance : undefined,
+        lieuNaissance: form.type === "personne" ? "INDEFINI" : undefined,
       };
 
-      const url = isEdit 
-        ? `${API}/admin/utilisateurs/${id}` 
-        : `${API}/admin/utilisateurs`;
-
-      const method = isEdit ? 'PUT' : 'POST';
-
-      const res = await authFetch(url, {
-        method,
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify(payload),
-      });
+      const res = await authFetch(
+        isEdit ? `${API}/admin/utilisateurs/${id}` : `${API}/admin/utilisateurs`,
+        {
+          method: isEdit ? "PUT" : "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify(payload),
+        }
+      );
 
       if (!res.ok) {
         const errData = await res.json();
-        throw new Error(errData.message || 'Erreur lors de la sauvegarde');
+        throw new Error(errData.message || "Erreur lors de la sauvegarde");
       }
-
-      alert(isEdit ? 'Utilisateur mis à jour avec succès' : 'Utilisateur créé avec succès');
-      navigate('/admin/utilisateurs');
+      navigate("/admin/utilisateurs");
     } catch (err: any) {
       setError(err.message);
     } finally {
@@ -99,159 +91,192 @@ export default function UserForm() {
     }
   };
 
-  const update = (key: string, value: string) => {
-    setForm(prev => ({ ...prev, [key]: value }));
-  };
-
-  if (loading) return <div className="p-10 text-center">Chargement...</div>;
+  if (loading) return (
+    <div className="min-h-screen bg-slate-50 flex items-center justify-center">
+      <div className="space-y-3 w-full max-w-md px-6">
+        {Array.from({ length: 4 }).map((_, i) => <div key={i} className="skeleton h-12 rounded-2xl" />)}
+      </div>
+    </div>
+  );
 
   return (
-    <div className="p-6 max-w-2xl mx-auto">
-      <div className="flex items-center gap-4 mb-6">
-        <Link to="/admin/utilisateurs" className="text-gray-500 hover:text-gray-700">
-          <ArrowLeft size={24} />
-        </Link>
-        <h1 className="text-3xl font-bold text-gray-900">
-          {isEdit ? 'Modifier Utilisateur' : 'Nouvel Utilisateur'}
-        </h1>
-      </div>
+    <PageLayout
+      title={isEdit ? "Modifier l'utilisateur" : "Nouvel utilisateur"}
+      subtitle={isEdit ? `ID #${id}` : "Créer un compte d'accès au système"}
+      backTo="/admin/utilisateurs"
+    >
+      {error && <div className="alert-error">{error}</div>}
 
-      {error && (
-        <div className="bg-red-50 border border-red-200 text-red-700 px-4 py-3 rounded-xl mb-6">
-          {error}
-        </div>
-      )}
+      <form onSubmit={handleSubmit} className="grid grid-cols-1 lg:grid-cols-3 gap-5 max-w-4xl">
 
-      <form onSubmit={handleSubmit} className="bg-white rounded-2xl border border-gray-100 p-8 space-y-6">
-        
-        {/* Type d'utilisateur */}
-        <div>
-          <label className="block text-sm font-medium mb-2">Type d'utilisateur</label>
-          <div className="flex gap-4">
-            <button
-              type="button"
-              onClick={() => update('type', 'admin')}
-              className={`flex-1 py-3 rounded-xl border ${form.type === 'admin' ? 'border-[#1a3a5c] bg-[#1a3a5c] text-white' : 'border-gray-300'}`}
-            >
-              Administrateur
-            </button>
-            <button
-              type="button"
-              onClick={() => update('type', 'personne')}
-              className={`flex-1 py-3 rounded-xl border ${form.type === 'personne' ? 'border-[#1a3a5c] bg-[#1a3a5c] text-white' : 'border-gray-300'}`}
-            >
-              Enseignant / Parent
-            </button>
+        {/* Colonne gauche — type + rôle */}
+        <div className="lg:col-span-1 space-y-5">
+
+          {/* Type de compte */}
+          <div className="card p-5">
+            <h3 className="section-title mb-3">Type de compte</h3>
+            <div className="space-y-2">
+              {[
+                { value: "admin",   label: "Administrateur", desc: "Accès via table Admin" },
+                { value: "personne",label: "Enseignant / Parent", desc: "Accès via table Personne" },
+              ].map(t => (
+                <button
+                  key={t.value}
+                  type="button"
+                  onClick={() => update("type", t.value)}
+                  className={`w-full flex items-start gap-3 p-3 rounded-xl border text-left transition-all ${
+                    form.type === t.value
+                      ? "border-[#0f1f3d] bg-[#0f1f3d]/5"
+                      : "border-slate-200 hover:border-slate-300"
+                  }`}
+                >
+                  <div className={`w-4 h-4 rounded-full border-2 flex-shrink-0 mt-0.5 ${
+                    form.type === t.value ? "border-[#0f1f3d] bg-[#0f1f3d]" : "border-slate-300"
+                  }`} />
+                  <div>
+                    <p className={`text-sm font-medium ${form.type === t.value ? "text-[#0f1f3d]" : "text-slate-700"}`}>
+                      {t.label}
+                    </p>
+                    <p className="text-xs text-slate-400 mt-0.5">{t.desc}</p>
+                  </div>
+                </button>
+              ))}
+            </div>
+          </div>
+
+          {/* Rôle */}
+          <div className="card p-5">
+            <h3 className="section-title mb-3">Rôle</h3>
+            <div className="space-y-2">
+              {ROLES.map(r => (
+                <button
+                  key={r.value}
+                  type="button"
+                  onClick={() => update("role", r.value)}
+                  className={`w-full flex items-center gap-3 p-3 rounded-xl border text-left transition-all ${
+                    form.role === r.value ? r.color : "border-slate-200 hover:border-slate-300 bg-white"
+                  }`}
+                >
+                  <Shield className="w-3.5 h-3.5 flex-shrink-0" />
+                  <div className="min-w-0">
+                    <p className="text-sm font-semibold leading-none">{r.label}</p>
+                    <p className="text-xs opacity-70 mt-0.5 truncate">{r.desc}</p>
+                  </div>
+                </button>
+              ))}
+            </div>
           </div>
         </div>
 
-        <div className="grid grid-cols-2 gap-4">
-          <div>
-            <label className="block text-sm font-medium mb-2">Nom</label>
-            <input
-              type="text"
-              value={form.nom}
-              onChange={(e) => update('nom', e.target.value)}
-              required
-              className="w-full border border-gray-300 rounded-xl px-4 py-3 focus:outline-none focus:border-[#1a3a5c]"
-            />
-          </div>
+        {/* Colonne droite — infos */}
+        <div className="lg:col-span-2 space-y-5">
 
-          {form.type === 'personne' && (
-            <div>
-              <label className="block text-sm font-medium mb-2">Prénom</label>
+          <div className="card p-5 space-y-4">
+            <h3 className="section-title">Informations personnelles</h3>
+
+            <div className={`grid gap-4 ${form.type === "personne" ? "grid-cols-2" : "grid-cols-1"}`}>
+              <div className="space-y-1.5">
+                <label className="block text-sm font-medium text-slate-700">Nom *</label>
+                <input
+                  required value={form.nom}
+                  onChange={e => update("nom", e.target.value)}
+                  placeholder="BELVA"
+                  className="input"
+                />
+              </div>
+              {form.type === "personne" && (
+                <div className="space-y-1.5">
+                  <label className="block text-sm font-medium text-slate-700">Prénom *</label>
+                  <input
+                    required value={form.prenom}
+                    onChange={e => update("prenom", e.target.value)}
+                    placeholder="Makeu"
+                    className="input"
+                  />
+                </div>
+              )}
+            </div>
+
+            <div className="space-y-1.5">
+              <label className="block text-sm font-medium text-slate-700">Téléphone</label>
               <input
-                type="text"
-                value={form.prenom}
-                onChange={(e) => update('prenom', e.target.value)}
-                required
-                className="w-full border border-gray-300 rounded-xl px-4 py-3 focus:outline-none focus:border-[#1a3a5c]"
+                type="tel" value={form.mobile}
+                onChange={e => update("mobile", e.target.value)}
+                placeholder="699000000"
+                className="input"
               />
             </div>
-          )}
-        </div>
 
-        <div>
-          <label className="block text-sm font-medium mb-2">Nom d'utilisateur</label>
-          <input
-            type="text"
-            value={form.username}
-            onChange={(e) => update('username', e.target.value)}
-            required
-            className="w-full border border-gray-300 rounded-xl px-4 py-3 focus:outline-none focus:border-[#1a3a5c]"
-          />
-        </div>
-
-        <div>
-          <label className="block text-sm font-medium mb-2">
-            {isEdit ? 'Nouveau mot de passe (laisser vide pour ne pas changer)' : 'Mot de passe'}
-          </label>
-          <input
-            type="password"
-            value={form.password}
-            onChange={(e) => update('password', e.target.value)}
-            {...(!isEdit && { required: true })}
-            className="w-full border border-gray-300 rounded-xl px-4 py-3 focus:outline-none focus:border-[#1a3a5c]"
-            placeholder={isEdit ? "Laisser vide si inchangé" : ""}
-          />
-        </div>
-
-        <div>
-          <label className="block text-sm font-medium mb-2">Rôle</label>
-          <select
-            value={form.role}
-            onChange={(e) => update('role', e.target.value)}
-            className="w-full border border-gray-300 rounded-xl px-4 py-3 focus:outline-none focus:border-[#1a3a5c]"
-          >
-            <option value="root">Root (Super Admin)</option>
-            <option value="admin">Administrateur</option>
-            <option value="fondateur">Fondateur</option>
-            <option value="directeur">Directeur</option>
-            <option value="enseignant">Enseignant</option>
-            <option value="parent">Parent</option>
-          </select>
-        </div>
-
-        <div>
-          <label className="block text-sm font-medium mb-2">Téléphone</label>
-          <input
-            type="tel"
-            value={form.mobile}
-            onChange={(e) => update('mobile', e.target.value)}
-            className="w-full border border-gray-300 rounded-xl px-4 py-3 focus:outline-none focus:border-[#1a3a5c]"
-          />
-        </div>
-
-        {form.type === 'personne' && (
-          <div>
-            <label className="block text-sm font-medium mb-2">Date de naissance</label>
-            <input
-              type="date"
-              value={form.dateNaissance}
-              onChange={(e) => update('dateNaissance', e.target.value)}
-              className="w-full border border-gray-300 rounded-xl px-4 py-3 focus:outline-none focus:border-[#1a3a5c]"
-            />
+            {form.type === "personne" && (
+              <div className="space-y-1.5">
+                <label className="block text-sm font-medium text-slate-700">Date de naissance</label>
+                <input
+                  type="date" value={form.dateNaissance}
+                  onChange={e => update("dateNaissance", e.target.value)}
+                  className="input"
+                />
+              </div>
+            )}
           </div>
-        )}
 
-        <div className="flex gap-4 pt-6">
-          <button
-            type="submit"
-            disabled={saving}
-            className="flex-1 bg-[#1a3a5c] text-white py-4 rounded-xl font-semibold hover:bg-[#132d4a] transition disabled:opacity-70 flex items-center justify-center gap-2"
-          >
-            <Save size={20} />
-            {saving ? 'Enregistrement...' : isEdit ? 'Enregistrer les modifications' : 'Créer l’utilisateur'}
-          </button>
+          <div className="card p-5 space-y-4">
+            <h3 className="section-title">Identifiants de connexion</h3>
 
-          <Link
-            to="/admin/utilisateurs"
-            className="flex-1 border border-gray-300 text-gray-700 py-4 rounded-xl font-semibold text-center hover:bg-gray-50"
-          >
-            Annuler
-          </Link>
+            <div className="space-y-1.5">
+              <label className="block text-sm font-medium text-slate-700">Nom d'utilisateur *</label>
+              <input
+                required value={form.username}
+                onChange={e => update("username", e.target.value)}
+                placeholder="admin.ecole"
+                className="input"
+                autoComplete="off"
+              />
+            </div>
+
+            <div className="space-y-1.5">
+              <label className="block text-sm font-medium text-slate-700">
+                {isEdit ? "Nouveau mot de passe (vide = inchangé)" : "Mot de passe *"}
+              </label>
+              <div className="relative">
+                <input
+                  type={showPwd ? "text" : "password"}
+                  value={form.password}
+                  onChange={e => update("password", e.target.value)}
+                  required={!isEdit}
+                  placeholder={isEdit ? "Laisser vide pour ne pas changer" : "••••••••"}
+                  className="input pr-11"
+                  autoComplete="new-password"
+                />
+                <button type="button" onClick={() => setShowPwd(v => !v)}
+                  className="absolute right-3.5 top-1/2 -translate-y-1/2 text-slate-400 hover:text-slate-600 transition-colors">
+                  {showPwd ? <EyeOff className="w-4 h-4" /> : <Eye className="w-4 h-4" />}
+                </button>
+              </div>
+            </div>
+          </div>
+
+          <div className="flex gap-3">
+            <button type="submit" disabled={saving}
+              className="btn-primary flex-1 justify-center py-3 disabled:opacity-60">
+              {saving ? (
+                <span className="flex items-center gap-2">
+                  <span className="w-4 h-4 border-2 border-white/30 border-t-white rounded-full animate-spin" />
+                  Enregistrement…
+                </span>
+              ) : (
+                <span className="flex items-center gap-2">
+                  <Save className="w-4 h-4" />
+                  {isEdit ? "Enregistrer les modifications" : "Créer l'utilisateur"}
+                </span>
+              )}
+            </button>
+            <button type="button" onClick={() => navigate("/admin/utilisateurs")}
+              className="btn-secondary px-8">
+              Annuler
+            </button>
+          </div>
         </div>
       </form>
-    </div>
+    </PageLayout>
   );
 }
