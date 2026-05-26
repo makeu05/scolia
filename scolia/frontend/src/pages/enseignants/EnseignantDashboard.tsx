@@ -1,90 +1,55 @@
-import { useEffect, useState } from 'react';
-import { useNavigate } from 'react-router-dom';
-import { getUser, authFetch } from '../../service/auth';
+import { useEffect, useState } from "react";
+import { useNavigate } from "react-router-dom";
+import { getUser, authFetch } from "../../service/auth";
+import {
+  BookOpen, ClipboardList, BarChart2, FileText,
+  ArrowRight, GraduationCap, Bell,
+} from "lucide-react";
 
-const API = import.meta.env.VITE_API_URL ?? 'http://localhost:8000/api';
+const API = import.meta.env.VITE_API_URL ?? "http://localhost:8000/api";
 
 export default function EnseignantDashboard() {
-  const navigate = useNavigate();
-  const user     = getUser();
+  const navigate    = useNavigate();
+  const user        = getUser();
+  const [cours, setCours] = useState<any>(null);
 
-  const [cours,       setCours]       = useState<any>(null);
-  const [eleves,      setEleves]      = useState<any[]>([]);
-  const [emploi,      setEmploi]      = useState<any[]>([]);
-  const [sessions,    setSessions]    = useState<any[]>([]);
-  const [epreuves,    setEpreuves]    = useState<any[]>([]);
-  const [loadingEleves, setLoadingEleves] = useState(false);
-
-  // ── Charger le cours de l'enseignant ──
   useEffect(() => {
+    setMounted(true);
     if (!user?.idCours) return;
     authFetch(`${API}/cours/${user.idCours}`)
       .then(r => r.json())
-      .then(data => {
-        setCours(data);
-        // Charger les élèves de la classe du cours
-        if (data?.idClasse) {
-          setLoadingEleves(true);
-          authFetch(`${API}/inscriptions/eleves-classe?idClasse=${data.idClasse}`)
-            .then(r => r.json())
-            .then(d => setEleves(d.data ?? d))
-            .finally(() => setLoadingEleves(false));
-
-          // Charger l'emploi du temps de la classe
-          authFetch(`${API}/emploi-du-temps?idClasse=${data.idClasse}`)
-            .then(r => r.json())
-            .then(d => setEmploi(d.data ?? d))
-            .catch(() => {});
-        }
-      })
-      .catch(() => {});
+      .then(setCours);
   }, []);
-
-  // ── Charger les sessions disponibles ──
-  useEffect(() => {
-    authFetch(`${API}/sessions`)
-      .then(r => r.json())
-      .then(d => setSessions(d.data ?? d))
-      .catch(() => {});
-  }, []);
-
-  // ── Charger les épreuves ──
-  useEffect(() => {
-    authFetch(`${API}/epreuves`)
-      .then(r => r.json())
-      .then(d => setEpreuves(d.data ?? d))
-      .catch(() => {});
-  }, []);
-
-  const JOURS = ['Lundi', 'Mardi', 'Mercredi', 'Jeudi', 'Vendredi', 'Samedi'];
 
   return (
-    <div className="p-6 max-w-5xl mx-auto space-y-6">
+    <div className="p-6 max-w-3xl mx-auto">
 
-      {/* ── En-tête ── */}
-      <div>
-        <h1 className="text-2xl font-bold text-gray-900">Espace Enseignant</h1>
-        <p className="text-sm text-gray-500 mt-1">Bonjour {user?.name} 👋</p>
+      <div className="mb-6">
+        <h1 className="text-2xl font-bold text-foreground">
+          Espace Enseignant
+        </h1>
+        <p className="text-sm text-muted-foreground mt-1">
+          Bonjour {user?.name}
+        </p>
       </div>
 
-      {/* ── Cours assigné ── */}
+      {/* Cours assigné */}
       {cours && (
-        <div className="bg-white border border-gray-100 rounded-2xl p-5 shadow-sm">
-          <h2 className="text-xs font-semibold text-gray-400 uppercase tracking-wider mb-3">
+        <div className="bg-card border border-border rounded-2xl p-5 mb-4">
+          <h2 className="text-xs font-semibold text-muted-foreground uppercase tracking-wider mb-3">
             Mon cours
           </h2>
           <div className="flex items-center justify-between">
             <div>
-              <p className="font-bold text-xl text-gray-900">{cours.libelle}</p>
-              <p className="text-sm text-gray-500 mt-0.5">
-                Classe : <span className="font-medium text-gray-700">{cours.classe?.libelle ?? '—'}</span>
-                {' · '}Coefficient : <span className="font-medium text-gray-700">{cours.coefficient}</span>
+              <p className="font-semibold text-lg">{cours.libelle}</p>
+              <p className="text-sm text-muted-foreground">
+                {cours.classe?.libelle} — Coefficient {cours.coefficient}
               </p>
             </div>
-            <span className={`px-3 py-1 rounded-full text-xs font-semibold ${
+            <span className={`px-3 py-1 rounded-full text-xs font-medium ${
               cours.actif
-                ? 'bg-green-100 text-green-700'
-                : 'bg-red-100 text-red-700'
+                ? 'bg-green-500/10 text-green-400'
+                : 'bg-red-500/10 text-red-400'
             }`}>
               {cours.actif ? 'Actif' : 'Inactif'}
             </span>
@@ -92,119 +57,37 @@ export default function EnseignantDashboard() {
         </div>
       )}
 
-      {/* ── Stats rapides ── */}
-      <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
+      {/* Actions rapides */}
+      <div className="grid grid-cols-2 gap-4">
         {[
-          { label: 'Élèves',    value: eleves.length,   color: 'text-blue-600',   bg: 'bg-blue-50' },
-          { label: 'Sessions',  value: sessions.length, color: 'text-violet-600', bg: 'bg-violet-50' },
-          { label: 'Épreuves',  value: epreuves.length, color: 'text-amber-600',  bg: 'bg-amber-50' },
-          { label: 'Créneaux',  value: emploi.length,   color: 'text-emerald-600',bg: 'bg-emerald-50' },
-        ].map(s => (
-          <div key={s.label} className={`${s.bg} rounded-2xl p-4`}>
-            <p className={`text-2xl font-bold ${s.color}`}>{s.value}</p>
-            <p className="text-xs text-gray-500 mt-0.5">{s.label}</p>
-          </div>
-        ))}
-      </div>
-
-      {/* ── Ligne principale : Élèves + Emploi du temps ── */}
-      <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
-
-        {/* Liste des élèves */}
-        <div className="bg-white border border-gray-100 rounded-2xl p-5 shadow-sm">
-          <div className="flex items-center justify-between mb-4">
-            <h2 className="text-xs font-semibold text-gray-400 uppercase tracking-wider">
-              Élèves de ma classe
-            </h2>
-            <span className="text-xs text-gray-400">{eleves.length} élève(s)</span>
-          </div>
-
-          {loadingEleves ? (
-            <p className="text-sm text-gray-400 text-center py-4">Chargement...</p>
-          ) : eleves.length === 0 ? (
-            <p className="text-sm text-gray-400 text-center py-4">Aucun élève inscrit</p>
-          ) : (
-            <div className="space-y-2 max-h-64 overflow-y-auto pr-1">
-              {eleves.map((e: any, i: number) => (
-                <div key={e.matricule ?? i}
-                  className="flex items-center gap-3 py-2 border-b border-gray-50 last:border-0"
-                >
-                  <div className="w-8 h-8 rounded-full bg-[#1a3a5c] flex items-center justify-center text-white text-xs font-bold flex-shrink-0">
-                    {e.prenom?.[0]}{e.nom?.[0]}
-                  </div>
-                  <div className="flex-1 min-w-0">
-                    <p className="text-sm font-medium text-gray-800 truncate">
-                      {e.nom} {e.prenom}
-                    </p>
-                    <p className="text-xs text-gray-400">#{e.matricule}</p>
-                  </div>
-                  <button
-                    onClick={() => navigate(`/notes/saisie?matricule=${e.matricule}&idCours=${user?.idCours}`)}
-                    className="text-xs text-[#1a3a5c] hover:underline flex-shrink-0"
-                  >
-                    Note →
-                  </button>
-                </div>
-              ))}
-            </div>
-          )}
-        </div>
-
-        {/* Emploi du temps */}
-        <div className="bg-white border border-gray-100 rounded-2xl p-5 shadow-sm">
-          <h2 className="text-xs font-semibold text-gray-400 uppercase tracking-wider mb-4">
-            Emploi du temps
-          </h2>
-          {emploi.length === 0 ? (
-            <p className="text-sm text-gray-400 text-center py-4">Aucun créneau défini</p>
-          ) : (
-            <div className="space-y-2 max-h-64 overflow-y-auto pr-1">
-              {JOURS.map(jour => {
-                const creneaux = emploi.filter((e: any) =>
-                  e.jour?.toLowerCase() === jour.toLowerCase()
-                );
-                if (creneaux.length === 0) return null;
-                return (
-                  <div key={jour}>
-                    <p className="text-xs font-semibold text-gray-400 uppercase mb-1">{jour}</p>
-                    {creneaux.map((c: any, i: number) => (
-                      <div key={i}
-                        className="flex items-center gap-3 bg-[#eaf0f8] rounded-lg px-3 py-2 mb-1"
-                      >
-                        <span className="text-xs font-mono text-[#1a3a5c] font-semibold">
-                          {c.heure}
-                        </span>
-                        <span className="text-xs text-gray-700 flex-1 truncate">
-                          {c.cours?.libelle ?? cours?.libelle ?? '—'}
-                        </span>
-                      </div>
-                    ))}
-                  </div>
-                );
-              })}
-            </div>
-          )}
-        </div>
-      </div>
-
-      {/* ── Saisie rapide de note ── */}
-      {cours && sessions.length > 0 && epreuves.length > 0 && (
-        <SaisieRapide
-          idCours={user?.idCours}
-          eleves={eleves}
-          sessions={sessions}
-          epreuves={epreuves}
-          idPers={user?.id}
-        />
-      )}
-
-      {/* ── Actions rapides ── */}
-      <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
-        {[
-          { label: 'Saisir des notes',  desc: 'Entrer les notes',       icon: '✏️', path: '/notes/saisie',    color: 'bg-blue-50 hover:bg-blue-100' },
-          { label: 'Classement',        desc: 'Classement de ma classe', icon: '📊', path: '/notes/classement',color: 'bg-violet-50 hover:bg-violet-100' },
-          { label: 'Bulletins',         desc: 'Générer les bulletins',   icon: '📄', path: '/notes/bulletin',  color: 'bg-emerald-50 hover:bg-emerald-100' },
-          { label: 'Mes épreuves',      desc: 'Gérer mes épreuves',      icon: '📝', path: '/epreuves',        color: 'bg-amber-50 hover:bg-amber-100' },
+          {
+            label: 'Saisir des notes',
+            desc:  'Entrer les notes de mes élèves',
+            icon:  '✏️',
+            path:  '/notes/saisie',
+            color: 'bg-blue-50 hover:bg-blue-100',
+          },
+          {
+            label: 'Voir le classement',
+            desc:  'Classement de ma classe',
+            icon:  '📊',
+            path:  '/notes/classement',
+            color: 'bg-violet-50 hover:bg-violet-100',
+          },
+          {
+            label: 'Bulletins',
+            desc:  'Générer les bulletins',
+            icon:  '📄',
+            path:  '/notes/bulletin',
+            color: 'bg-emerald-50 hover:bg-emerald-100',
+          },
+          {
+            label: 'Mes épreuves',
+            desc:  'Gérer mes épreuves',
+            icon:  '📝',
+            path:  '/epreuves',
+            color: 'bg-amber-50 hover:bg-amber-100',
+          },
         ].map(item => (
           <button
             key={item.path}

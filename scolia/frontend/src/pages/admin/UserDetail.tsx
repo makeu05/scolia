@@ -1,14 +1,15 @@
-import { useEffect, useState } from 'react';
-import { useParams, useNavigate, Link } from 'react-router-dom';
-import { ArrowLeft, Edit, Trash2, Key, UserCheck, UserX } from 'lucide-react';
-import { authFetch } from '../../service/auth';
+import { useEffect, useState } from "react";
+import { useParams, useNavigate } from "react-router-dom";
+import { Edit, Key, UserCheck, UserX, Trash2, Shield, Phone, Calendar } from "lucide-react";
+import PageLayout from "../../components/layout/PageLayout";
+import { authFetch } from "../../service/auth";
 
-const API = import.meta.env.VITE_API_URL ?? 'http://localhost:8000/api';
+const API = import.meta.env.VITE_API_URL ?? "http://localhost:8000/api";
 
 interface UserDetail {
   id: string;
   sourceId: number;
-  source: 'admin' | 'personne';
+  source: "admin" | "personne";
   nom: string;
   username: string;
   role: string;
@@ -19,189 +20,196 @@ interface UserDetail {
   dateNaissance?: string;
 }
 
-export default function UserDetail() {
-  const { id } = useParams<{ id: string }>();
-  const navigate = useNavigate();
+const ROLE_STYLES: Record<string, { badge: string; label: string }> = {
+  root:       { badge: "badge-red",    label: "Root" },
+  admin:      { badge: "badge-blue",   label: "Administrateur" },
+  fondateur:  { badge: "badge-amber",  label: "Fondateur" },
+  directeur:  { badge: "badge-purple", label: "Directeur" },
+  enseignant: { badge: "badge-green",  label: "Enseignant" },
+  parent:     { badge: "bg-pink-50 text-pink-700 ring-1 ring-pink-100", label: "Parent" },
+};
 
-  const [user, setUser] = useState<UserDetail | null>(null);
+export default function UserDetail() {
+  const { id }    = useParams<{ id: string }>();
+  const navigate  = useNavigate();
+  const [user, setUser]       = useState<UserDetail | null>(null);
   const [loading, setLoading] = useState(true);
-  const [error, setError] = useState('');
+  const [error, setError]     = useState("");
+  const [actionLoading, setActionLoading] = useState<string | null>(null);
 
   const fetchUser = async () => {
     if (!id) return;
     try {
       setLoading(true);
-      const res = await authFetch(`${API}/admin/utilisateurs/${id}`);
+      const res  = await authFetch(`${API}/admin/utilisateurs/${id}`);
       const data = await res.json();
       setUser(data);
-    } catch (err: any) {
-      setError("Impossible de charger les informations de l'utilisateur");
-    } finally {
-      setLoading(false);
-    }
+    } catch { setError("Impossible de charger l'utilisateur"); }
+    finally { setLoading(false); }
   };
 
-  useEffect(() => {
-    fetchUser();
-  }, [id]);
+  useEffect(() => { fetchUser(); }, [id]);
 
   const toggleActif = async () => {
     if (!id || !user) return;
     if (!confirm("Changer le statut de cet utilisateur ?")) return;
-
+    setActionLoading("toggle");
     try {
-      await authFetch(`${API}/admin/utilisateurs/${id}/toggle-actif`, { method: 'PUT' });
+      await authFetch(`${API}/admin/utilisateurs/${id}/toggle-actif`, { method: "PUT" });
       fetchUser();
-    } catch (err: any) {
-      alert(err.message || "Une erreur est survenue");
-    }
+    } catch { alert("Une erreur est survenue"); }
+    finally { setActionLoading(null); }
   };
 
   const resetPassword = async () => {
     if (!id) return;
-    const newPassword = prompt("Entrez le nouveau mot de passe :");
-    if (!newPassword || newPassword.length < 6) {
-      alert("Le mot de passe doit contenir au moins 6 caractères");
-      return;
-    }
-
+    const pwd = prompt("Nouveau mot de passe (min. 6 caractères) :");
+    if (!pwd || pwd.length < 6) { alert("Mot de passe trop court"); return; }
+    setActionLoading("reset");
     try {
       await authFetch(`${API}/admin/utilisateurs/${id}/reset-password`, {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ password: newPassword, password_confirmation: newPassword }),
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ password: pwd, password_confirmation: pwd }),
       });
-      alert("Mot de passe réinitialisé avec succès !");
-    } catch (err: any) {
-      alert(err.message || "Erreur lors de la réinitialisation");
-    }
+      alert("Mot de passe réinitialisé ✓");
+    } catch { alert("Erreur lors de la réinitialisation"); }
+    finally { setActionLoading(null); }
   };
 
   const deleteUser = async () => {
-    if (!id || !confirm("⚠️ Supprimer définitivement cet utilisateur ? Cette action est irréversible.")) return;
-
+    if (!id || !confirm("⚠️ Supprimer définitivement cet utilisateur ? Action irréversible.")) return;
+    setActionLoading("delete");
     try {
-      await authFetch(`${API}/admin/utilisateurs/${id}`, { method: 'DELETE' });
-      alert("Utilisateur supprimé avec succès");
-      navigate('/admin/utilisateurs');
-    } catch (err: any) {
-      alert(err.message || "Impossible de supprimer l'utilisateur");
-    }
+      await authFetch(`${API}/admin/utilisateurs/${id}`, { method: "DELETE" });
+      navigate("/admin/utilisateurs");
+    } catch { alert("Impossible de supprimer l'utilisateur"); }
+    finally { setActionLoading(null); }
   };
 
-  if (loading) {
-    return <div className="p-10 text-center text-gray-500">Chargement des informations...</div>;
-  }
-
-  if (error || !user) {
-    return (
-      <div className="p-10 text-center text-red-600">
-        {error || "Utilisateur introuvable"}
+  if (loading) return (
+    <div className="min-h-screen bg-slate-50 flex items-center justify-center">
+      <div className="space-y-3 w-full max-w-md px-6">
+        {Array.from({ length: 4 }).map((_, i) => <div key={i} className="skeleton h-12 rounded-2xl" />)}
       </div>
-    );
-  }
+    </div>
+  );
+
+  if (error || !user) return (
+    <div className="min-h-screen bg-slate-50 flex items-center justify-center">
+      <div className="text-center">
+        <p className="text-red-600 mb-3">{error || "Utilisateur introuvable"}</p>
+        <button onClick={() => navigate("/admin/utilisateurs")} className="btn-secondary">Retour</button>
+      </div>
+    </div>
+  );
+
+  const roleInfo = ROLE_STYLES[user.role] ?? { badge: "badge-gray", label: user.role };
+  const initiales = user.nom?.[0]?.toUpperCase() ?? "?";
 
   return (
-    <div className="p-6 max-w-4xl mx-auto">
-      <div className="flex items-center gap-4 mb-6">
-        <Link to="/admin/utilisateurs" className="text-gray-500 hover:text-gray-700">
-          <ArrowLeft size={28} />
-        </Link>
-        <h1 className="text-3xl font-bold">Détails de l'utilisateur</h1>
-      </div>
+    <PageLayout
+      title={user.nom}
+      subtitle={`@${user.username}`}
+      backTo="/admin/utilisateurs"
+      actions={
+        <button
+          onClick={() => navigate(`/admin/utilisateurs/${id}/modifier`)}
+          className="btn-primary gap-2"
+        >
+          <Edit className="w-4 h-4" /> Modifier
+        </button>
+      }
+    >
+      <div className="grid grid-cols-1 lg:grid-cols-3 gap-5">
 
-      <div className="bg-white rounded-2xl border border-gray-100 p-8">
-        <div className="flex justify-between items-start mb-8">
-          <div>
-            <h2 className="text-2xl font-semibold">{user.nom}</h2>
-            <p className="text-gray-500">@{user.username}</p>
+        {/* Card profil */}
+        <div className="card p-6 flex flex-col items-center text-center gap-3">
+          <div className="w-16 h-16 rounded-2xl bg-[#0f1f3d] flex items-center justify-center">
+            <span className="text-white text-2xl font-bold">{initiales}</span>
           </div>
-
-          <span className={`px-4 py-2 rounded-full text-sm font-medium ${
-            user.actif 
-              ? 'bg-green-100 text-green-700' 
-              : 'bg-red-100 text-red-700'
-          }`}>
-            {user.actif ? 'Actif' : 'Désactivé'}
-          </span>
+          <div>
+            <p className="font-bold text-slate-900 text-lg" style={{ letterSpacing: "-0.02em" }}>
+              {user.nom}
+            </p>
+            <p className="text-slate-400 text-sm mt-0.5">@{user.username}</p>
+          </div>
+          <div className="flex gap-2 flex-wrap justify-center">
+            <span className={`badge ring-1 ${roleInfo.badge}`}>{roleInfo.label}</span>
+            <span className={`badge ring-1 ${user.actif ? "badge-green" : "badge-red"}`}>
+              {user.actif ? "Actif" : "Désactivé"}
+            </span>
+          </div>
         </div>
 
-        <div className="grid grid-cols-1 md:grid-cols-2 gap-8">
-          <div className="space-y-6">
-            <div>
-              <p className="text-sm text-gray-500 mb-1">Rôle</p>
-              <p className="text-xl font-medium capitalize">{user.role}</p>
-            </div>
-
-            <div>
-              <p className="text-sm text-gray-500 mb-1">Type de compte</p>
-              <p className="font-medium">
-                {user.source === 'admin' ? 'Administrateur' : 'Enseignant / Parent'}
-              </p>
-            </div>
-
-            {user.mobile && (
-              <div>
-                <p className="text-sm text-gray-500 mb-1">Téléphone</p>
-                <p className="font-medium">{user.mobile}</p>
+        {/* Infos détaillées */}
+        <div className="card p-5 lg:col-span-2">
+          <h3 className="section-title mb-4">Informations</h3>
+          <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+            {[
+              { icon: Shield,   label: "Rôle",           value: roleInfo.label },
+              { icon: Shield,   label: "Type de compte", value: user.source === "admin" ? "Administrateur" : "Personnel" },
+              ...(user.mobile ? [{ icon: Phone,    label: "Téléphone", value: user.mobile }] : []),
+              ...(user.dateNaissance ? [{ icon: Calendar, label: "Date de naissance", value: new Date(user.dateNaissance).toLocaleDateString("fr-FR") }] : []),
+              ...(user.created ? [{ icon: Calendar, label: "Compte créé le", value: new Date(user.created).toLocaleDateString("fr-FR") }] : []),
+            ].map(row => (
+              <div key={row.label} className="flex items-start gap-3 p-3 bg-slate-50 rounded-xl">
+                <div className="w-8 h-8 rounded-lg bg-white border border-slate-200 flex items-center justify-center flex-shrink-0">
+                  <row.icon className="w-4 h-4 text-slate-400" />
+                </div>
+                <div>
+                  <p className="text-xs text-slate-400">{row.label}</p>
+                  <p className="text-sm font-medium text-slate-900 mt-0.5">{row.value}</p>
+                </div>
               </div>
-            )}
-
-            {user.dateNaissance && (
-              <div>
-                <p className="text-sm text-gray-500 mb-1">Date de naissance</p>
-                <p className="font-medium">{new Date(user.dateNaissance).toLocaleDateString('fr-FR')}</p>
-              </div>
-            )}
-          </div>
-
-          <div>
-            <p className="text-sm text-gray-500 mb-1">Date de création</p>
-            <p className="font-medium">
-              {user.created ? new Date(user.created).toLocaleDateString('fr-FR') : 'N/A'}
-            </p>
+            ))}
           </div>
         </div>
 
         {/* Actions */}
-        <div className="mt-10 flex flex-wrap gap-3">
-          <Link
-            to={`/admin/utilisateurs/${id}/modifier`}
-            className="flex items-center gap-2 bg-[#1a3a5c] text-white px-6 py-3 rounded-xl hover:bg-[#132d4a] transition"
-          >
-            <Edit size={20} />
-            Modifier
-          </Link>
+        <div className="card p-5 lg:col-span-3">
+          <h3 className="section-title mb-4">Actions</h3>
+          <div className="flex flex-wrap gap-3">
+            <button
+              onClick={() => navigate(`/admin/utilisateurs/${id}/modifier`)}
+              className="btn-secondary gap-2"
+            >
+              <Edit className="w-4 h-4" /> Modifier
+            </button>
 
-          <button
-            onClick={resetPassword}
-            className="flex items-center gap-2 border border-gray-300 px-6 py-3 rounded-xl hover:bg-gray-50 transition"
-          >
-            <Key size={20} />
-            Réinitialiser mot de passe
-          </button>
+            <button
+              onClick={resetPassword}
+              disabled={actionLoading === "reset"}
+              className="btn-secondary gap-2"
+            >
+              <Key className="w-4 h-4" />
+              {actionLoading === "reset" ? "En cours…" : "Réinitialiser le mot de passe"}
+            </button>
 
-          <button
-            onClick={toggleActif}
-            className={`flex items-center gap-2 px-6 py-3 rounded-xl transition ${
-              user.actif 
-                ? 'border border-red-300 text-red-600 hover:bg-red-50' 
-                : 'border border-green-300 text-green-600 hover:bg-green-50'
-            }`}
-          >
-            {user.actif ? <UserX size={20} /> : <UserCheck size={20} />}
-            {user.actif ? 'Désactiver' : 'Activer'}
-          </button>
+            <button
+              onClick={toggleActif}
+              disabled={actionLoading === "toggle"}
+              className={`btn-secondary gap-2 ${
+                user.actif
+                  ? "text-red-600 hover:bg-red-50 border-red-200"
+                  : "text-emerald-600 hover:bg-emerald-50 border-emerald-200"
+              }`}
+            >
+              {user.actif ? <UserX className="w-4 h-4" /> : <UserCheck className="w-4 h-4" />}
+              {actionLoading === "toggle" ? "En cours…" : user.actif ? "Désactiver" : "Activer"}
+            </button>
 
-          <button
-            onClick={deleteUser}
-            className="flex items-center gap-2 border border-red-300 text-red-600 px-6 py-3 rounded-xl hover:bg-red-50 transition"
-          >
-            <Trash2 size={20} />
-            Supprimer
-          </button>
+            <button
+              onClick={deleteUser}
+              disabled={actionLoading === "delete"}
+              className="btn-secondary gap-2 text-red-600 hover:bg-red-50 border-red-200 ml-auto"
+            >
+              <Trash2 className="w-4 h-4" />
+              {actionLoading === "delete" ? "Suppression…" : "Supprimer"}
+            </button>
+          </div>
         </div>
       </div>
-    </div>
+    </PageLayout>
   );
 }
