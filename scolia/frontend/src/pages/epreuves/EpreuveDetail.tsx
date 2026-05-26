@@ -1,5 +1,6 @@
 import { useEffect, useState } from 'react';
-import { href, useNavigate, useParams } from 'react-router-dom';
+import { useNavigate, useParams, Link } from 'react-router-dom';
+import { ArrowLeft, Edit, Trash2, FileText } from 'lucide-react';
 import {
   getEpreuve,
   deleteEpreuve,
@@ -8,14 +9,16 @@ import {
 } from '../../service/epreuve_service';
 
 export default function EpreuveDetail() {
-  const { id }   = useParams();
+  const { id } = useParams();
   const navigate = useNavigate();
 
   const [epreuve, setEpreuve] = useState<Epreuve | null>(null);
-  const [loading, setLoading] = useState(false);
-  const [error, setError]     = useState('');
+  const [loading, setLoading] = useState(true);
+  const [error, setError] = useState('');
 
-  useEffect(() => { load(); }, [id]);
+  useEffect(() => {
+    load();
+  }, [id]);
 
   async function load() {
     try {
@@ -23,14 +26,14 @@ export default function EpreuveDetail() {
       const data = await getEpreuve(Number(id));
       setEpreuve(data);
     } catch (err: any) {
-      setError(err.message);
+      setError(err.message || "Impossible de charger l'épreuve");
     } finally {
       setLoading(false);
     }
   }
 
   async function handleDelete() {
-    if (!confirm("Supprimer cette épreuve ?")) return;
+    if (!confirm("Supprimer cette épreuve ? Cette action est irréversible.")) return;
     try {
       await deleteEpreuve(Number(id));
       navigate('/epreuves');
@@ -39,135 +42,157 @@ export default function EpreuveDetail() {
     }
   }
 
-  if (loading) return (
-    <div className="p-6 text-center text-muted-foreground text-sm">Chargement...</div>
-  );
+  if (loading) {
+    return (
+      <div className="min-h-screen flex items-center justify-center">
+        <div className="text-center">
+          <div className="w-8 h-8 border-4 border-[#1a3a5c] border-t-transparent rounded-full animate-spin mx-auto mb-3" />
+          <p className="text-gray-500">Chargement de l'épreuve...</p>
+        </div>
+      </div>
+    );
+  }
 
-  if (!epreuve) return null;
+  if (!epreuve) {
+    return <div className="p-6 text-center text-red-500">Épreuve non trouvée</div>;
+  }
 
   const docUrl = getDocumentUrl(epreuve.urlDoc);
 
   return (
-    <div className="p-6 max-w-3xl mx-auto">
-
-      {/* HEADER */}
-      <div className="flex items-start justify-between mb-6">
-        <div>
-          <h1 className="text-2xl font-bold text-foreground">{epreuve.libelle}</h1>
-          <p className="text-sm text-muted-foreground mt-1">
-            {epreuve.nature?.libelle ?? '—'}
-          </p>
-        </div>
-        <div className="flex gap-2">
-          <button
-            onClick={() => navigate(`/epreuves/${id}/modifier`)}
-            className="bg-primary text-primary-foreground px-4 py-2 rounded-lg text-sm hover:opacity-90 transition"
-          >
-            Modifier
-          </button>
-          <button
-            onClick={handleDelete}
-            className="bg-red-500/10 border border-red-500/20 text-red-400 px-4 py-2 rounded-lg text-sm hover:bg-red-500/20 transition"
-          >
-            Supprimer
-          </button>
+    <div className="p-6 max-w-4xl mx-auto">
+      {/* Header */}
+      <div className="flex items-start justify-between mb-8">
+        <div className="flex items-center gap-4">
           <button
             onClick={() => navigate('/epreuves')}
-            className="bg-secondary px-4 py-2 rounded-lg text-sm hover:opacity-80 transition"
+            className="text-gray-500 hover:text-gray-700 transition"
           >
-            Retour
+            <ArrowLeft size={28} />
+          </button>
+          <div>
+            <h1 className="text-3xl font-bold text-gray-900">{epreuve.libelle}</h1>
+            <p className="text-gray-500 mt-1">
+              {epreuve.nature?.libelle || 'Nature non définie'}
+            </p>
+          </div>
+        </div>
+
+        <div className="flex gap-3">
+          <Link
+            to={`/epreuves/${id}/modifier`}
+            className="flex items-center gap-2 bg-[#1a3a5c] text-white px-5 py-3 rounded-xl hover:bg-[#132d4a] transition"
+          >
+            <Edit size={18} />
+            Modifier
+          </Link>
+
+          <button
+            onClick={handleDelete}
+            className="flex items-center gap-2 border border-red-300 text-red-600 px-5 py-3 rounded-xl hover:bg-red-50 transition"
+          >
+            <Trash2 size={18} />
+            Supprimer
           </button>
         </div>
       </div>
 
-      {/* ERREUR */}
       {error && (
-        <div className="bg-red-500/10 border border-red-500/20 text-red-400 px-4 py-3 rounded-xl text-sm mb-4">
+        <div className="bg-red-50 border border-red-200 text-red-700 px-4 py-3 rounded-xl mb-6">
           {error}
         </div>
       )}
 
-      {/* INFOS */}
-      <div className="bg-card border border-border rounded-2xl p-5 mb-4">
-        <h2 className="text-xs font-semibold text-muted-foreground uppercase tracking-wider mb-4">
-          Informations
-        </h2>
-        <div className="grid grid-cols-2 gap-4 text-sm">
-          {[
-            ['Libellé', epreuve.libelle],
-            ['Nature',  epreuve.nature?.libelle ?? '—'],
-            ['Auteur',  epreuve.auteur !== 'INDEFINI' ? epreuve.auteur : '—'],
-          ].map(([label, val]) => (
-            <div key={label}>
-              <p className="text-muted-foreground text-xs mb-0.5">{label}</p>
-              <p className="font-medium">{val}</p>
+      <div className="grid grid-cols-1 lg:grid-cols-5 gap-6">
+        {/* Informations principales */}
+        <div className="lg:col-span-3 space-y-6">
+          <div className="bg-white border border-gray-100 rounded-2xl p-7">
+            <h2 className="uppercase text-xs font-semibold tracking-widest text-gray-400 mb-4">
+              Informations
+            </h2>
+            <div className="grid grid-cols-2 gap-y-6 text-sm">
+              <div>
+                <p className="text-gray-500">Libellé</p>
+                <p className="font-medium mt-1">{epreuve.libelle}</p>
+              </div>
+              <div>
+                <p className="text-gray-500">Nature</p>
+                <p className="font-medium mt-1">{epreuve.nature?.libelle || '—'}</p>
+              </div>
+              <div>
+                <p className="text-gray-500">Auteur</p>
+                <p className="font-medium mt-1">{epreuve.auteur !== 'INDEFINI' ? epreuve.auteur : '—'}</p>
+              </div>
+              <div>
+                <p className="text-gray-500">Date de création</p>
+                <p className="font-medium mt-1">
+                  {epreuve.created_at 
+                    ? new Date(epreuve.created_at).toLocaleDateString('fr-FR') 
+                    : '—'}
+                </p>
+              </div>
             </div>
-          ))}
-        </div>
-      </div>
-
-      {/* DOCUMENT */}
-      <div className="bg-card border border-border rounded-2xl p-5 mb-4">
-        <h2 className="text-xs font-semibold text-muted-foreground uppercase tracking-wider mb-4">
-          Document
-        </h2>
-        {docUrl ? (
-          
-            <a href={docUrl}
-            target="_blank"
-            rel="noopener noreferrer"
-            className="flex items-center gap-3 bg-muted/30 border border-border rounded-xl px-4 py-3 hover:border-primary transition"
-          >
-            <span className="text-3xl">📄</span>
-            <div>
-              <p className="text-sm font-medium text-primary">Voir le document PDF</p>
-              <p className="text-xs text-muted-foreground">Cliquer pour ouvrir</p>
-            </div>
-          </a>
-        ) : (
-          <p className="text-muted-foreground text-sm">Aucun document joint</p>
-        )}
-      </div>
-
-      {/* EVALUATIONS */}
-      <div className="bg-card border border-border rounded-2xl p-5">
-        <h2 className="text-xs font-semibold text-muted-foreground uppercase tracking-wider mb-4">
-          Évaluations ({epreuve.evaluations?.length ?? 0})
-        </h2>
-        {epreuve.evaluations && epreuve.evaluations.length > 0 ? (
-          <div className="overflow-x-auto">
-            <table className="w-full text-sm">
-              <thead className="text-muted-foreground text-xs uppercase">
-                <tr>
-                  <th className="pb-2 text-left">Élève</th>
-                  <th className="pb-2 text-center">Note</th>
-                  <th className="pb-2 text-left">Appréciation</th>
-                </tr>
-              </thead>
-              <tbody className="divide-y divide-border">
-                {epreuve.evaluations.map((ev: any) => (
-                  <tr key={ev.idEval}>
-                    <td className="py-2 font-medium">
-                      {ev.eleve?.prenom} {ev.eleve?.nom}
-                    </td>
-                    <td className={`py-2 text-center font-bold ${
-                      ev.note >= 10 ? 'text-green-500' : 'text-red-500'
-                    }`}>
-                      {ev.note}
-                    </td>
-                    <td className="py-2 text-muted-foreground">
-                      {ev.appreciation}
-                    </td>
-                  </tr>
-                ))}
-              </tbody>
-            </table>
           </div>
-        ) : (
-          <p className="text-muted-foreground text-sm">
-            Aucune évaluation pour cette épreuve
-          </p>
-        )}
+
+          {/* Document */}
+          <div className="bg-white border border-gray-100 rounded-2xl p-7">
+            <h2 className="uppercase text-xs font-semibold tracking-widest text-gray-400 mb-4">
+              Document
+            </h2>
+            {docUrl ? (
+              <a
+                href={docUrl}
+                target="_blank"
+                rel="noopener noreferrer"
+                className="flex items-center gap-4 border border-gray-200 hover:border-[#1a3a5c] rounded-2xl p-5 transition group"
+              >
+                <FileText className="h-10 w-10 text-[#1a3a5c]" />
+                <div>
+                  <p className="font-medium group-hover:text-[#1a3a5c]">Ouvrir le document</p>
+                  <p className="text-sm text-gray-500">PDF • Cliquer pour télécharger</p>
+                </div>
+              </a>
+            ) : (
+              <p className="text-gray-500 italic">Aucun document joint à cette épreuve.</p>
+            )}
+          </div>
+        </div>
+
+        {/* Évaluations */}
+        <div className="lg:col-span-2">
+          <div className="bg-white border border-gray-100 rounded-2xl p-7 h-full">
+            <h2 className="uppercase text-xs font-semibold tracking-widest text-gray-400 mb-5">
+              Évaluations ({epreuve.evaluations?.length ?? 0})
+            </h2>
+
+            {epreuve.evaluations && epreuve.evaluations.length > 0 ? (
+              <div className="space-y-3 max-h-[520px] overflow-y-auto pr-2">
+                {epreuve.evaluations.map((ev: any) => (
+                  <div key={ev.idEval} className="border border-gray-100 rounded-xl p-4 hover:bg-gray-50 transition">
+                    <div className="flex justify-between items-start">
+                      <div>
+                        <p className="font-medium">
+                          {ev.eleve?.prenom} {ev.eleve?.nom}
+                        </p>
+                        <p className="text-xs text-gray-500">Mat. {ev.eleve?.matricule}</p>
+                      </div>
+                      <div className={`text-xl font-bold ${ev.note >= 10 ? 'text-green-600' : 'text-red-500'}`}>
+                        {ev.note}
+                      </div>
+                    </div>
+                    {ev.appreciation && (
+                      <p className="text-sm text-gray-600 mt-2 italic">« {ev.appreciation} »</p>
+                    )}
+                  </div>
+                ))}
+              </div>
+            ) : (
+              <div className="h-64 flex items-center justify-center text-gray-400 text-center">
+                Aucune évaluation enregistrée pour cette épreuve
+              </div>
+            )}
+          </div>
+        </div>
       </div>
     </div>
   );

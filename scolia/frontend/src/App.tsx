@@ -78,6 +78,9 @@ import ParentDashboard from "./pages/parent/ParentDashboard";
 
 import { getUser } from './service/auth';
 import EnseignantDashboard from "./pages/enseignants/EnseignantDashboard";
+import EpreuvePage from "./pages/epreuves/EpreuvePage";
+import EpreuveForm from "./pages/epreuves/EpreuveForm";
+import EpreuveDetails from "./pages/epreuves/EpreuveDetail";
 
 // ─── Redirection intelligente selon rôle ───────────────────
 function HomeRedirect() {
@@ -677,6 +680,30 @@ export default function App() {
     </ProtectedRoute>
   }
 />
+
+<Route path='/epreuves' element={
+  <ProtectedRoute roles={['root', 'admin', 'directeur', 'enseignant']}>
+    <EpreuvePage />
+  </ProtectedRoute>
+} />
+
+<Route path='/epreuves/nouveau' element={
+  <ProtectedRoute roles={['root', 'admin', 'directeur', 'enseignant']}>
+    <EpreuveForm />
+  </ProtectedRoute>
+} />
+
+<Route path='/epreuves/:id' element={
+  <ProtectedRoute roles={['root', 'admin', 'directeur', 'enseignant']}>
+    <EpreuveDetails />
+  </ProtectedRoute>
+} />
+
+<Route path='/epreuves/:id/modifier' element={
+  <ProtectedRoute roles={['root', 'admin', 'directeur', 'enseignant']}>
+    <EpreuveForm />
+  </ProtectedRoute>
+} />
     </Routes>
   );
 }

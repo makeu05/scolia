@@ -56,6 +56,16 @@ const NAV_ITEMS: NavItem[] = [
     path: "/enseignants",
     roles: ["root", "admin", "directeur"],
   },
+
+  {
+    id: "epreuves",
+    label: "Épreuves",
+    icon: Users,
+    section: "gestion",
+    path: "/epreuves",
+    roles: ["root", "admin", "directeur", "enseignant"],
+  },
+ 
   {
     id: "structure",
     label: "Structure pédagogique",

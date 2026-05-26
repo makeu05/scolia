@@ -46,19 +46,20 @@ Route::middleware('auth:sanctum')->group(function () {
 
 
     // ── ROOT + ADMIN + DIRECTEUR ──────────────────────────────
-    Route::middleware('role:root,admin,directeur')->group(function () {
-        Route::apiResource('eleves',       EleveController::class);
-        Route::apiResource('enseignants',  EnseignantController::class);
-        Route::apiResource('inscriptions', FrequenteController::class);
-        Route::get('/inscriptions/eleves-classe', [FrequenteController::class, 'elevesByClasse']);
-         Route::apiResource('classes',      ClasseController::class);
-        Route::apiResource('cycles',       CycleController::class);
-        Route::apiResource('salles',       SalleController::class);
-        Route::apiResource('cours',        CoursController::class);
-        Route::apiResource('sessions',     SessionController::class);
-        Route::apiResource('epreuves',     EpreuveController::class);
-        Route::apiResource('natures',      NatureEpreuveController::class);
-        Route::get('/eleves/{matricule}/parents',         [ParentsController::class, 'index']);
+    // ── ROOT + ADMIN + DIRECTEUR + ENSEIGNANT ──────────────────────────────
+Route::middleware('role:root,admin,directeur,enseignant')->group(function () {
+    Route::apiResource('eleves', EleveController::class);
+    Route::apiResource('enseignants', EnseignantController::class);
+    Route::apiResource('inscriptions', FrequenteController::class);
+    Route::get('/inscriptions/eleves-classe', [FrequenteController::class, 'elevesByClasse']);
+    Route::apiResource('classes', ClasseController::class);
+    Route::apiResource('cycles', CycleController::class);
+    Route::apiResource('salles', SalleController::class);
+    Route::apiResource('cours', CoursController::class);
+    Route::apiResource('sessions', SessionController::class);
+    Route::apiResource('epreuves', EpreuveController::class);
+    Route::apiResource('natures', NatureEpreuveController::class);
+     Route::get('/eleves/{matricule}/parents',         [ParentsController::class, 'index']);
 Route::post('/eleves/{matricule}/parents',        [ParentsController::class, 'store']);
 Route::delete('/eleves/{matricule}/parents/{id}', [ParentsController::class, 'destroy']);
         // Dans api.php
