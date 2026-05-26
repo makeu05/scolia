@@ -191,7 +191,7 @@ const Login: React.FC = () => {
   const onSubmit = async (data: LoginForm) => {
     setApiError(null);
     try {
-      // Appel via AuthContext — gère le mock et le vrai backend Laravel
+      // Appel vida AuthContext — gère le mock et le vrai backend Laravel
       await login(data.email, data.password);
 
       // Lire le rôle depuis ce que login() vient de stocker dans localStorage

@@ -194,7 +194,7 @@ const Register: React.FC = () => {
         localStorage.setItem("sgs_user", JSON.stringify(json.user));
       }
 
-      navigate("/dashboard");
+      navigate("/login");
     } catch (err: any) {
       setApiError(err.message ?? "Une erreur est survenue. Veuillez réessayer.");
     }

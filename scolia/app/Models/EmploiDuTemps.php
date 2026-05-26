@@ -4,21 +4,22 @@ namespace App\Models;
 
 use Illuminate\Database\Eloquent\Model;
 
-class EmploiDuTemps extends Model {
-    protected $table = 'EmploiDuTemps';
+class EmploiDuTemps extends Model
+{
+    protected $table      = 'emploidutemps';
     protected $primaryKey = 'idTemps';
-    public $incrementing = false;
-    public $timestamps = false;
- 
-    protected $fillable = [
-        'idTemps', 'jour', 'heure', 'idClasse', 'idCours', 'idAdmin',
-    ];
- 
-    public function classe() {
+    public $incrementing  = false;
+    public $timestamps    = false;
+
+    protected $fillable = ['idTemps', 'jour', 'heure', 'idClasse', 'idCours', 'idAdmin'];
+
+    public function classe()
+    {
         return $this->belongsTo(Classe::class, 'idClasse', 'idClasse');
     }
- 
-    public function cours() {
+
+    public function cours()
+    {
         return $this->belongsTo(Cours::class, 'idCours', 'idCours');
     }
 }

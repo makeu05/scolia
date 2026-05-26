@@ -123,6 +123,14 @@ const NAV_ITEMS: NavItem[] = [
     section: "outils",
     path: "/discipline",
   },
+
+    {
+    id: "livres",
+    label: "Livres",
+    icon: Library,
+    section: "outils",
+    path: "/livres",
+  },
   {
     id: "bibliotheque",
     label: "Bibliothèque",
