@@ -2,6 +2,7 @@
 
 namespace App\Http\Controllers\Eleve;
 use App\Http\Controllers\Controller;
+use Illuminate\Support\Facades\DB;
 
 use App\Models\Eleve;
 use Illuminate\Http\Request;
@@ -52,37 +53,47 @@ class EleveController extends Controller
 
     // ─── Créer un élève ──────────────────────────────────────
     public function store(Request $request)
-    {
-        $data = $request->validate([
-            'matricule'       => 'required|integer|unique:Eleve,matricule',
-            'nom'             => 'required|string|max:60',
-            'prenom'          => 'required|string|max:60',
-            'dateNaissance'   => 'required|date',
-            'lieuNaissance'   => 'required|string|max:30',
-            'sexe'            => 'required|integer|in:0,1,2',
-            'langue'          => 'nullable|string|max:30',
-            'idVilleNaissance' => 'required|integer',
-            'idAdmin'         => 'required|integer',
-            'photo'           => 'nullable|image|max:2048',
-        ]);
+{
+    $data = $request->validate([
+        'nom'              => 'required|string|max:60',
+        'prenom'           => 'required|string|max:60',
+        'dateNaissance'    => 'required|date',
+        'lieuNaissance'    => 'required|string|max:30',
+        'sexe'             => 'required|integer|in:0,1,2',
+        'langue'           => 'nullable|string|max:30',
+        'idVilleNaissance' => 'required|integer',
+        'idAdmin'          => 'required|integer',
+        'photo'            => 'nullable|image|max:2048',
+    ]);
 
-        // Upload photo
-        if ($request->hasFile('photo')) {
-            $path = $request->file('photo')->store('photos/eleves', 'public');
-            $data['photoURL'] = $path;
-        } else {
-            $data['photoURL'] = 'INDEFINI';
-        }
+    // Générer le matricule automatiquement : AAAA + séquence 4 chiffres
+    $annee      = date('Y');
+    $dernierMat = DB::table('Eleve')
+        ->where('matricule', 'like', $annee . '%')
+        ->max('matricule');
 
-        $data['actif'] = 1;
-        $eleve = Eleve::create($data);
+    $sequence  = $dernierMat ? intval(substr((string)$dernierMat, 4)) + 1 : 1;
+    $matricule = intval($annee . str_pad($sequence, 4, '0', STR_PAD_LEFT));
 
-        return response()->json([
-            'message' => 'Élève créé avec succès',
-            'eleve'   => $eleve,
-        ], 201);
+    // Upload photo
+    if ($request->hasFile('photo')) {
+        $path             = $request->file('photo')->store('photos/eleves', 'public');
+        $data['photoURL'] = $path;
+    } else {
+        $data['photoURL'] = 'INDEFINI';
     }
 
+    $data['matricule'] = $matricule;
+    $data['actif']     = 1;
+    $data['nom']       = strtoupper($data['nom']);
+
+    $eleve = Eleve::create($data);
+
+    return response()->json([
+        'message' => 'Élève créé avec succès',
+        'eleve'   => $eleve,
+    ], 201);
+}
     // ─── Détail d'un élève ───────────────────────────────────
     public function show($matricule)
     {
@@ -141,6 +152,16 @@ class EleveController extends Controller
 
         return response()->json([
             'message' => 'Élève réactivé avec succès',
+        ]);
+    }
+
+    public function destroy($matricule)
+    {
+        $eleve = Eleve::findOrFail($matricule);
+        $eleve->delete();
+
+        return response()->json([
+            'message' => 'Élève supprimé avec succès',
         ]);
     }
 }

@@ -1,3 +1,228 @@
+@import url('https://fonts.googleapis.com/css2?family=Geist:wght@300;400;500;600;700&family=Geist+Mono:wght@400;500&display=swap');
+
 @tailwind base;
 @tailwind components;
 @tailwind utilities;
+
+/* ═══════════════════════════════════════════════════════════
+   SCOLIA — Design System
+   Tonalité : SaaS premium, sobre, précis, professionnel
+   Police : Geist (moderne, claire, made for interfaces)
+═══════════════════════════════════════════════════════════ */
+
+:root {
+  /* Palette principale */
+  --navy:       #0f1f3d;
+  --navy-light: #1a3a5c;
+  --navy-mid:   #16324f;
+  --accent:     #3b82f6;
+  --accent-dim: #1d4ed8;
+
+  /* Surfaces */
+  --surface-0: #ffffff;
+  --surface-1: #f8fafc;
+  --surface-2: #f1f5f9;
+  --surface-3: #e2e8f0;
+
+  /* Texte */
+  --text-primary:   #0f172a;
+  --text-secondary: #475569;
+  --text-muted:     #94a3b8;
+
+  /* Statuts */
+  --success: #10b981;
+  --warning: #f59e0b;
+  --danger:  #ef4444;
+
+  /* Ombres */
+  --shadow-sm: 0 1px 3px rgba(15,31,61,0.06), 0 1px 2px rgba(15,31,61,0.04);
+  --shadow-md: 0 4px 12px rgba(15,31,61,0.08), 0 2px 4px rgba(15,31,61,0.04);
+  --shadow-lg: 0 12px 32px rgba(15,31,61,0.1), 0 4px 8px rgba(15,31,61,0.06);
+}
+
+@layer base {
+  * {
+    font-family: 'Geist', system-ui, sans-serif;
+    -webkit-font-smoothing: antialiased;
+  }
+
+  body {
+    background: var(--surface-1);
+    color: var(--text-primary);
+  }
+
+  /* Scrollbar fine et discrète */
+  ::-webkit-scrollbar       { width: 5px; height: 5px; }
+  ::-webkit-scrollbar-track { background: transparent; }
+  ::-webkit-scrollbar-thumb { background: var(--surface-3); border-radius: 99px; }
+  ::-webkit-scrollbar-thumb:hover { background: var(--text-muted); }
+}
+
+@layer components {
+
+  /* ─── Cards ───────────────────────────────── */
+  .card {
+    @apply bg-white rounded-2xl border border-slate-100 shadow-sm;
+    box-shadow: var(--shadow-sm);
+  }
+
+  .card-hover {
+    @apply card transition-all duration-200;
+    &:hover {
+      box-shadow: var(--shadow-md);
+      @apply border-slate-200 -translate-y-0.5;
+    }
+  }
+
+  /* ─── Boutons ─────────────────────────────── */
+  .btn-primary {
+    @apply inline-flex items-center justify-center gap-2;
+    @apply bg-[#0f1f3d] hover:bg-[#1a3a5c] active:scale-[0.98];
+    @apply text-white font-medium text-sm px-5 py-2.5 rounded-xl;
+    @apply transition-all duration-150 shadow-sm;
+    letter-spacing: -0.01em;
+  }
+
+  .btn-secondary {
+    @apply inline-flex items-center justify-center gap-2;
+    @apply bg-white hover:bg-slate-50 active:scale-[0.98];
+    @apply text-slate-700 font-medium text-sm px-5 py-2.5 rounded-xl;
+    @apply border border-slate-200 transition-all duration-150;
+  }
+
+  .btn-ghost {
+    @apply inline-flex items-center justify-center gap-1.5;
+    @apply text-slate-500 hover:text-slate-900 hover:bg-slate-100;
+    @apply text-sm font-medium px-3 py-1.5 rounded-lg transition-all duration-150;
+  }
+
+  /* ─── Inputs ──────────────────────────────── */
+  .input {
+    @apply w-full bg-white border border-slate-200 rounded-xl px-4 py-2.5 text-sm;
+    @apply text-slate-900 placeholder:text-slate-400;
+    @apply focus:outline-none focus:border-blue-400 focus:ring-2 focus:ring-blue-100;
+    @apply transition-all duration-150;
+  }
+
+  .input-error {
+    @apply border-red-300 bg-red-50/30 focus:border-red-400 focus:ring-red-100;
+  }
+
+  /* ─── Badges statut ───────────────────────── */
+  .badge {
+    @apply inline-flex items-center gap-1 px-2.5 py-1 rounded-full text-xs font-medium;
+  }
+  .badge-green  { @apply bg-emerald-50 text-emerald-700 ring-1 ring-emerald-100; }
+  .badge-red    { @apply bg-red-50 text-red-700 ring-1 ring-red-100; }
+  .badge-amber  { @apply bg-amber-50 text-amber-700 ring-1 ring-amber-100; }
+  .badge-blue   { @apply bg-blue-50 text-blue-700 ring-1 ring-blue-100; }
+  .badge-purple { @apply bg-violet-50 text-violet-700 ring-1 ring-violet-100; }
+  .badge-gray   { @apply bg-slate-50 text-slate-600 ring-1 ring-slate-100; }
+
+  /* ─── Tableaux ────────────────────────────── */
+  .table-container {
+    @apply bg-white rounded-2xl border border-slate-100 overflow-hidden;
+    box-shadow: var(--shadow-sm);
+  }
+
+  .table-th {
+    @apply px-5 py-3.5 text-left text-xs font-semibold text-slate-500 uppercase tracking-wider;
+    @apply bg-slate-50/80 border-b border-slate-100;
+    letter-spacing: 0.04em;
+  }
+
+  .table-td {
+    @apply px-5 py-3.5 text-sm text-slate-700 border-b border-slate-50;
+  }
+
+  .table-row-hover {
+    @apply hover:bg-slate-50/60 transition-colors cursor-pointer;
+  }
+
+  /* ─── KPI Cards ───────────────────────────── */
+  .kpi-card {
+    @apply card p-5 flex flex-col gap-3;
+    @apply hover:shadow-md hover:-translate-y-0.5 transition-all duration-200 cursor-pointer;
+  }
+
+  /* ─── Sidebar items ───────────────────────── */
+  .nav-item {
+    @apply flex items-center gap-3 px-3 py-2 rounded-xl text-sm font-medium;
+    @apply text-slate-500 hover:text-slate-900 hover:bg-slate-100;
+    @apply transition-all duration-150 cursor-pointer;
+  }
+
+  .nav-item-active {
+    @apply bg-[#0f1f3d] text-white hover:bg-[#1a3a5c] hover:text-white;
+  }
+
+  /* ─── Section titles ──────────────────────── */
+  .page-title {
+    @apply text-xl font-semibold text-slate-900;
+    letter-spacing: -0.02em;
+  }
+
+  .section-title {
+    @apply text-sm font-semibold text-slate-900;
+    letter-spacing: -0.01em;
+  }
+
+  /* ─── Dividers ────────────────────────────── */
+  .divider {
+    @apply w-full h-px bg-slate-100;
+  }
+
+  /* ─── Alert boxes ─────────────────────────── */
+  .alert-success { @apply bg-emerald-50 border border-emerald-200 text-emerald-800 px-4 py-3 rounded-xl text-sm; }
+  .alert-error   { @apply bg-red-50 border border-red-200 text-red-800 px-4 py-3 rounded-xl text-sm; }
+  .alert-warning { @apply bg-amber-50 border border-amber-200 text-amber-800 px-4 py-3 rounded-xl text-sm; }
+  .alert-info    { @apply bg-blue-50 border border-blue-200 text-blue-800 px-4 py-3 rounded-xl text-sm; }
+
+  /* ─── Skeleton loader ─────────────────────── */
+  .skeleton {
+    @apply bg-slate-200 rounded-lg animate-pulse;
+  }
+
+  /* ─── Progress bar ────────────────────────── */
+  .progress-track {
+    @apply w-full h-1.5 bg-slate-100 rounded-full overflow-hidden;
+  }
+  .progress-fill {
+    @apply h-full rounded-full transition-all duration-500;
+  }
+}
+
+/* ─── Animations globales ───────────────────────────────── */
+@keyframes fadeIn {
+  from { opacity: 0; transform: translateY(8px); }
+  to   { opacity: 1; transform: translateY(0); }
+}
+
+@keyframes slideIn {
+  from { opacity: 0; transform: translateX(-12px); }
+  to   { opacity: 1; transform: translateX(0); }
+}
+
+@keyframes scaleIn {
+  from { opacity: 0; transform: scale(0.97); }
+  to   { opacity: 1; transform: scale(1); }
+}
+
+.animate-fade-in   { animation: fadeIn  0.3s ease forwards; }
+.animate-slide-in  { animation: slideIn 0.25s ease forwards; }
+.animate-scale-in  { animation: scaleIn 0.2s ease forwards; }
+
+/* Stagger pour les listes */
+.stagger > *:nth-child(1) { animation-delay: 0ms; }
+.stagger > *:nth-child(2) { animation-delay: 50ms; }
+.stagger > *:nth-child(3) { animation-delay: 100ms; }
+.stagger > *:nth-child(4) { animation-delay: 150ms; }
+.stagger > *:nth-child(5) { animation-delay: 200ms; }
+.stagger > *:nth-child(6) { animation-delay: 250ms; }
+
+/* ─── Print (bulletins) ─────────────────────────────────── */
+@media print {
+  .print\:hidden { display: none !important; }
+  .card          { box-shadow: none !important; border: 1px solid #ddd !important; }
+  body           { background: white; }
+}

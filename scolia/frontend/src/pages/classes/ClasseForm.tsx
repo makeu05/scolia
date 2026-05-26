@@ -1,4 +1,7 @@
 import { useEffect, useState } from "react";
+import { useNavigate, useParams, Link } from "react-router-dom";
+import { ArrowLeft, Save } from "lucide-react";
+
 import {
   createClasse,
   getCycles,
@@ -6,16 +9,14 @@ import {
   updateClasse,
 } from "../../service/classe_service";
 
-import { useNavigate, useParams } from "react-router-dom";
-
 export default function ClasseForm() {
   const navigate = useNavigate();
-
   const { id } = useParams();
-
   const isEdit = !!id;
 
   const [cycles, setCycles] = useState<any[]>([]);
+  const [loading, setLoading] = useState(false);
+  const [saving, setSaving] = useState(false);
 
   const [form, setForm] = useState({
     libelle: "",
@@ -24,85 +25,124 @@ export default function ClasseForm() {
   });
 
   async function load() {
-    const c = await getCycles();
-    setCycles(c);
+    setLoading(true);
+    try {
+      const c = await getCycles();
+      setCycles(c);
 
-    if (isEdit && id) {
-      const cl = await getClasse(Number(id));
-
-      setForm({
-        libelle: cl.libelle,
-        idCycle: String(cl.idCycle),
-        idAdmin: "1",
-      });
+      if (isEdit && id) {
+        const cl = await getClasse(Number(id));
+        setForm({
+          libelle: cl.libelle,
+          idCycle: String(cl.idCycle),
+          idAdmin: "1",
+        });
+      }
+    } catch (err) {
+      console.error(err);
+    } finally {
+      setLoading(false);
     }
   }
 
   useEffect(() => {
     load();
-  }, []);
+  }, [id]);
 
   async function handleSubmit(e: React.FormEvent) {
     e.preventDefault();
+    setSaving(true);
 
-    if (isEdit) {
-      await updateClasse(Number(id), form);
-    } else {
-      await createClasse(form);
+    try {
+      if (isEdit) {
+        await updateClasse(Number(id), form);
+        alert("Classe modifiée avec succès !");
+      } else {
+        await createClasse(form);
+        alert("Classe créée avec succès !");
+      }
+      navigate("/classes");
+    } catch (err: any) {
+      alert(err.message || "Une erreur est survenue");
+    } finally {
+      setSaving(false);
     }
-
-    navigate("/classes");
   }
 
   return (
     <div className="p-6 max-w-2xl mx-auto">
-
-      <div className="mb-6">
-        <h1 className="text-2xl font-bold">
-          {isEdit ? "Modifier" : "Nouvelle"} classe
+      {/* Header */}
+      <div className="flex items-center gap-4 mb-8">
+        <Link
+          to="/classes"
+          className="flex items-center gap-2 text-gray-600 hover:text-gray-900"
+        >
+          <ArrowLeft size={20} />
+          Retour à la liste
+        </Link>
+        <h1 className="text-3xl font-bold text-gray-900">
+          {isEdit ? "Modifier la Classe" : "Nouvelle Classe"}
         </h1>
       </div>
 
-      <form
-        onSubmit={handleSubmit}
-        className="bg-card border border-border rounded-xl p-5 space-y-4"
-      >
-        <input
-          type="text"
-          placeholder="Libellé"
-          value={form.libelle}
-          onChange={(e) =>
-            setForm({
-              ...form,
-              libelle: e.target.value,
-            })
-          }
-          className="w-full bg-background border border-border rounded-lg px-4 py-2"
-        />
+      <div className="bg-white border border-gray-200 rounded-2xl p-8 shadow-sm">
+        <form onSubmit={handleSubmit} className="space-y-6">
+          <div>
+            <label className="block text-sm font-medium text-gray-700 mb-2">
+              Libellé de la classe *
+            </label>
+            <input
+              type="text"
+              placeholder="Ex: 6ème A, Terminale S2..."
+              value={form.libelle}
+              onChange={(e) =>
+                setForm({ ...form, libelle: e.target.value })
+              }
+              className="w-full border border-gray-300 rounded-xl px-4 py-3 focus:outline-none focus:border-[#1a3a5c]"
+              required
+            />
+          </div>
 
-        <select
-          value={form.idCycle}
-          onChange={(e) =>
-            setForm({
-              ...form,
-              idCycle: e.target.value,
-            })
-          }
-          className="w-full bg-background border border-border rounded-lg px-4 py-2"
-        >
-          <option value="">Choisir un cycle</option>
+          <div>
+            <label className="block text-sm font-medium text-gray-700 mb-2">
+              Cycle *
+            </label>
+            <select
+              value={form.idCycle}
+              onChange={(e) =>
+                setForm({ ...form, idCycle: e.target.value })
+              }
+              className="w-full border border-gray-300 rounded-xl px-4 py-3 focus:outline-none focus:border-[#1a3a5c]"
+              required
+            >
+              <option value="">-- Sélectionner un cycle --</option>
+              {cycles.map((c) => (
+                <option key={c.idCycle} value={c.idCycle}>
+                  {c.libelle}
+                </option>
+              ))}
+            </select>
+          </div>
 
-          {cycles.map((c) => (
-            <option key={c.idCycle} value={c.idCycle}>
-              {c.libelle}
-            </option>
-          ))}
-        </select>
+          <div className="flex gap-4 pt-4">
+            <button
+              type="submit"
+              disabled={saving}
+              className="flex-1 bg-[#1a3a5c] hover:bg-[#16324f] text-white py-4 rounded-xl font-semibold transition flex items-center justify-center gap-2 disabled:opacity-70"
+            >
+              <Save size={20} />
+              {saving ? "Enregistrement..." : isEdit ? "Enregistrer les modifications" : "Créer la classe"}
+            </button>
 
-        <button className="bg-primary text-primary-foreground px-5 py-2 rounded-lg">
-          Enregistrer
-        </button>
-      </form>
+            <Link
+              to="/classes"
+              className="flex-1 border border-gray-300 text-gray-700 py-4 rounded-xl font-semibold text-center hover:bg-gray-50 transition"
+            >
+              Annuler
+            </Link>
+          </div>
+        </form>
+      </div>
     </div>
   );
 }
