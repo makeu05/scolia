@@ -80,7 +80,7 @@ import MonProfil from "./pages/mon-profil/MonProfil";
 import ParentDashboard from "./pages/parent/ParentDashboard";
 
 import { getUser } from './service/auth';
-import EnseignantDashboard from "./pages/enseignants/EnseignantDashboard";
+
 
 // ─── Redirection intelligente selon rôle ─────────────────────
 function HomeRedirect() {

@@ -125,11 +125,11 @@ export default function EpreuveDetail() {
               </div>
               <div>
                 <p className="text-gray-500">Date de création</p>
-                <p className="font-medium mt-1">
+                {/* <p className="font-medium mt-1">
                   {epreuve.created_at 
                     ? new Date(epreuve.created_at).toLocaleDateString('fr-FR') 
                     : '—'}
-                </p>
+                </p> */}
               </div>
             </div>
           </div>

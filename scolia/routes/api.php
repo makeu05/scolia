@@ -45,6 +45,7 @@ Route::middleware('auth:sanctum')->group(function () {
 
     // Fiches enseignants — DÉPLACÉ ici (était public, c'est un bug)
     Route::apiResource('fiches-enseignants', FicheEnseignantController::class);
+     Route::get('/inscriptions/eleves-classe', [FrequenteController::class, 'elevesByClasse']);
 
 
     // ── ROOT + ADMIN + DIRECTEUR ──────────────────────────────
