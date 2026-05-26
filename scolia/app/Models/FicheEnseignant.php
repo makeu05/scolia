@@ -4,7 +4,7 @@ namespace App\Models;
 
 use Illuminate\Database\Eloquent\Model;
 class FicheEnseignant extends Model {
-    protected $table = 'FicheEnseignant';
+    protected $table = 'fiche_enseignants';
     protected $primaryKey = 'idRap';
     public $incrementing = true;
     public $timestamps = false;
@@ -16,5 +16,9 @@ class FicheEnseignant extends Model {
  
     public function enseignant() {
         return $this->belongsTo(Enseignant::class, 'idEnseignant', 'idEnseignant');
+    }
+    public function anneeAcademique()
+    {
+        return $this->belongsTo(AnneeAcademique::class, 'idAca', 'idAnnee');
     }
 }

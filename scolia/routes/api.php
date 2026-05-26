@@ -16,113 +16,104 @@ use App\Http\Controllers\SessionController;
 use App\Http\Controllers\EvaluationController;
 use App\Http\Controllers\SalleController;
 use App\Http\Controllers\FrequenteController;
+use App\Http\Controllers\FicheEnseignantController;
+use App\Http\Controllers\PaiementController;
+use App\Http\Controllers\ScolariteController;
+use App\Http\Controllers\UserController;
+use App\Http\Controllers\ModeController;
+use App\Http\Controllers\PersonneController;
 use Illuminate\Support\Facades\Route;
 
 
+
+// Auth — public
 Route::post('/login', [AuthController::class, 'login']);
 Route::post('/register', [AuthController::class, 'register']);
-Route::post('/logout', [AuthController::class, 'logout'])->middleware('auth:sanctum');
-Route::get('/me', [AuthController::class, 'me'])->middleware('auth:sanctum');
+Route::post('/password-reset', [AuthController::class, 'passwordReset']);
 Route::get('/villes', [VilleNaissanceController::class, 'index']);
+Route::apiResource('fiches-enseignants', FicheEnseignantController::class);
+
+
 
 Route::middleware('auth:sanctum')->group(function () {
-    
 
-    // ─── Élèves ───────────────────────────────────────────
-    Route::get('/eleves',                [EleveController::class, 'index']);
-    Route::post('/eleves',               [EleveController::class, 'store']);
-    Route::get('/eleves/{matricule}',    [EleveController::class, 'show']);
-    Route::put('/eleves/{matricule}',    [EleveController::class, 'update']);
-    Route::patch('/eleves/{matricule}/archiver',  [EleveController::class, 'archiver']);
-    Route::patch('/eleves/{matricule}/reactiver', [EleveController::class, 'reactiver']);
-    Route::get('/eleves/{matricule}/parents',              [ParentsController::class, 'index']);
-    Route::post('/eleves/{matricule}/parents',             [ParentsController::class, 'store']);
-    Route::delete('/eleves/{matricule}/parents/{idParent}',[ParentsController::class, 'destroy']);
-
-    // Enseignants
-    Route::get('/enseignants', [EnseignantController::class, 'index']);
-    Route::post('/enseignants', [EnseignantController::class, 'store']);
-    Route::get('/enseignants/{idEnseignant}', [EnseignantController::class, 'show']);
-    Route::put('/enseignants/{idEnseignant}', [EnseignantController::class, 'update']);
-    Route::patch('/enseignants/{idEnseignant}/desactiver', [EnseignantController::class, 'desactiver']);
-    Route::patch('/enseignants/{idEnseignant}/reactiver', [EnseignantController::class, 'reactiver']);
-
-    // Cycles
-    Route::get('/cycles', [CycleController::class, 'index']);
-    Route::post('/cycles', [CycleController::class, 'store']);
-    Route::get('/cycles/{idCycle}', [CycleController::class, 'show']);
-    Route::put('/cycles/{idCycle}', [CycleController::class, 'update']);
-    Route::delete('/cycles/{idCycle}', [CycleController::class, 'destroy']);
-
-    // Classes
-    Route::get('/classes', [ClasseController::class, 'index']);
-    Route::post('/classes', [ClasseController::class, 'store']);
-    Route::get('/classes/{idClasse}', [ClasseController::class, 'show']);
-    Route::put('/classes/{idClasse}', [ClasseController::class, 'update']);
-    Route::delete('/classes/{idClasse}', [ClasseController::class, 'destroy']);
-
-    // Cours
-    Route::get('/cours', [CoursController::class, 'index']);
-    Route::post('/cours', [CoursController::class, 'store']);
-    Route::get('/cours/{idCours}', [CoursController::class, 'show']);
-    Route::put('/cours/{idCours}', [CoursController::class, 'update']);
-    Route::delete('/cours/{idCours}', [CoursController::class, 'destroy']);
-
-    Route::get('/annees',              [AnneeAcademiqueController::class, 'index']);
-    Route::post('/annees',             [AnneeAcademiqueController::class, 'store']);
-    Route::get('/annees/{idAnnee}',    [AnneeAcademiqueController::class, 'show']);
-    Route::put('/annees/{idAnnee}',    [AnneeAcademiqueController::class, 'update']);
-    Route::delete('/annees/{idAnnee}', [AnneeAcademiqueController::class, 'destroy']);
-
-    // ─── Trimestres ───────────────────────────────────────
-    Route::get('/trimestres',               [TrimestreController::class, 'index']);
-    Route::post('/trimestres',              [TrimestreController::class, 'store']);
-    Route::delete('/trimestres/{idTrimes}', [TrimestreController::class, 'destroy']);
-
-    // Natures d'épreuve
-    Route::get('/natures', [NatureEpreuveController::class, 'index']);
-    Route::post('/natures', [NatureEpreuveController::class, 'store']);
-    Route::put('/natures/{id}', [NatureEpreuveController::class, 'update']);
-    Route::delete('/natures/{id}', [NatureEpreuveController::class, 'destroy']);
-
-    // Épreuves
-    Route::get('/epreuves', [EpreuveController::class, 'index']);
-    Route::post('/epreuves', [EpreuveController::class, 'store']);
-    Route::get('/epreuves/{id}', [EpreuveController::class, 'show']);
-    Route::put('/epreuves/{id}', [EpreuveController::class, 'update']);
-    Route::delete('/epreuves/{id}', [EpreuveController::class, 'destroy']);
-
-    // Sessions
-    Route::get('/sessions', [SessionController::class, 'index']);
-    Route::post('/sessions', [SessionController::class, 'store']);
-    Route::put('/sessions/{id}', [SessionController::class, 'update']);
-    Route::delete('/sessions/{id}', [SessionController::class, 'destroy']);
-
-    // Évaluations / Notes
-    Route::get('/evaluations', [EvaluationController::class, 'index']);
-    Route::post('/evaluations', [EvaluationController::class, 'store']);
-    Route::post('/evaluations/bulk', [EvaluationController::class, 'storeBulk']);
-    Route::put('/evaluations/{id}', [EvaluationController::class, 'update']);
-    Route::delete('/evaluations/{id}', [EvaluationController::class, 'destroy']);
-
-    // Moyennes & Bulletins
-    Route::get('/evaluations/moyenne/{matricule}', [EvaluationController::class, 'moyenneEleve']);
-    Route::get('/evaluations/bulletin/{matricule}', [EvaluationController::class, 'bulletin']);
-    Route::get('/evaluations/classement', [EvaluationController::class, 'classement']);
-
-    Route::get('/salles', [SalleController::class, 'index']);
-    Route::post('/salles', [SalleController::class, 'store']);
-    Route::get('/salles/{id}', [SalleController::class, 'show']);
-    Route::put('/salles/{id}', [SalleController::class, 'update']);
-    Route::delete('/salles/{id}', [SalleController::class, 'destroy']);
-
-    Route::get('/inscriptions', [FrequenteController::class, 'index']);
-    Route::post('/inscriptions', [FrequenteController::class, 'store']);
-    Route::put('/inscriptions/{id}', [FrequenteController::class, 'update']);
-    Route::delete('/inscriptions/{id}', [FrequenteController::class, 'destroy']);
-
-    // Élèves d'une classe pour une année — utilisé dans notes
-    Route::get('/inscriptions/eleves-classe', [FrequenteController::class, 'elevesByClasse']);
+    Route::post('/logout', [AuthController::class, 'logout']);
+    Route::get('/me',      [AuthController::class, 'me']);
+     Route::apiResource('annees',       AnneeAcademiqueController::class);
+    Route::apiResource('trimestres',   TrimestreController::class);
+    Route::get('/parent/enfants', [ParentsController::class, 'mesEnfants']);
 
 
+
+    // ── ROOT + ADMIN + DIRECTEUR ──────────────────────────────
+    Route::middleware('role:root,admin,directeur')->group(function () {
+        Route::apiResource('eleves',       EleveController::class);
+        Route::apiResource('enseignants',  EnseignantController::class);
+        Route::apiResource('inscriptions', FrequenteController::class);
+        Route::get('/inscriptions/eleves-classe', [FrequenteController::class, 'elevesByClasse']);
+         Route::apiResource('classes',      ClasseController::class);
+        Route::apiResource('cycles',       CycleController::class);
+        Route::apiResource('salles',       SalleController::class);
+        Route::apiResource('cours',        CoursController::class);
+        Route::apiResource('sessions',     SessionController::class);
+        Route::apiResource('epreuves',     EpreuveController::class);
+        Route::apiResource('natures',      NatureEpreuveController::class);
+        Route::get('/eleves/{matricule}/parents',         [ParentsController::class, 'index']);
+Route::post('/eleves/{matricule}/parents',        [ParentsController::class, 'store']);
+Route::delete('/eleves/{matricule}/parents/{id}', [ParentsController::class, 'destroy']);
+        // Dans api.php
+Route::get('/personnes', [PersonneController::class, 'index']);
+    });
+
+    // ── FONDATEUR + ROOT ──────────────────────────────────────
+    Route::middleware('role:root,fondateur,admin,directeur')->group(function () {
+        Route::get('/paiements',                        [PaiementController::class, 'index']);
+        Route::post('/paiements',                       [PaiementController::class, 'store']);
+        Route::get('/paiements/dashboard',              [PaiementController::class, 'dashboard']);
+        Route::get('/paiements/stats',                  [PaiementController::class, 'stats']);
+        Route::get('/paiements/par-classe',             [PaiementController::class, 'parClasse']);
+        Route::get('/paiements/suivi/{matricule}',      [PaiementController::class, 'suiviEleve']);
+        Route::get('/paiements/{id}',                   [PaiementController::class, 'show']);
+        Route::put('/paiements/{id}',                   [PaiementController::class, 'update']);
+        Route::delete('/paiements/{id}',                [PaiementController::class, 'destroy']);
+        Route::get('/scolarites',                       [ScolariteController::class, 'index']);
+        Route::post('/scolarites',                      [ScolariteController::class, 'store']);
+        Route::get('/scolarites/{id}',                  [ScolariteController::class, 'show']);
+        Route::put('/scolarites/{id}',                  [ScolariteController::class, 'update']);
+        Route::post('/scolarites/{id}/tranches',        [ScolariteController::class, 'storeTranche']);
+        Route::delete('/scolarites/tranches/{id}',      [ScolariteController::class, 'deleteTranche']);
+        Route::get('/modes',                            [ModeController::class, 'index']);
+        Route::post('/modes',                           [ModeController::class, 'store']);
+        Route::put('/modes/{id}',                       [ModeController::class, 'update']);
+        Route::delete('/modes/{id}',                    [ModeController::class, 'destroy']);
+    });
+
+    // ── ENSEIGNANT — seulement ses cours + notes ──────────────
+    Route::middleware('role:enseignant,root,admin,directeur')->group(function () {
+        Route::post('/evaluations/bulk',                [EvaluationController::class, 'storeBulk']);
+        Route::post('/evaluations',                     [EvaluationController::class, 'store']);
+        Route::put('/evaluations/{id}',                 [EvaluationController::class, 'update']);
+        Route::delete('/evaluations/{id}',              [EvaluationController::class, 'destroy']);
+        Route::get('/evaluations',                      [EvaluationController::class, 'index']);
+    });
+
+    // ── NOTES — lecture pour tous les rôles connectés ─────────
+    Route::middleware('role:root,admin,directeur,enseignant,fondateur,parent')->group(function () {
+        Route::get('/evaluations/moyenne/{matricule}',  [EvaluationController::class, 'moyenneEleve']);
+        Route::get('/evaluations/bulletin/{matricule}', [EvaluationController::class, 'bulletin']);
+        Route::get('/evaluations/classement',           [EvaluationController::class, 'classement']);
+    });
+
+    Route::prefix('admin')->middleware('role:root,admin')->group(function () {
+    Route::get('/utilisateurs',                          [UserController::class, 'index']);
+    Route::post('/utilisateurs',                         [UserController::class, 'store']);
+    Route::get('/utilisateurs/{id}',                     [UserController::class, 'show']);
+    Route::put('/utilisateurs/{id}',                     [UserController::class, 'update']);
+    Route::put('/utilisateurs/{id}/toggle-actif',        [UserController::class, 'toggleActif']);
+    Route::post('/utilisateurs/{id}/reset-password',     [UserController::class, 'resetPassword']);
+    Route::delete('/utilisateurs/{id}',                  [UserController::class, 'destroy']);
 });
+     // ── PARENT — seulement ses enfants ────────────────────────
+   
+});
+

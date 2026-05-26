@@ -1,5 +1,7 @@
 import { useEffect, useState } from 'react';
-import { useNavigate, useParams } from 'react-router-dom';
+import { useNavigate, useParams, Link } from 'react-router-dom';
+import { ArrowLeft, Edit, Trash2 } from 'lucide-react';
+
 import {
   getInscription,
   deleteInscription,
@@ -7,12 +9,12 @@ import {
 } from '../../service/inscription_service';
 
 export default function InscriptionDetail() {
-  const { id }   = useParams();
+  const { id } = useParams();
   const navigate = useNavigate();
 
   const [inscription, setInscription] = useState<Inscription | null>(null);
-  const [loading, setLoading]         = useState(false);
-  const [error, setError]             = useState('');
+  const [loading, setLoading] = useState(false);
+  const [error, setError] = useState('');
 
   useEffect(() => {
     load();
@@ -41,9 +43,7 @@ export default function InscriptionDetail() {
   }
 
   if (loading) return (
-    <div className="p-6 text-center text-muted-foreground text-sm">
-      Chargement...
-    </div>
+    <div className="p-6 text-center text-gray-500">Chargement des informations...</div>
   );
 
   if (!inscription) return null;
@@ -53,107 +53,106 @@ export default function InscriptionDetail() {
   const annee = inscription.annee_academique;
 
   return (
-    <div className="p-6 max-w-3xl mx-auto">
-
-      {/* HEADER */}
-      <div className="flex items-start justify-between mb-6">
-        <div>
-          <h1 className="text-2xl font-bold text-foreground">
-            {eleve?.prenom} {eleve?.nom}
-          </h1>
-          <p className="text-sm text-muted-foreground mt-1">
-            Matricule #{eleve?.matricule}
-          </p>
-        </div>
-        <div className="flex gap-2">
-          <button
-            onClick={() => navigate(`/inscriptions/${id}/modifier`)}
-            className="bg-primary text-primary-foreground px-4 py-2 rounded-lg text-sm hover:opacity-90 transition"
-          >
-            Modifier
-          </button>
-          <button
-            onClick={handleDelete}
-            className="bg-red-500/10 border border-red-500/20 text-red-400 px-4 py-2 rounded-lg text-sm hover:bg-red-500/20 transition"
-          >
-            Supprimer
-          </button>
-          <button
-            onClick={() => navigate('/inscriptions')}
-            className="bg-secondary px-4 py-2 rounded-lg text-sm hover:opacity-80 transition"
-          >
-            Retour
-          </button>
-        </div>
+    <div className="p-6 max-w-4xl mx-auto">
+      {/* Header */}
+      <div className="flex items-center gap-4 mb-8">
+        <Link to="/inscriptions" className="flex items-center gap-2 text-gray-600 hover:text-gray-900">
+          <ArrowLeft size={20} />
+          Retour aux inscriptions
+        </Link>
+        <h1 className="text-3xl font-bold text-gray-900">
+          {eleve?.prenom} {eleve?.nom}
+        </h1>
       </div>
 
-      {/* ERREUR */}
+      {/* Error */}
       {error && (
-        <div className="bg-red-500/10 border border-red-500/20 text-red-400 px-4 py-3 rounded-xl text-sm mb-4">
+        <div className="bg-red-50 border border-red-200 text-red-700 px-5 py-4 rounded-2xl mb-6">
           {error}
         </div>
       )}
 
-      {/* INFOS ÉLÈVE */}
-      <div className="bg-card border border-border rounded-2xl p-5 mb-4">
-        <h2 className="text-xs font-semibold text-muted-foreground uppercase tracking-wider mb-4">
-          Informations de l'élève
-        </h2>
-        <div className="grid grid-cols-2 gap-4 text-sm">
-          {[
-            ['Nom',        eleve?.nom],
-            ['Prénom',     eleve?.prenom],
-            ['Matricule',  eleve?.matricule],
-            ['Sexe',       eleve?.sexe === 0 ? 'Fille' : eleve?.sexe === 1 ? 'Garçon' : 'Autre'],
-            ['Statut',     eleve?.actif ? 'Actif' : 'Archivé'],
-          ].map(([label, val]) => (
-            <div key={String(label)}>
-              <p className="text-muted-foreground text-xs mb-0.5">{label}</p>
-              <p className="font-medium">{val ?? '—'}</p>
-            </div>
-          ))}
+      {/* Informations Élève */}
+      <div className="bg-white border border-gray-200 rounded-2xl p-8 mb-6">
+        <h2 className="text-lg font-semibold mb-5">Informations de l'élève</h2>
+        <div className="grid grid-cols-2 md:grid-cols-3 gap-6 text-sm">
+          <div>
+            <p className="text-gray-500 text-xs mb-1">Nom complet</p>
+            <p className="font-medium">{eleve?.prenom} {eleve?.nom}</p>
+          </div>
+          <div>
+            <p className="text-gray-500 text-xs mb-1">Matricule</p>
+            <p className="font-medium">#{eleve?.matricule}</p>
+          </div>
+          <div>
+            <p className="text-gray-500 text-xs mb-1">Sexe</p>
+            <p className="font-medium">
+              {eleve?.sexe === 0 ? 'Fille' : eleve?.sexe === 1 ? 'Garçon' : 'Autre'}
+            </p>
+          </div>
+          <div>
+            <p className="text-gray-500 text-xs mb-1">Statut</p>
+            <span className={`inline-block px-3 py-1 rounded-full text-xs font-medium ${
+              eleve?.actif 
+                ? 'bg-green-100 text-green-700' 
+                : 'bg-red-100 text-red-700'
+            }`}>
+              {eleve?.actif ? 'Actif' : 'Archivé'}
+            </span>
+          </div>
         </div>
       </div>
 
-      {/* INFOS INSCRIPTION */}
-      <div className="bg-card border border-border rounded-2xl p-5 mb-4">
-        <h2 className="text-xs font-semibold text-muted-foreground uppercase tracking-wider mb-4">
-          Détails de l'inscription
-        </h2>
-        <div className="grid grid-cols-2 gap-4 text-sm">
-          {[
-            ['Année académique', annee?.libelle],
-            ['Période',          annee?.periode],
-            ['Classe',           salle?.classe?.libelle],
-            ['Cycle',            salle?.classe?.cycle?.libelle],
-            ['Salle',            salle?.libelle],
-            ['Commentaire',      inscription.commentaire],
-          ].map(([label, val]) => (
-            <div key={String(label)}>
-              <p className="text-muted-foreground text-xs mb-0.5">{label}</p>
-              <p className="font-medium">{val ?? '—'}</p>
-            </div>
-          ))}
+      {/* Détails Inscription */}
+      <div className="bg-white border border-gray-200 rounded-2xl p-8 mb-6">
+        <h2 className="text-lg font-semibold mb-5">Détails de l'inscription</h2>
+        <div className="grid grid-cols-2 gap-6 text-sm">
+          <div>
+            <p className="text-gray-500 text-xs mb-1">Année Académique</p>
+            <p className="font-medium">{annee?.libelle}</p>
+          </div>
+          <div>
+            <p className="text-gray-500 text-xs mb-1">Classe</p>
+            <p className="font-medium">{salle?.classe?.libelle ?? '—'}</p>
+          </div>
+          <div>
+            <p className="text-gray-500 text-xs mb-1">Salle</p>
+            <p className="font-medium">{salle?.libelle ?? '—'}</p>
+          </div>
+          <div>
+            <p className="text-gray-500 text-xs mb-1">Commentaire</p>
+            <p className="font-medium text-gray-700">
+              {inscription.commentaire || 'RAS'}
+            </p>
+          </div>
         </div>
       </div>
 
-      {/* STATUT BADGE */}
-      <div className="bg-card border border-border rounded-2xl p-5">
-        <h2 className="text-xs font-semibold text-muted-foreground uppercase tracking-wider mb-3">
-          Statut
-        </h2>
-        <span className={`inline-flex items-center gap-1.5 px-3 py-1.5 rounded-full text-xs font-medium ${
-          eleve?.actif
-            ? 'bg-green-500/10 text-green-400 border border-green-500/20'
-            : 'bg-red-500/10 text-red-400 border border-red-500/20'
-        }`}>
-          <span className={`w-1.5 h-1.5 rounded-full ${
-            eleve?.actif ? 'bg-green-400' : 'bg-red-400'
-          }`} />
-          {eleve?.actif ? 'Élève actif' : 'Élève archivé'}
-        </span>
-      </div>
+      {/* Actions */}
+      <div className="flex gap-4">
+        <button
+          onClick={() => navigate(`/inscriptions/${id}/modifier`)}
+          className="flex items-center gap-2 bg-[#1a3a5c] text-white px-6 py-3 rounded-xl hover:bg-[#16324f] transition"
+        >
+          <Edit size={18} />
+          Modifier l'inscription
+        </button>
 
+        <button
+          onClick={handleDelete}
+          className="flex items-center gap-2 border border-red-300 text-red-600 px-6 py-3 rounded-xl hover:bg-red-50 transition"
+        >
+          <Trash2 size={18} />
+          Supprimer
+        </button>
+
+        <button
+          onClick={() => navigate('/inscriptions')}
+          className="flex-1 border border-gray-300 py-3 rounded-xl hover:bg-gray-50 transition"
+        >
+          Retour à la liste
+        </button>
+      </div>
     </div>
   );
 }

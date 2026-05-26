@@ -173,4 +173,24 @@ public function show($idEnseignant)
 
         return response()->json(['message' => 'Enseignant réactivé']);
     }
+
+    public function search(Request $request)
+{
+    $search = $request->get('search');
+
+    $query = Enseignant::with('personne')
+        ->join('Personne', 'Enseignant.idPers', '=', 'Personne.idPers')
+        ->select('Enseignant.*');
+
+    if ($search) {
+        $query->where(function ($q) use ($search) {
+            $q->where('Personne.nom', 'like', "%$search%")
+              ->orWhere('Personne.prenom', 'like', "%$search%");
+        });
+    }
+
+    return response()->json(
+        $query->limit(10)->get()
+    );
+}
 }

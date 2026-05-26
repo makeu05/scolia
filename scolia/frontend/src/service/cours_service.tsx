@@ -1,7 +1,7 @@
 // src/service/cours_service.ts
 const API = import.meta.env.VITE_API_URL ?? 'http://localhost:8000/api';
 
-import { getToken } from './auth';
+import { authFetch, getToken } from './auth';
 
 // ─── Types ───────────────────────────────────────────────────────────────────
 export interface Cours {
@@ -85,7 +85,7 @@ export async function getCours(filters: CoursFilters = {}): Promise<any> {
     params.append('paginate', 'false');
   }
 
-  const res = await fetch(`${API}/cours?${params}`, {
+  const res = await authFetch(`${API}/cours?${params}`, {
     headers: authHeaders(),
   });
 
@@ -96,7 +96,7 @@ export async function getCours(filters: CoursFilters = {}): Promise<any> {
  * Récupère un cours par ID
  */
 export async function getCoursById(idCours: number | string): Promise<Cours> {
-  const res = await fetch(`${API}/cours/${idCours}`, {
+  const res = await authFetch(`${API}/cours/${idCours}`, {
     headers: authHeaders(),
   });
   return handleResponse<Cours>(res);
@@ -106,7 +106,7 @@ export async function getCoursById(idCours: number | string): Promise<Cours> {
  * Crée un nouveau cours
  */
 export async function createCours(payload: CoursPayload): Promise<{ message: string; cours: Cours }> {
-  const res = await fetch(`${API}/cours`, {
+  const res = await authFetch(`${API}/cours`, {
     method: 'POST',
     headers: {
       ...authHeaders(),
@@ -125,7 +125,7 @@ export async function updateCours(
   idCours: number | string,
   payload: Partial<CoursPayload>
 ): Promise<{ message: string; cours: Cours }> {
-  const res = await fetch(`${API}/cours/${idCours}`, {
+  const res = await authFetch(`${API}/cours/${idCours}`, {
     method: 'PUT',
     headers: {
       ...authHeaders(),
@@ -141,7 +141,7 @@ export async function updateCours(
  * Supprime un cours
  */
 export async function deleteCours(idCours: number | string): Promise<{ message: string }> {
-  const res = await fetch(`${API}/cours/${idCours}`, {
+  const res = await authFetch(`${API}/cours/${idCours}`, {
     method: 'DELETE',
     headers: authHeaders(),
   });

@@ -24,6 +24,7 @@ class DatabaseSeeder extends Seeder
             EleveSeeder::class,
             FrequenteSeeder::class,
             EpreuveSeeder::class,
+            ModeSeeder::class,
         ]);
     }
 }

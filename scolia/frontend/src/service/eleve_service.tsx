@@ -2,7 +2,7 @@ const API =
   import.meta.env.VITE_API_URL ??
   'http://localhost:8000/api';
 
-import { getToken } from '../service/auth';
+import { authFetch, getToken } from '../service/auth';
 
 // ─── Types ───────────────────────────────────────────────────────────────────
 
@@ -98,7 +98,7 @@ export async function getEleves(filters: EleveFilters = {}): Promise<ElevePagina
                        params.append('sexe',    filters.sexe);
   if (filters.idVille) params.append('idVille', filters.idVille);
 
-  const res = await fetch(`${API}/eleves?${params}`, {
+  const res = await authFetch(`${API}/eleves?${params}`, {
     headers: authHeaders(),
   });
 
@@ -109,7 +109,7 @@ export async function getEleves(filters: EleveFilters = {}): Promise<ElevePagina
  * Récupère le détail d'un élève par matricule
  */
 export async function getEleve(matricule: number | string): Promise<Eleve> {
-  const res = await fetch(`${API}/eleves/${matricule}`, {
+  const res = await authFetch(`${API}/eleves/${matricule}`, {
     headers: authHeaders(),
   });
 
@@ -133,7 +133,7 @@ export async function createEleve(
 
   if (photo) formData.append('photo', photo);
 
-  const res = await fetch(`${API}/eleves`, {
+  const res = await authFetch(`${API}/eleves`, {
     method: 'POST',
     headers: authHeaders(), // pas de Content-Type pour FormData
     body: formData,
@@ -161,7 +161,7 @@ export async function updateEleve(
 
   if (photo) formData.append('photo', photo);
 
-  const res = await fetch(`${API}/eleves/${matricule}`, {
+  const res = await authFetch(`${API}/eleves/${matricule}`, {
     method: 'POST', // POST + _method PUT pour FormData
     headers: authHeaders(),
     body: formData,
@@ -176,7 +176,7 @@ export async function updateEleve(
 export async function archiverEleve(
   matricule: number | string
 ): Promise<{ message: string }> {
-  const res = await fetch(`${API}/eleves/${matricule}/archiver`, {
+  const res = await authFetch(`${API}/eleves/${matricule}/archiver`, {
     method: 'PATCH',
     headers: authHeaders(),
   });
@@ -190,7 +190,7 @@ export async function archiverEleve(
 export async function reactiverEleve(
   matricule: number | string
 ): Promise<{ message: string }> {
-  const res = await fetch(`${API}/eleves/${matricule}/reactiver`, {
+  const res = await authFetch(`${API}/eleves/${matricule}/reactiver`, {
     method: 'PATCH',
     headers: authHeaders(),
   });
@@ -202,7 +202,7 @@ export async function reactiverEleve(
  * Supprime définitivement un élève
  */
 export async function deleteEleve(matricule: number | string): Promise<{ message: string }> {
-  const res = await fetch(`${API}/eleves/${matricule}`, {
+  const res = await authFetch(`${API}/eleves/${matricule}`, {
     method: 'DELETE',
     headers: authHeaders(),
   });
@@ -215,7 +215,7 @@ export async function deleteEleve(matricule: number | string): Promise<{ message
 export async function getParentsEleve(
   matricule: number | string
 ): Promise<Parent[]> {
-  const res = await fetch(`${API}/eleves/${matricule}/parents`, {
+  const res = await authFetch(`${API}/eleves/${matricule}/parents`, {
     headers: authHeaders(),
   });
 
@@ -238,7 +238,7 @@ export async function addParentEleve(
     idAdmin: number | string;
   }
 ): Promise<{ message: string; parent: Parent }> {
-  const res = await fetch(`${API}/eleves/${matricule}/parents`, {
+  const res = await authFetch(`${API}/eleves/${matricule}/parents`, {
     method: 'POST',
     headers: authJsonHeaders(),
     body: JSON.stringify(payload),
@@ -254,7 +254,7 @@ export async function deleteParentEleve(
   matricule: number | string,
   idParent: number | string
 ): Promise<{ message: string }> {
-  const res = await fetch(`${API}/eleves/${matricule}/parents/${idParent}`, {
+  const res = await authFetch(`${API}/eleves/${matricule}/parents/${idParent}`, {
     method: 'DELETE',
     headers: authHeaders(),
   });
@@ -270,7 +270,7 @@ export async function getElevesByClasse(
   idClasse: number | string,
   idAcademi: number | string
 ): Promise<Eleve[]> {
-  const res = await fetch(
+  const res = await authFetch(
     `${API}/inscriptions/eleves-classe?idClasse=${idClasse}&idAcademi=${idAcademi}`,
     { headers: authHeaders() }
   );
@@ -284,7 +284,7 @@ export async function getElevesByClasse(
 export async function searchEleves(query: string): Promise<Eleve[]> {
   if (!query || query.length < 2) return [];
 
-  const res = await fetch(`${API}/eleves?search=${encodeURIComponent(query)}`, {
+  const res = await authFetch(`${API}/eleves?search=${encodeURIComponent(query)}`, {
     headers: authHeaders(),
   });
 
@@ -320,4 +320,16 @@ export function getPhotoUrl(photoURL: string): string {
   }
   if (photoURL.startsWith('http')) return photoURL;
   return `http://localhost:8000${photoURL}`;
+}
+
+/**
+ * Récupère TOUS les élèves (sans pagination) - Idéal pour les selects/dropdowns
+ */
+export async function getAllEleves(): Promise<Eleve[]> {
+  const res = await authFetch(`${API}/eleves?paginate=false`, {
+    headers: authHeaders(),
+  });
+
+  const data = await handleResponse<any>(res);
+  return Array.isArray(data) ? data : (data.data || []);
 }
