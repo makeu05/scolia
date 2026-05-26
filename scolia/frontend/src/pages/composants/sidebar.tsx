@@ -128,6 +128,15 @@ const NAV_ITEMS: NavItem[] = [
     path: "/paiements/stats",
     roles: ["root", "admin", "directeur", "fondateur"],
   },
+
+  {
+    id:"utilisateurs",
+    label: "Utilisateurs",
+    icon: UserCircle,
+    section: "gestion",
+    path: "/admin/utilisateurs",
+    roles: ["root", "admin"],
+  }
 ];
 
 interface SidebarProps {

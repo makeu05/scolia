@@ -51,7 +51,7 @@ Route::middleware('auth:sanctum')->group(function () {
         Route::apiResource('enseignants',  EnseignantController::class);
         Route::apiResource('inscriptions', FrequenteController::class);
         Route::get('/inscriptions/eleves-classe', [FrequenteController::class, 'elevesByClasse']);
-        Route::apiResource('classes',      ClasseController::class);
+         Route::apiResource('classes',      ClasseController::class);
         Route::apiResource('cycles',       CycleController::class);
         Route::apiResource('salles',       SalleController::class);
         Route::apiResource('cours',        CoursController::class);
@@ -104,19 +104,16 @@ Route::get('/personnes', [PersonneController::class, 'index']);
         Route::get('/evaluations/classement',           [EvaluationController::class, 'classement']);
     });
 
-   
-    Route::prefix('admin')->group(function () {
-
-        Route::get('/utilisateurs', [UserController::class, 'index']);
-        Route::post('/utilisateurs', [UserController::class, 'store']);
-        Route::get('/utilisateurs/{id}', [UserController::class, 'show']);
-        Route::put('/utilisateurs/{id}', [UserController::class, 'update']);
-        Route::put('/utilisateurs/{id}/toggle-actif', [UserController::class, 'toggleActif']);
-        Route::post('/utilisateurs/{id}/reset-password', [UserController::class, 'resetPassword']);
-        Route::delete('/utilisateurs/{id}', [UserController::class, 'destroy']); // optionnel
-    });
+    Route::prefix('admin')->middleware('role:root,admin')->group(function () {
+    Route::get('/utilisateurs',                          [UserController::class, 'index']);
+    Route::post('/utilisateurs',                         [UserController::class, 'store']);
+    Route::get('/utilisateurs/{id}',                     [UserController::class, 'show']);
+    Route::put('/utilisateurs/{id}',                     [UserController::class, 'update']);
+    Route::put('/utilisateurs/{id}/toggle-actif',        [UserController::class, 'toggleActif']);
+    Route::post('/utilisateurs/{id}/reset-password',     [UserController::class, 'resetPassword']);
+    Route::delete('/utilisateurs/{id}',                  [UserController::class, 'destroy']);
+});
      // ── PARENT — seulement ses enfants ────────────────────────
    
 });
-
 

@@ -38,7 +38,7 @@ const ROLE_REDIRECTS: Record<string, string> = {
   admin:      "/dashboard",
   directeur:  "/dashboard",
   fondateur:  "/finance",
-  enseignant: "/notes",
+  enseignant: "/dashboard-enseignant",
   parent:     "/dashboard-parent",
 };
 
