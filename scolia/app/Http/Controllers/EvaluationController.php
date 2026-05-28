@@ -5,6 +5,7 @@ namespace App\Http\Controllers;
 use App\Models\Evaluation;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\DB;
+use App\Services\NotificationService;
 
 class EvaluationController extends Controller
 {
@@ -145,6 +146,10 @@ class EvaluationController extends Controller
                 }
             }
         });
+        NotificationService::note(
+    "$created note(s) saisie(s) pour le cours #{$request->idCours}",
+    '/notes/saisie'
+);
 
         return response()->json([
             'message' => "$created note(s) créée(s), $updated mise(s) à jour",

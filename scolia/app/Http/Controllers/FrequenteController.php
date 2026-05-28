@@ -5,6 +5,7 @@ namespace App\Http\Controllers;
 use App\Models\Frequente;
 use App\Models\Eleve;
 use Illuminate\Http\Request;
+use App\Services\NotificationService;
 use Illuminate\Support\Facades\DB;
 
 class FrequenteController extends Controller
@@ -72,6 +73,11 @@ class FrequenteController extends Controller
             'commentaire' => $request->commentaire ?? 'RAS',
             'idAdmin'     => $request->idAdmin,
         ]);
+
+        NotificationService::inscription(
+    "Élève #{$frequente->matricule} inscrit en {$frequente->salle->classe->libelle}",
+    '/inscriptions/' . $frequente->idFrequente
+);
 
         return response()->json([
             'message'   => 'Élève inscrit avec succès',

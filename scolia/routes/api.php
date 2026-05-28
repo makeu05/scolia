@@ -22,6 +22,7 @@ use App\Http\Controllers\ScolariteController;
 use App\Http\Controllers\UserController;
 use App\Http\Controllers\ModeController;
 use App\Http\Controllers\PersonneController;
+use App\Http\Controllers\NotificationController;
 use Illuminate\Support\Facades\Route;
 
 // ── PUBLIC ────────────────────────────────────────────────────────────────────
@@ -61,9 +62,20 @@ Route::middleware('auth:sanctum')->group(function () {
         Route::apiResource('sessions',     SessionController::class);
         Route::apiResource('epreuves',     EpreuveController::class);
         Route::apiResource('natures',      NatureEpreuveController::class);
+        Route::patch('/eleves/{matricule}/archiver', [EleveController::class, 'archiver']);
+         Route::patch('/eleves/{matricule}/reactiver', [EleveController::class, 'reactiver']);
+         Route::patch('/enseignants/{idEnseignant}/desactiver', [EnseignantController::class, 'desactiver']);
+         Route::patch('/enseignants/{idEnseignant}/reactiver', [EnseignantController::class, 'reactiver']);
         Route::get('/eleves/{matricule}/parents',         [ParentsController::class, 'index']);
 Route::post('/eleves/{matricule}/parents',        [ParentsController::class, 'store']);
 Route::delete('/eleves/{matricule}/parents/{id}', [ParentsController::class, 'destroy']);
+
+Route::get('/notifications',              [NotificationController::class, 'index']);
+    Route::get('/notifications/polling',      [NotificationController::class, 'polling']);
+    Route::patch('/notifications/{id}/lue',   [NotificationController::class, 'marquerLue']);
+    Route::patch('/notifications/lues/tout',  [NotificationController::class, 'marquerToutesLues']);
+    Route::delete('/notifications/{id}',      [NotificationController::class, 'destroy']);
+    Route::delete('/notifications/lues/tout', [NotificationController::class, 'supprimerLues']);
         // Dans api.php
 Route::get('/personnes', [PersonneController::class, 'index']);
     });

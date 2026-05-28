@@ -5,6 +5,9 @@ use App\Http\Controllers\Controller;
 use Illuminate\Support\Facades\DB;
 
 use App\Models\Eleve;
+use App\Models\Personne;
+use App\Models\Ville;
+use App\Services\NotificationService;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Storage;
 
@@ -89,10 +92,16 @@ class EleveController extends Controller
 
     $eleve = Eleve::create($data);
 
+    
+    NotificationService::eleve(
+    "Nouvel élève ajouté : {$eleve->prenom} {$eleve->nom} (#{$eleve->matricule})",
+    '/eleves/' . $eleve->matricule
+);
     return response()->json([
         'message' => 'Élève créé avec succès',
         'eleve'   => $eleve,
     ], 201);
+
 }
     // ─── Détail d'un élève ───────────────────────────────────
     public function show($matricule)
