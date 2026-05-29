@@ -5,6 +5,7 @@ namespace App\Http\Controllers;
 use App\Models\Frequente;
 use App\Models\Eleve;
 use Illuminate\Http\Request;
+use App\Services\NotificationService;
 use Illuminate\Support\Facades\DB;
 
 class FrequenteController extends Controller
@@ -73,6 +74,11 @@ class FrequenteController extends Controller
             'idAdmin'     => $request->idAdmin,
         ]);
 
+        NotificationService::inscription(
+    "Élève #{$frequente->matricule} inscrit en {$frequente->salle->classe->libelle}",
+    '/inscriptions/' . $frequente->idFrequente
+);
+
         return response()->json([
             'message'   => 'Élève inscrit avec succès',
             'frequente' => $frequente->load(['eleve', 'salle.classe', 'anneeAcademique'])
@@ -132,4 +138,26 @@ class FrequenteController extends Controller
 
         return response()->json($eleves);
     }
+
+    /**
+ * Afficher une inscription spécifique (détail)
+ */
+public function show($id)
+{
+    $inscription = \App\Models\Frequente::with([
+        'eleve' => function($q) {
+            $q->select('matricule', 'nom', 'prenom', 'sexe', 'photoURL', 'actif');
+        },
+        'classe' => function($q) {
+            $q->select('idClasse', 'libelle', 'idCycle');
+        },
+        'salle',
+        'anneeAcademique'
+    ])->findOrFail($id);
+
+    return response()->json([
+        'success' => true,
+        'data' => $inscription
+    ]);
+}
 }

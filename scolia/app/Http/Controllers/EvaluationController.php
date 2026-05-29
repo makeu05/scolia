@@ -3,14 +3,13 @@
 namespace App\Http\Controllers;
 
 use App\Models\Evaluation;
-use App\Models\Cours;
-use App\Models\Frequente;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\DB;
+use App\Services\NotificationService;
 
 class EvaluationController extends Controller
 {
-    // Notes d'un cours pour une session donnée
+    // ── INDEX ─────────────────────────────────────────────────────────────────
     public function index(Request $request)
     {
         $request->validate([
@@ -26,20 +25,19 @@ class EvaluationController extends Controller
         return response()->json($evaluations);
     }
 
-    // Saisir une note
+    // ── STORE ─────────────────────────────────────────────────────────────────
     public function store(Request $request)
     {
         $request->validate([
-            'matricule'  => 'required|integer|exists:Eleve,matricule',
-            'idEpreuve'  => 'required|integer|exists:Epreuve,idEpreuve',
-            'idCours'    => 'required|integer|exists:Cours,idCours',
-            'idSession'  => 'required|integer|exists:Session,idSession',
-            'idPers'     => 'required|integer',
-            'note'       => 'required|numeric|min:0|max:20',
+            'matricule'    => 'required|integer|exists:Eleve,matricule',
+            'idEpreuve'    => 'required|integer|exists:Epreuve,idEpreuve',
+            'idCours'      => 'required|integer|exists:Cours,idCours',
+            'idSession'    => 'required|integer|exists:Session,idSession',
+            'idPers'       => 'required|integer',
+            'note'         => 'required|numeric|min:0|max:20',
             'appreciation' => 'nullable|string|max:255',
         ]);
 
-        // Vérifier doublon
         $exists = Evaluation::where('matricule', $request->matricule)
             ->where('idEpreuve', $request->idEpreuve)
             ->where('idCours', $request->idCours)
@@ -50,32 +48,35 @@ class EvaluationController extends Controller
             return response()->json(['message' => 'Une note existe déjà pour cet élève/épreuve/cours/session'], 422);
         }
 
-        $id = DB::table('Evaluation')->max('idEval') + 1;
+        $eval = DB::transaction(function () use ($request) {
+            // FIX: LOCK pour éviter la race condition sur max(idEval)+1
+            $id = DB::table('Evaluation')->lockForUpdate()->max('idEval') + 1;
 
-        $eval = Evaluation::create([
-            'idEval'       => $id,
-            'note'         => $request->note,
-            'appreciation' => $request->appreciation ?? $this->getAppreciation($request->note),
-            'matricule'    => $request->matricule,
-            'idEpreuve'    => $request->idEpreuve,
-            'idCours'      => $request->idCours,
-            'idSession'    => $request->idSession,
-            'idPers'       => $request->idPers,
-        ]);
+            return Evaluation::create([
+                'idEval'       => $id,
+                'note'         => $request->note,
+                'appreciation' => $request->appreciation ?? $this->getAppreciation($request->note),
+                'matricule'    => $request->matricule,
+                'idEpreuve'    => $request->idEpreuve,
+                'idCours'      => $request->idCours,
+                'idSession'    => $request->idSession,
+                'idPers'       => $request->idPers,
+            ]);
+        });
 
         return response()->json([
-            'message' => 'Note enregistrée',
-            'evaluation' => $eval->load(['eleve', 'epreuve'])
+            'message'    => 'Note enregistrée',
+            'evaluation' => $eval->load(['eleve', 'epreuve']),
         ], 201);
     }
 
-    // Modifier une note
+    // ── UPDATE ────────────────────────────────────────────────────────────────
     public function update(Request $request, $id)
     {
         $eval = Evaluation::findOrFail($id);
 
         $request->validate([
-            'note'        => 'sometimes|numeric|min:0|max:20',
+            'note'         => 'sometimes|numeric|min:0|max:20',
             'appreciation' => 'nullable|string|max:255',
         ]);
 
@@ -89,31 +90,33 @@ class EvaluationController extends Controller
         return response()->json(['message' => 'Note modifiée', 'evaluation' => $eval]);
     }
 
+    // ── DESTROY ───────────────────────────────────────────────────────────────
     public function destroy($id)
     {
         Evaluation::findOrFail($id)->delete();
         return response()->json(['message' => 'Note supprimée']);
     }
 
-    // Saisie en masse pour un cours + session (tableau de notes)
+    // ── STORE BULK — FIX race condition ───────────────────────────────────────
     public function storeBulk(Request $request)
     {
         $request->validate([
-            'idCours'    => 'required|integer|exists:Cours,idCours',
-            'idSession'  => 'required|integer|exists:Session,idSession',
-            'idEpreuve'  => 'required|integer|exists:Epreuve,idEpreuve',
-            'idPers'     => 'required|integer',
-            'notes'      => 'required|array',
+            'idCours'           => 'required|integer|exists:Cours,idCours',
+            'idSession'         => 'required|integer|exists:Session,idSession',
+            'idEpreuve'         => 'required|integer|exists:Epreuve,idEpreuve',
+            'idPers'            => 'required|integer',
+            'notes'             => 'required|array|min:1',
             'notes.*.matricule' => 'required|integer|exists:Eleve,matricule',
             'notes.*.note'      => 'required|numeric|min:0|max:20',
         ]);
 
         $created = 0;
         $updated = 0;
-        $lastId  = DB::table('Evaluation')->max('idEval') ?? 0;
 
-        DB::beginTransaction();
-        try {
+        DB::transaction(function () use ($request, &$created, &$updated) {
+            // FIX: un seul lock au début, incrément manuel sécurisé
+            $lastId = DB::table('Evaluation')->lockForUpdate()->max('idEval') ?? 0;
+
             foreach ($request->notes as $item) {
                 $existing = Evaluation::where('matricule', $item['matricule'])
                     ->where('idEpreuve', $request->idEpreuve)
@@ -142,37 +145,33 @@ class EvaluationController extends Controller
                     $created++;
                 }
             }
+        });
+        NotificationService::note(
+    "$created note(s) saisie(s) pour le cours #{$request->idCours}",
+    '/notes/saisie'
+);
 
-            DB::commit();
-            return response()->json([
-                'message' => "$created note(s) créée(s), $updated mise(s) à jour"
-            ]);
-        } catch (\Exception $e) {
-            DB::rollBack();
-            return response()->json(['message' => 'Erreur : ' . $e->getMessage()], 500);
-        }
+        return response()->json([
+            'message' => "$created note(s) créée(s), $updated mise(s) à jour",
+        ]);
     }
 
-    // Moyenne d'un élève pour un trimestre
+    // ── MOYENNE ÉLÈVE ─────────────────────────────────────────────────────────
     public function moyenneEleve(Request $request, $matricule)
     {
-        $request->validate([
-            'idTrimestre' => 'required|integer',
-        ]);
+        $request->validate(['idTrimestre' => 'required|integer']);
 
-        // Sessions du trimestre
         $sessions = DB::table('Session')
             ->where('idTrimestre', $request->idTrimestre)
             ->pluck('idSession');
 
-        // Notes groupées par cours
         $evaluations = Evaluation::with(['cours'])
             ->where('matricule', $matricule)
             ->whereIn('idSession', $sessions)
             ->get();
 
-        $parCours = $evaluations->groupBy('idCours');
-        $resultats = [];
+        $parCours     = $evaluations->groupBy('idCours');
+        $resultats    = [];
         $totalPondere = 0;
         $totalCoeff   = 0;
 
@@ -190,16 +189,11 @@ class EvaluationController extends Controller
                 'coefficient'  => $coefficient,
                 'moyenne'      => round($moyenne, 2),
                 'appreciation' => $this->getAppreciation($moyenne),
-                'notes'        => $notes->map(fn($e) => [
-                    'note'       => $e->note,
-                    'idEpreuve'  => $e->idEpreuve,
-                ]),
+                'notes'        => $notes->map(fn($e) => ['note' => $e->note, 'idEpreuve' => $e->idEpreuve]),
             ];
         }
 
-        $moyenneGenerale = $totalCoeff > 0
-            ? round($totalPondere / $totalCoeff, 2)
-            : 0;
+        $moyenneGenerale = $totalCoeff > 0 ? round($totalPondere / $totalCoeff, 2) : 0;
 
         return response()->json([
             'matricule'       => $matricule,
@@ -210,16 +204,13 @@ class EvaluationController extends Controller
         ]);
     }
 
-    // Bulletin complet d'un élève (toutes les infos pour le PDF)
+    // ── BULLETIN ──────────────────────────────────────────────────────────────
     public function bulletin($matricule, Request $request)
     {
-        $request->validate([
-            'idTrimestre' => 'required|integer',
-        ]);
+        $request->validate(['idTrimestre' => 'required|integer']);
 
         $eleve = \App\Models\Eleve::findOrFail($matricule);
 
-        // Classe de l'élève via Frequente
         $frequente = DB::table('Frequente')
             ->join('Salle', 'Frequente.idSalle', '=', 'Salle.idSalle')
             ->join('Classe', 'Salle.idClasse', '=', 'Classe.idClasse')
@@ -229,22 +220,17 @@ class EvaluationController extends Controller
             ->latest('AnneeAcademique.idAnnee')
             ->first();
 
-        $trimestre = DB::table('Trimestre')
-            ->where('idTrimes', $request->idTrimestre)
-            ->first();
+        $trimestre = DB::table('Trimestre')->where('idTrimes', $request->idTrimestre)->first();
 
-        // Sessions du trimestre
         $sessions = DB::table('Session')
             ->where('idTrimestre', $request->idTrimestre)
             ->pluck('idSession');
 
-        // Notes de l'élève
         $evaluations = Evaluation::with(['cours', 'epreuve.nature'])
             ->where('matricule', $matricule)
             ->whereIn('idSession', $sessions)
             ->get();
 
-        // Calcul moyennes par cours
         $parCours     = $evaluations->groupBy('idCours');
         $resultats    = [];
         $totalPondere = 0;
@@ -259,19 +245,15 @@ class EvaluationController extends Controller
             $totalCoeff   += $coefficient;
 
             $resultats[] = [
-                'cours'       => $cours->libelle,
-                'coefficient' => $coefficient,
-                'moyenne'     => round($moyenne, 2),
-                'appreciation'=> $this->getAppreciation($moyenne),
+                'cours'        => $cours->libelle,
+                'coefficient'  => $coefficient,
+                'moyenne'      => round($moyenne, 2),
+                'appreciation' => $this->getAppreciation($moyenne),
             ];
         }
 
-        $moyenneGenerale = $totalCoeff > 0
-            ? round($totalPondere / $totalCoeff, 2)
-            : 0;
-
-        // Classement dans la classe
-        $classement = $this->getClassement($matricule, $request->idTrimestre, $frequente?->idClasse);
+        $moyenneGenerale = $totalCoeff > 0 ? round($totalPondere / $totalCoeff, 2) : 0;
+        $classement      = $this->getClassement($matricule, $request->idTrimestre, $frequente?->idClasse);
 
         return response()->json([
             'eleve'           => $eleve,
@@ -284,7 +266,7 @@ class EvaluationController extends Controller
         ]);
     }
 
-    // Classement de tous les élèves d'une classe pour un trimestre
+    // ── CLASSEMENT ────────────────────────────────────────────────────────────
     public function classement(Request $request)
     {
         $request->validate([
@@ -296,7 +278,6 @@ class EvaluationController extends Controller
             ->where('idTrimestre', $request->idTrimestre)
             ->pluck('idSession');
 
-        // Élèves de la classe via Frequente + Salle
         $matricules = DB::table('Frequente')
             ->join('Salle', 'Frequente.idSalle', '=', 'Salle.idSalle')
             ->where('Salle.idClasse', $request->idClasse)
@@ -325,13 +306,11 @@ class EvaluationController extends Controller
             ];
         }
 
-        // Trier par moyenne décroissante
         usort($moyennes, fn($a, $b) => $b['moyenne'] <=> $a['moyenne']);
 
-        // Ajouter le rang
         foreach ($moyennes as $i => &$m) {
-            $m['rang'] = $i + 1;
-            $eleve = \App\Models\Eleve::find($m['matricule']);
+            $m['rang']   = $i + 1;
+            $eleve       = \App\Models\Eleve::find($m['matricule']);
             $m['nom']    = $eleve?->nom;
             $m['prenom'] = $eleve?->prenom;
         }
@@ -339,7 +318,7 @@ class EvaluationController extends Controller
         return response()->json($moyennes);
     }
 
-    // Helpers
+    // ── HELPERS ───────────────────────────────────────────────────────────────
     private function getAppreciation(float $note): string
     {
         return match (true) {
@@ -379,7 +358,7 @@ class EvaluationController extends Controller
 
         $moyennes = [];
         foreach ($matricules as $m) {
-            $evals  = Evaluation::with('cours')
+            $evals = Evaluation::with('cours')
                 ->where('matricule', $m)
                 ->whereIn('idSession', $sessions)
                 ->get();

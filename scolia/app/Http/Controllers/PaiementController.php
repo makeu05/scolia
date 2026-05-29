@@ -5,6 +5,7 @@ namespace App\Http\Controllers;
 use App\Models\Paiement;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\DB;
+use App\Services\NotificationService;
 
 class PaiementController extends Controller
 {
@@ -63,6 +64,10 @@ class PaiementController extends Controller
             'datePaie'        => $request->datePaie,
             'dateEnregistrer' => now(),
         ]);
+        NotificationService::paiement(
+    "Paiement de " . number_format($paiement->montant, 0, ',', ' ') . " FCFA reçu de {$paiement->eleve->prenom} {$paiement->eleve->nom}",
+    '/paiements/' . $paiement->idPaie
+);
 
         return response()->json([
             'message'  => 'Paiement enregistré',

@@ -5,7 +5,6 @@ import {
   getClasses,
   getElevesByClasse,
   getBulletin,
-  getMention,
   type AnneeAcademique,
   type Trimestre,
   type Classe,
@@ -78,21 +77,20 @@ export default function NotesBulletin() {
       {/* Header */}
       <div className="flex justify-between items-center mb-8 print:hidden">
         <div>
-          <h1 className="text-3xl font-bold text-gray-900">Bulletin de Notes</h1>
-          <p className="text-gray-500 mt-1">Générer le bulletin d'un élève</p>
+          <h1 className="text-3xl font-bold">Bulletin de Notes</h1>
+          <p className="text-gray-500 mt-1">Génération du bulletin officiel</p>
         </div>
 
         {bulletin && (
           <button
             onClick={handlePrint}
-            className="flex items-center gap-2 bg-[#1a3a5c] text-white px-5 py-3 rounded-xl hover:bg-[#16324f] transition"
+            className="flex items-center gap-2 bg-[#1a3a5c] text-white px-6 py-3 rounded-xl hover:bg-[#132d4a] transition"
           >
-            🖨 Imprimer / PDF
+            🖨 Imprimer le Bulletin
           </button>
         )}
       </div>
 
-      {/* Message d'erreur */}
       {error && (
         <div className="bg-red-50 border border-red-200 text-red-700 px-4 py-3 rounded-xl mb-6 print:hidden">
           {error}
@@ -100,16 +98,14 @@ export default function NotesBulletin() {
       )}
 
       {/* Filtres */}
-      <div className="bg-white border border-gray-200 rounded-2xl p-6 mb-8 shadow-sm print:hidden">
-        <h2 className="text-sm font-semibold text-gray-500 uppercase tracking-wider mb-5">Filtres</h2>
-        
+      <div className="bg-white border border-gray-200 rounded-2xl p-6 mb-8 print:hidden">
         <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-5">
           <div>
-            <label className="block text-sm font-medium text-gray-700 mb-2">Année Académique</label>
+            <label className="block text-sm font-medium mb-2">Année Académique</label>
             <select
               value={idAcademi}
               onChange={(e) => { setIdAcademi(e.target.value); setIdTrimestre(''); }}
-              className="w-full border border-gray-300 rounded-xl px-4 py-3 focus:outline-none focus:border-[#1a3a5c]"
+              className="w-full border border-gray-300 rounded-xl px-4 py-3 focus:border-[#1a3a5c]"
             >
               <option value="">-- Sélectionner --</option>
               {annees.map(a => (
@@ -119,12 +115,12 @@ export default function NotesBulletin() {
           </div>
 
           <div>
-            <label className="block text-sm font-medium text-gray-700 mb-2">Trimestre</label>
+            <label className="block text-sm font-medium mb-2">Trimestre</label>
             <select
               value={idTrimestre}
               onChange={(e) => setIdTrimestre(e.target.value)}
               disabled={!idAcademi}
-              className="w-full border border-gray-300 rounded-xl px-4 py-3 focus:outline-none focus:border-[#1a3a5c] disabled:opacity-50"
+              className="w-full border border-gray-300 rounded-xl px-4 py-3 focus:border-[#1a3a5c] disabled:opacity-50"
             >
               <option value="">-- Sélectionner --</option>
               {trimestres.map(t => (
@@ -134,11 +130,11 @@ export default function NotesBulletin() {
           </div>
 
           <div>
-            <label className="block text-sm font-medium text-gray-700 mb-2">Classe</label>
+            <label className="block text-sm font-medium mb-2">Classe</label>
             <select
               value={idClasse}
               onChange={(e) => { setIdClasse(e.target.value); setMatricule(''); }}
-              className="w-full border border-gray-300 rounded-xl px-4 py-3 focus:outline-none focus:border-[#1a3a5c]"
+              className="w-full border border-gray-300 rounded-xl px-4 py-3 focus:border-[#1a3a5c]"
             >
               <option value="">-- Sélectionner --</option>
               {classes.map(c => (
@@ -148,14 +144,14 @@ export default function NotesBulletin() {
           </div>
 
           <div>
-            <label className="block text-sm font-medium text-gray-700 mb-2">Élève</label>
+            <label className="block text-sm font-medium mb-2">Élève</label>
             <select
               value={matricule}
               onChange={(e) => setMatricule(e.target.value)}
-              disabled={eleves.length === 0}
-              className="w-full border border-gray-300 rounded-xl px-4 py-3 focus:outline-none focus:border-[#1a3a5c] disabled:opacity-50"
+              disabled={!idClasse}
+              className="w-full border border-gray-300 rounded-xl px-4 py-3 focus:border-[#1a3a5c] disabled:opacity-50"
             >
-              <option value="">-- Sélectionner un élève --</option>
+              <option value="">-- Sélectionner --</option>
               {eleves.map(el => (
                 <option key={el.matricule} value={el.matricule}>
                   {el.prenom} {el.nom} — #{el.matricule}
@@ -168,81 +164,94 @@ export default function NotesBulletin() {
         <button
           onClick={handleGenerer}
           disabled={!matricule || !idTrimestre || loading}
-          className="mt-6 bg-[#1a3a5c] hover:bg-[#16324f] text-white px-8 py-3 rounded-xl font-semibold transition disabled:opacity-50 w-full md:w-auto"
+          className="mt-6 w-full md:w-auto bg-[#1a3a5c] text-white px-8 py-3 rounded-xl font-semibold hover:bg-[#132d4a] transition disabled:opacity-50"
         >
-          {loading ? 'Génération du bulletin...' : 'Générer le Bulletin'}
+          {loading ? 'Génération...' : 'Générer le Bulletin'}
         </button>
       </div>
 
-      {/* BULLETIN (Zone imprimable) */}
+      {/* ====================== BULLETIN ====================== */}
       {bulletin && (
-        <div ref={printRef} className="bg-white text-gray-900 rounded-2xl p-8 border border-gray-200 print:shadow-none print:rounded-none">
+        <div ref={printRef} className="bg-white text-black p-10 border-2 border-gray-800 rounded-none print:shadow-none">
           
-          {/* En-tête */}
-          <div className="flex justify-between items-start border-b-2 border-gray-800 pb-6 mb-8">
+          {/* En-tête officiel */}
+          <div className="flex justify-between items-start border-b-2 border-black pb-6 mb-8">
             <div>
-              <h2 className="text-2xl font-bold">SCOLIA</h2>
-              <p className="text-sm text-gray-500">École • Collège • Lycée</p>
+              <h1 className="text-4xl font-bold tracking-tight">SCOLIA</h1>
+              <p className="text-sm text-gray-600">Établissement d'Enseignement Secondaire</p>
             </div>
             <div className="text-center">
-              <h3 className="text-2xl font-bold uppercase tracking-wider">Bulletin de Notes</h3>
-              <p className="mt-1 text-gray-600">
-                {bulletin.trimestre?.libelle} — {bulletin.trimestre?.periode}
-              </p>
+              <h2 className="text-2xl font-bold uppercase">Bulletin Trimestriel</h2>
+              <p className="mt-1 text-lg">{bulletin.trimestre?.libelle}</p>
             </div>
-            <div className="text-right text-sm">
-              <p>Année : {bulletin.classe?.annee}</p>
+            <div className="text-right">
+              <p className="font-semibold">Année Scolaire</p>
+              <p>{bulletin.classe?.annee || '—'}</p>
             </div>
           </div>
 
           {/* Informations Élève */}
-          <div className="grid grid-cols-2 gap-8 mb-8 text-sm">
-            <div className="space-y-2">
-              <p><span className="font-semibold">Nom & Prénom :</span> {bulletin.eleve?.prenom} {bulletin.eleve?.nom}</p>
-              <p><span className="font-semibold">Matricule :</span> {bulletin.eleve?.matricule}</p>
-              <p><span className="font-semibold">Classe :</span> {bulletin.classe?.libelle}</p>
+          <div className="grid grid-cols-2 gap-10 mb-10 text-sm">
+            <div>
+              <p className="text-gray-600">Nom et Prénom</p>
+              <p className="text-2xl font-semibold mt-1">
+                {bulletin.eleve?.prenom} {bulletin.eleve?.nom}
+              </p>
+              <p className="mt-3">Matricule : <span className="font-mono">{bulletin.eleve?.matricule}</span></p>
             </div>
-            <div className="space-y-2">
-              <p><span className="font-semibold">Classement :</span> <span className="font-bold">{bulletin.classement?.rang} / {bulletin.classement?.total}</span></p>
-              <p><span className="font-semibold">Moyenne Générale :</span> <span className="font-bold text-lg">{bulletin.moyenneGenerale}</span></p>
-              <p><span className="font-semibold">Mention :</span> <span className="font-bold">{bulletin.mention}</span></p>
+            <div className="text-right">
+              <p className="text-gray-600">Classe</p>
+              <p className="text-2xl font-semibold mt-1">{bulletin.classe?.libelle}</p>
+              <p className="mt-4">
+                Classement : <span className="font-bold">{bulletin.classement?.rang || '—'} / {bulletin.classement?.total || '—'}</span>
+              </p>
             </div>
           </div>
 
-          {/* Tableau des Notes */}
-          <table className="w-full border-collapse border border-gray-300 mb-8 text-sm">
+          {/* Tableau des notes */}
+          <table className="w-full border-collapse border border-gray-800 mb-10 text-sm">
             <thead>
               <tr className="bg-gray-100">
-                <th className="border border-gray-300 px-4 py-3 text-left">Matière</th>
-                <th className="border border-gray-300 px-4 py-3 text-center">Coeff.</th>
-                <th className="border border-gray-300 px-4 py-3 text-center">Moyenne</th>
-                <th className="border border-gray-300 px-4 py-3 text-center">Moy × Coeff</th>
-                <th className="border border-gray-300 px-4 py-3 text-left">Appréciation</th>
+                <th className="border border-gray-800 px-4 py-3 text-left font-semibold">Matière</th>
+                <th className="border border-gray-800 px-4 py-3 text-center font-semibold">Coeff.</th>
+                <th className="border border-gray-800 px-4 py-3 text-center font-semibold">Note</th>
+                <th className="border border-gray-800 px-4 py-3 text-center font-semibold">Total</th>
+                <th className="border border-gray-800 px-4 py-3 text-left font-semibold">Appréciation</th>
               </tr>
             </thead>
             <tbody>
-              {bulletin.resultats?.map((r, i) => (
-                <tr key={i} className={i % 2 === 0 ? '' : 'bg-gray-50'}>
-                  <td className="border border-gray-300 px-4 py-3 font-medium">{r.cours}</td>
-                  <td className="border border-gray-300 px-4 py-3 text-center">{r.coefficient}</td>
-                  <td className={`border border-gray-300 px-4 py-3 text-center font-bold ${r.moyenne >= 10 ? 'text-emerald-600' : 'text-red-600'}`}>
+              {bulletin.resultats?.map((r: any, i: number) => (
+                <tr key={i} className="border-b border-gray-800">
+                  <td className="border border-gray-800 px-4 py-3 font-medium">{r.cours}</td>
+                  <td className="border border-gray-800 px-4 py-3 text-center">{r.coefficient}</td>
+                  <td className={`border border-gray-800 px-4 py-3 text-center font-bold ${r.moyenne >= 10 ? 'text-emerald-700' : 'text-red-700'}`}>
                     {r.moyenne}
                   </td>
-                  <td className="border border-gray-300 px-4 py-3 text-center text-gray-600">
+                  <td className="border border-gray-800 px-4 py-3 text-center font-medium">
                     {(r.moyenne * r.coefficient).toFixed(2)}
                   </td>
-                  <td className="border border-gray-300 px-4 py-3">{r.appreciation}</td>
+                  <td className="border border-gray-800 px-4 py-3 text-sm italic">{r.appreciation}</td>
                 </tr>
               ))}
             </tbody>
           </table>
 
+          {/* Moyenne Générale */}
+          <div className="flex justify-end mb-12">
+            <div className="border-2 border-black px-10 py-6 text-center">
+              <p className="uppercase text-sm tracking-widest">Moyenne Générale</p>
+              <p className="text-5xl font-bold mt-2">{bulletin.moyenneGenerale}</p>
+              <p className="text-xl font-medium mt-1">{bulletin.mention}</p>
+            </div>
+          </div>
+
           {/* Signatures */}
-          <div className="grid grid-cols-3 gap-8 mt-16 text-center text-sm">
-            {['Le Directeur', 'Le Professeur Principal', 'Parent / Tuteur'].map((role) => (
-              <div key={role}>
-                <p className="font-semibold mb-12">{role}</p>
-                <div className="border-t border-gray-400 pt-1 text-xs text-gray-500">Signature et Cachet</div>
+          <div className="grid grid-cols-3 gap-12 text-center mt-20">
+            {['Le Directeur', 'Le Professeur Principal', 'Le Parent / Tuteur'].map((title, i) => (
+              <div key={i}>
+                <div className="border-t-2 border-black pt-8 mb-8"></div>
+                <p className="font-semibold">{title}</p>
+                <p className="text-xs text-gray-500 mt-1">Signature et Cachet</p>
               </div>
             ))}
           </div>
