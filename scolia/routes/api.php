@@ -24,11 +24,34 @@ use App\Http\Controllers\ModeController;
 use App\Http\Controllers\PersonneController;
 use App\Http\Controllers\NotificationController;
 use Illuminate\Support\Facades\Route;
+use App\Http\Controllers\EmploiDuTempsController;
+use App\Http\Controllers\LivresController;
+use App\Http\Controllers\MessagesController;
 
 // ── PUBLIC ────────────────────────────────────────────────────────────────────
 Route::post('/login',          [AuthController::class, 'login']);
 Route::post('/password-reset', [AuthController::class, 'passwordReset']);
 Route::get('/villes',          [VilleNaissanceController::class, 'index']);
+
+
+// ── EMPLOI DU TEMPS ──
+Route::apiResource('emploi-du-temps', EmploiDuTempsController::class);
+Route::get('/emploi-du-temps/classe/{idClasse}', [EmploiDuTempsController::class, 'parClasse']);
+
+// ── BIBLIOTHÈQUE ──
+Route::apiResource('livres', LivresController::class);
+Route::get('/livres/stats', [LivresController::class, 'stats']);
+Route::get('/specialites', function () {
+    return response()->json(\App\Models\Specialite::orderBy('libelle')->get());
+});
+
+// ── COMMUNICATION ──
+Route::apiResource('messages', MessagesController::class);
+Route::post  ('/messages/tous',         [MessagesController::class, 'envoyerATous']);
+Route::patch ('/messages/{id}/valider', [MessagesController::class, 'valider']);
+Route::get   ('/messages/stats',        [MessagesController::class, 'stats']);
+Route::get   ('/messages/parent/{id}',  [MessagesController::class, 'messagesParent']);
+
 
 // ── ROUTES PROTÉGÉES ─────────────────────────────────────────────────────────
 Route::middleware('auth:sanctum')->group(function () {

@@ -2,18 +2,17 @@
 
 namespace App\Http\Controllers;
 
-use App\Models\Notification;
+use App\Models\Notification as NotificationModel;
 use Illuminate\Http\Request;
 
 class NotificationController extends Controller
 {
-    // Récupérer les notifications non lues
+    // Récupérer toutes les notifications
     public function index(Request $request)
     {
-        $user   = $request->user();
-        $idAdmin = $user->getKey();
+        $idAdmin = $request->user()->getKey();
 
-        $notifications = Notification::where('idAdmin', $idAdmin)
+        $notifications = NotificationModel::where('idAdmin', $idAdmin)
             ->orderByDesc('created_at')
             ->limit(50)
             ->get();
@@ -29,7 +28,7 @@ class NotificationController extends Controller
     // Marquer une notification comme lue
     public function marquerLue($id)
     {
-        $notif = Notification::findOrFail($id);
+        $notif = NotificationModel::findOrFail($id);
         $notif->update(['lue' => true]);
         return response()->json(['message' => 'Marquée comme lue']);
     }
@@ -39,7 +38,7 @@ class NotificationController extends Controller
     {
         $idAdmin = $request->user()->getKey();
 
-        Notification::where('idAdmin', $idAdmin)
+        NotificationModel::where('idAdmin', $idAdmin)
             ->where('lue', false)
             ->update(['lue' => true]);
 
@@ -49,7 +48,7 @@ class NotificationController extends Controller
     // Supprimer une notification
     public function destroy($id)
     {
-        Notification::findOrFail($id)->delete();
+        NotificationModel::findOrFail($id)->delete();
         return response()->json(['message' => 'Notification supprimée']);
     }
 
@@ -57,17 +56,21 @@ class NotificationController extends Controller
     public function supprimerLues(Request $request)
     {
         $idAdmin = $request->user()->getKey();
-        Notification::where('idAdmin', $idAdmin)->where('lue', true)->delete();
+
+        NotificationModel::where('idAdmin', $idAdmin)
+            ->where('lue', true)
+            ->delete();
+
         return response()->json(['message' => 'Notifications lues supprimées']);
     }
 
     // Polling — seulement les nouvelles depuis un timestamp
     public function polling(Request $request)
     {
-        $idAdmin  = $request->user()->getKey();
-        $depuis   = $request->query('depuis'); // timestamp ISO
+        $idAdmin = $request->user()->getKey();
+        $depuis  = $request->query('depuis');
 
-        $query = Notification::where('idAdmin', $idAdmin)
+        $query = NotificationModel::where('idAdmin', $idAdmin)
             ->where('lue', false);
 
         if ($depuis) {
@@ -77,9 +80,9 @@ class NotificationController extends Controller
         $nouvelles = $query->orderByDesc('created_at')->get();
 
         return response()->json([
-            'nouvelles'  => $nouvelles,
-            'nb'         => $nouvelles->count(),
-            'timestamp'  => now()->toISOString(),
+            'nouvelles' => $nouvelles,
+            'nb'        => $nouvelles->count(),
+            'timestamp' => now()->toISOString(),
         ]);
     }
 }

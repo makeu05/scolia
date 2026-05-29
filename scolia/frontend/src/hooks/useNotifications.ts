@@ -16,7 +16,7 @@ export function useNotifications() {
   const [nonLues, setNonLues]             = useState(0);
   const [loading, setLoading]             = useState(false);
   const timestampRef                      = useRef<string | undefined>(undefined);
-  const intervalRef                       = useRef<ReturnType<typeof setInterval>>();
+  const intervalRef = useRef<ReturnType<typeof setInterval> | undefined>(undefined);
 
   const user = getUser();
 

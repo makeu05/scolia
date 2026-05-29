@@ -2,6 +2,10 @@ import { Routes, Route, Navigate, Link } from "react-router-dom";
 import ProtectedRoute from "./components/ProtectedRoute";
 import AppLayout from "./components/layout/AppLayout";
 
+import EmploiDuTempsPage  from "./pages/emploi-du-temps/EmploiDuTempsPage";
+import BibliothequePage   from "./pages/bibliotheque/BibliothequePage";
+import CommunicationPage  from "./pages/communication/CommunicationPage";
+
 // ==================== AUTH ====================
 import Login from "./pages/Login";
 import Register from "./pages/register";
@@ -202,6 +206,10 @@ export default function App() {
       <Route path="/admin/utilisateurs/nouveau"   element={<Page roles={["root","admin"]}><UserForm /></Page>} />
       <Route path="/admin/utilisateurs/:id"       element={<Page roles={["root","admin"]}><UserDetail /></Page>} />
       <Route path="/admin/utilisateurs/:id/modifier" element={<Page roles={["root","admin"]}><UserForm /></Page>} />
+
+      <Route path="/emploi-du-temps" element={<Page><EmploiDuTempsPage /></Page>} />
+      <Route path="/bibliotheque"    element={<Page><BibliothequePage /></Page>} />
+      <Route path="/communication"   element={<Page><CommunicationPage /></Page>} />
 
       {/* ── PROFIL ──────────────────────────────────────── */}
       <Route path="/mon-profil" element={<Page><MonProfil /></Page>} />

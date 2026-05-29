@@ -8,6 +8,9 @@ import {
   Building2, Calendar, Home, Shield,
 } from "lucide-react";
 import { useAuth } from "../../service/auth";
+import { Clock, MessageSquare } from "lucide-react";
+import NotificationBell from "../../pages/composants/NotificationBell";
+
 
 // Logo SVG inline
 function ScoliaLogo() {
@@ -51,7 +54,10 @@ const NAV_MAIN: NavItem[] = [
   { id: "salles",         label: "Salles",       icon: Home,            path: "/salles",             roles: ["root","admin","directeur"] },
   { id: "scolarites",     label: "Scolarités",   icon: CreditCard,      path: "/scolarites",         roles: ["root","admin","fondateur"] },
   { id: "stats",          label: "Statistiques", icon: BarChart2,       path: "/paiements/stats",    roles: ["root","admin","directeur","fondateur"] },
-  { id: "utilisateurs",   label: "Utilisateurs", icon: Shield,          path: "/admin/utilisateurs", roles: ["root","admin"] },
+  { id: "utilisateurs",   label: "Utilisateurs", icon: Shield,          path: "/admin/utilisateurs", roles: ["root","admin"] }, 
+  { id: "emploi-du-temps", label: "Emploi du temps", icon: Clock,         path: "/emploi-du-temps", roles: ["root","admin","directeur","enseignant"] },
+  { id: "bibliotheque",    label: "Bibliothèque",    icon: BookOpen,      path: "/bibliotheque",    roles: ["root","admin","directeur","enseignant","parent"] },
+  { id: "communication",   label: "Communication",   icon: MessageSquare, path: "/communication",   roles: ["root","admin","directeur","fondateur"] },
 ];
 
 const ROLE_LABELS: Record<string, string> = {
@@ -130,11 +136,8 @@ export default function TopNav({ annees = [], selectedAnnee, onAnneeChange }: To
           </select>
         )}
 
-        {/* Notif */}
-        <button className="relative w-8 h-8 bg-slate-50 border border-slate-200 rounded-lg flex items-center justify-center hover:bg-slate-100 transition-colors">
-          <Bell className="w-4 h-4 text-slate-500" />
-          <span className="absolute top-1 right-1 w-2 h-2 bg-red-500 rounded-full ring-1.5 ring-white" />
-        </button>
+        {/* Après — remplace par */}
+          <NotificationBell />
 
         {/* User */}
         <div className="relative" ref={userRef}>
