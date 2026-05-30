@@ -210,6 +210,7 @@ export default function App() {
       <Route path="/emploi-du-temps" element={<Page><EmploiDuTempsPage /></Page>} />
       <Route path="/bibliotheque"    element={<Page><BibliothequePage /></Page>} />
       <Route path="/communication"   element={<Page><CommunicationPage /></Page>} />
+      <Route path="/paiements/:id" element={<Page><PaiementPage /></Page>} />
 
       {/* ── PROFIL ──────────────────────────────────────── */}
       <Route path="/mon-profil" element={<Page><MonProfil /></Page>} />
