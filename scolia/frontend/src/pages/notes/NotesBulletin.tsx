@@ -170,9 +170,9 @@ export default function NotesBulletin() {
         </button>
       </div>
 
-      {/* ====================== BULLETIN ====================== */}
+      {/* ====================== BULLETIN (Zone imprimable) ====================== */}
       {bulletin && (
-        <div ref={printRef} className="bg-white text-black p-10 border-2 border-gray-800 rounded-none print:shadow-none">
+        <div ref={printRef} className="bg-white p-10 border-2 border-gray-900 rounded-none print:shadow-none">
           
           {/* En-tête officiel */}
           <div className="flex justify-between items-start border-b-2 border-black pb-6 mb-8">
@@ -191,30 +191,30 @@ export default function NotesBulletin() {
           </div>
 
           {/* Informations Élève */}
-          <div className="grid grid-cols-2 gap-10 mb-10 text-sm">
+          <div className="grid grid-cols-2 gap-10 mb-10">
             <div>
-              <p className="text-gray-600">Nom et Prénom</p>
+              <p className="text-gray-600 text-sm">Nom et Prénom</p>
               <p className="text-2xl font-semibold mt-1">
                 {bulletin.eleve?.prenom} {bulletin.eleve?.nom}
               </p>
               <p className="mt-3">Matricule : <span className="font-mono">{bulletin.eleve?.matricule}</span></p>
             </div>
             <div className="text-right">
-              <p className="text-gray-600">Classe</p>
+              <p className="text-gray-600 text-sm">Classe</p>
               <p className="text-2xl font-semibold mt-1">{bulletin.classe?.libelle}</p>
-              <p className="mt-4">
+              <p className="mt-4 text-sm">
                 Classement : <span className="font-bold">{bulletin.classement?.rang || '—'} / {bulletin.classement?.total || '—'}</span>
               </p>
             </div>
           </div>
 
-          {/* Tableau des notes */}
+          {/* Tableau des Notes */}
           <table className="w-full border-collapse border border-gray-800 mb-10 text-sm">
             <thead>
               <tr className="bg-gray-100">
                 <th className="border border-gray-800 px-4 py-3 text-left font-semibold">Matière</th>
                 <th className="border border-gray-800 px-4 py-3 text-center font-semibold">Coeff.</th>
-                <th className="border border-gray-800 px-4 py-3 text-center font-semibold">Note</th>
+                <th className="border border-gray-800 px-4 py-3 text-center font-semibold">Moyenne</th>
                 <th className="border border-gray-800 px-4 py-3 text-center font-semibold">Total</th>
                 <th className="border border-gray-800 px-4 py-3 text-left font-semibold">Appréciation</th>
               </tr>
@@ -225,7 +225,7 @@ export default function NotesBulletin() {
                   <td className="border border-gray-800 px-4 py-3 font-medium">{r.cours}</td>
                   <td className="border border-gray-800 px-4 py-3 text-center">{r.coefficient}</td>
                   <td className={`border border-gray-800 px-4 py-3 text-center font-bold ${r.moyenne >= 10 ? 'text-emerald-700' : 'text-red-700'}`}>
-                    {r.moyenne}
+                    {Number(r.moyenne).toFixed(2)}
                   </td>
                   <td className="border border-gray-800 px-4 py-3 text-center font-medium">
                     {(r.moyenne * r.coefficient).toFixed(2)}
@@ -238,19 +238,19 @@ export default function NotesBulletin() {
 
           {/* Moyenne Générale */}
           <div className="flex justify-end mb-12">
-            <div className="border-2 border-black px-10 py-6 text-center">
-              <p className="uppercase text-sm tracking-widest">Moyenne Générale</p>
+            <div className="border-2 border-black px-12 py-6 text-center">
+              <p className="uppercase text-xs tracking-widest">Moyenne Générale</p>
               <p className="text-5xl font-bold mt-2">{bulletin.moyenneGenerale}</p>
-              <p className="text-xl font-medium mt-1">{bulletin.mention}</p>
+              <p className="text-xl font-medium mt-1 text-[#1a3a5c]">{bulletin.mention}</p>
             </div>
           </div>
 
           {/* Signatures */}
-          <div className="grid grid-cols-3 gap-12 text-center mt-20">
-            {['Le Directeur', 'Le Professeur Principal', 'Le Parent / Tuteur'].map((title, i) => (
+          <div className="grid grid-cols-3 gap-12 text-center mt-16">
+            {['Le Directeur', 'Le Professeur Principal', 'Parent / Tuteur'].map((title, i) => (
               <div key={i}>
-                <div className="border-t-2 border-black pt-8 mb-8"></div>
-                <p className="font-semibold">{title}</p>
+                <div className="h-16 border-b-2 border-black mb-6" />
+                <p className="font-semibold text-sm">{title}</p>
                 <p className="text-xs text-gray-500 mt-1">Signature et Cachet</p>
               </div>
             ))}

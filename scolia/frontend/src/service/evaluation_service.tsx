@@ -249,11 +249,10 @@ export async function getSessions(idTrimestre: number | string): Promise<Session
 }
 
 export async function getClasses(): Promise<Classe[]> {
-  const res = await fetch(`${API}/classes`, { headers: authHeaders() });
+  const res = await fetch(`${API}/classes?paginate=false`, { headers: authHeaders() });
   const data = await handleResponse<any>(res);
   return data.data ?? data;
 }
-
 export async function getCoursByClasse(idClasse: number | string): Promise<Cours[]> {
   const res = await fetch(`${API}/cours?idClasse=${idClasse}&actif=1`, {
     headers: authHeaders(),

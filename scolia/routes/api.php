@@ -59,6 +59,9 @@ Route::middleware('auth:sanctum')->group(function () {
     // Auth
     Route::post('/logout', [AuthController::class, 'logout']);
     Route::get('/me',      [AuthController::class, 'me']);
+    Route::get('/enseignants/{idEnseignant}/fiches', [FicheEnseignantController::class, 'fichesByEnseignant']);
+    Route::post('/enseignants/{idEnseignant}/fiches', [FicheEnseignantController::class, 'store']);
+
 
     // Années & trimestres — tous les rôles connectés
     Route::apiResource('annees',     AnneeAcademiqueController::class);
