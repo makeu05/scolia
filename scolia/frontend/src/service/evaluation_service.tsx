@@ -278,6 +278,18 @@ export async function getElevesByClasse(
   );
   return handleResponse<EleveSimple[]>(res);
 }
+export async function getCoursByEnseignant(idPers: number | string): Promise<(Cours & { idClasse: number; classe?: { idClasse: number; libelle: string } })[]> {
+  const res = await fetch(`${API}/cours?idPers=${idPers}&actif=1&paginate=false`, {
+    headers: authHeaders(),
+  });
+  const data = await handleResponse<any>(res);
+  return data.data ?? data;
+}
+export async function getEpreuvesByEnseignant(idPers: number | string): Promise<Epreuve[]> {
+  const res = await fetch(`${API}/epreuves?idPers=${idPers}`, { headers: authHeaders() });
+  const data = await handleResponse<any>(res);
+  return data.data ?? data;
+}
 
 // ─── Helpers locaux ───────────────────────────────────────────
 

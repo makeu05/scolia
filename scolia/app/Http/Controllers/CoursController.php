@@ -12,38 +12,55 @@ class CoursController extends Controller
         $query = Cours::with(['classe', 'enseignant.personne']);
 
         if ($request->filled('idClasse')) {
-            $query->where('idClasse', $request->idClasse);
-        }
-        if ($request->filled('actif')) {
-            $query->where('actif', $request->actif);
-        }
-        if ($request->filled('search')) {
-            $query->where('libelle', 'like', '%' . $request->search . '%');
+            $query->where('Cours.idClasse', $request->idClasse);
         }
 
+        if ($request->filled('search')) {
+            $query->where('Cours.libelle', 'like', '%' . $request->search . '%');
+        }
+
+        if ($request->filled('idPers')) {
+            // Join Enseignant pour filtrer par enseignant connecté
+            $query->join('Enseignant', 'Enseignant.idCours', '=', 'Cours.idCours')
+                  ->where('Enseignant.idPers', $request->idPers)
+                  ->select('Cours.*'); // ✅ évite ambiguïté sur actif, idCours, etc.
+
+            // Filtre actif APRÈS le join, préfixé
+            if ($request->filled('actif')) {
+                $query->where('Cours.actif', $request->actif);
+            }
+        } else {
+            // Sans join, pas d'ambiguïté
+            if ($request->filled('actif')) {
+                $query->where('actif', $request->actif);
+            }
+        }
+
+        // ✅ paginate=false → tout retourner sans limite
         if ($request->get('paginate') === 'false') {
             return response()->json($query->get());
         }
 
-        return response()->json($query->paginate(15));
+        // ✅ per_page paramétrable, défaut 100
+        $perPage = (int) $request->get('per_page', 100);
+        return response()->json($query->paginate($perPage));
     }
 
     public function store(Request $request)
     {
         $data = $request->validate([
-            'libelle'      => 'required|string|max:255',
-            'note'         => 'nullable|numeric|min:0',
-            'coefficient'  => 'nullable|numeric|min:0',
-            'description'  => 'nullable|string',
-            'idClasse'     => 'required|integer|exists:classe,idClasse',   // ← corrige le nom de table si besoin
-            'idAdmin'      => 'required|integer',
-            'idLivre'      => 'nullable|integer',
+            'libelle'     => 'required|string|max:255',
+            'note'        => 'nullable|numeric|min:0',
+            'coefficient' => 'nullable|numeric|min:0',
+            'description' => 'nullable|string',
+            'idClasse'    => 'required|integer|exists:Classe,idClasse',
+            'idAdmin'     => 'required|integer',
+            'idLivre'     => 'nullable|integer',
         ]);
 
-        $data['actif'] = 1;
+        $data['actif']   = 1;
         $data['idLivre'] = $data['idLivre'] ?? 1;
 
-        // Important : on ne passe pas 'idCours' dans $data
         $cours = Cours::create($data);
 
         return response()->json([
@@ -54,8 +71,7 @@ class CoursController extends Controller
 
     public function show($idCours)
     {
-        $cours = Cours::with(['classe', 'enseignant.personne'])
-                      ->findOrFail($idCours);
+        $cours = Cours::with(['classe', 'enseignant.personne'])->findOrFail($idCours);
         return response()->json($cours);
     }
 
