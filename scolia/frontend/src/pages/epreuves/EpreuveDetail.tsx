@@ -9,21 +9,30 @@ import {
 } from '../../service/epreuve_service';
 
 export default function EpreuveDetail() {
-  const { id } = useParams();
+const { idEpreuve } = useParams<{ idEpreuve: string }>();
+const id = idEpreuve; 
   const navigate = useNavigate();
 
   const [epreuve, setEpreuve] = useState<Epreuve | null>(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState('');
 
+  // Protection contre id invalide
+  const epreuveId = id ? Number(id) : NaN;
+
   useEffect(() => {
+    if (!id || isNaN(epreuveId)) {
+      setError("ID d'épreuve invalide");
+      setLoading(false);
+      return;
+    }
     load();
   }, [id]);
 
   async function load() {
     try {
       setLoading(true);
-      const data = await getEpreuve(Number(id));
+      const data = await getEpreuve(epreuveId);
       setEpreuve(data);
     } catch (err: any) {
       setError(err.message || "Impossible de charger l'épreuve");
@@ -35,7 +44,7 @@ export default function EpreuveDetail() {
   async function handleDelete() {
     if (!confirm("Supprimer cette épreuve ? Cette action est irréversible.")) return;
     try {
-      await deleteEpreuve(Number(id));
+      await deleteEpreuve(epreuveId);
       navigate('/epreuves');
     } catch (err: any) {
       setError(err.message);
@@ -53,15 +62,18 @@ export default function EpreuveDetail() {
     );
   }
 
-  if (!epreuve) {
-    return <div className="p-6 text-center text-red-500">Épreuve non trouvée</div>;
+  if (error || !epreuve) {
+    return (
+      <div className="p-6 text-center text-red-500">
+        {error || "Épreuve non trouvée"}
+      </div>
+    );
   }
 
   const docUrl = getDocumentUrl(epreuve.urlDoc);
 
   return (
     <div className="p-6 max-w-4xl mx-auto">
-      {/* Header */}
       <div className="flex items-start justify-between mb-8">
         <div className="flex items-center gap-4">
           <button
@@ -104,7 +116,6 @@ export default function EpreuveDetail() {
       )}
 
       <div className="grid grid-cols-1 lg:grid-cols-5 gap-6">
-        {/* Informations principales */}
         <div className="lg:col-span-3 space-y-6">
           <div className="bg-white border border-gray-100 rounded-2xl p-7">
             <h2 className="uppercase text-xs font-semibold tracking-widest text-gray-400 mb-4">
@@ -125,11 +136,7 @@ export default function EpreuveDetail() {
               </div>
               <div>
                 <p className="text-gray-500">Date de création</p>
-                {/* <p className="font-medium mt-1">
-                  {epreuve.created_at 
-                    ? new Date(epreuve.created_at).toLocaleDateString('fr-FR') 
-                    : '—'}
-                </p> */}
+
               </div>
             </div>
           </div>

@@ -16,6 +16,7 @@ export interface Personne {
 }
 
 export interface Enseignant {
+  idPers: any;
   idEnseignant: number;
   Actif: number;
   idCours?: number;

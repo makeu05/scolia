@@ -73,7 +73,7 @@ Route::middleware('auth:sanctum')->group(function () {
 
 
     // ── ROOT + ADMIN + DIRECTEUR ──────────────────────────────
-    Route::middleware('role:root,admin,directeur')->group(function () {
+    Route::middleware('role:root,admin,directeur,enseignant')->group(function () {
         Route::apiResource('eleves',       EleveController::class);
         Route::apiResource('enseignants',  EnseignantController::class);
         Route::apiResource('inscriptions', FrequenteController::class);

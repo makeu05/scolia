@@ -6,17 +6,27 @@ use App\Models\Epreuve;
 use App\Models\NatureEpreuve;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Storage;
-use Illuminate\Validation\Rule;
+use Illuminate\Support\Facades\Validator;
+use Illuminate\Support\Facades\DB;
+use Illuminate\Support\Facades\Log;
 
 class EpreuveController extends Controller
 {
+    // ─── INDEX ────────────────────────────────────────────────
     public function index(Request $request)
     {
         $query = Epreuve::with('nature');
 
         if ($request->filled('search')) {
-            $query->where('libelle', 'like', '%' . $request->search . '%')
-                  ->orWhere('auteur', 'like', '%' . $request->search . '%');
+            $search = $request->search;
+            $query->where(function($q) use ($search) {
+                $q->where('libelle', 'like', "%{$search}%")
+                  ->orWhere('auteur', 'like', "%{$search}%");
+            });
+        }
+
+        if ($request->filled('idPers')) {
+            $query->where('idPers', $request->idPers);
         }
 
         if ($request->filled('idNature')) {
@@ -28,56 +38,81 @@ class EpreuveController extends Controller
         return response()->json($epreuves);
     }
 
-    public function store(Request $request)
-    {
-        $request->validate([
-            'libelle'   => 'required|string|max:255',
-            'idNature'  => 'required|exists:natureepreuve,idNature',
-            'idPers'    => 'required|integer|exists:personne,idPers',
-            'auteur'    => 'nullable|string|max:100',
-            'document'  => 'nullable|file|mimes:pdf|max:10240', // 10MB
-        ]);
+    // ─── STORE ────────────────────────────────────────────────
+    // ─── STORE ────────────────────────────────────────────────
+public function store(Request $request)
+{
+    $validator = Validator::make($request->all(), [
+        'libelle'   => 'required|string|max:255',
+        'idNature'  => 'required|exists:natureepreuve,idNature',
+        'idPers'    => 'required|integer|exists:Personne,idPers', // ✅ integer au lieu de numeric
+        'auteur'    => 'nullable|string|max:100',
+        'document'  => 'nullable|file|mimes:pdf|max:12288',
+    ]);
 
-        $urlDoc = 'INDEFINI';
-
-        if ($request->hasFile('document')) {
-            $path = $request->file('document')->store('epreuves', 'public');
-            $urlDoc = Storage::url($path);
-        }
-
-        $epreuve = Epreuve::create([
-            'libelle'  => $request->libelle,
-            'urlDoc'   => $urlDoc,
-            'auteur'   => $request->auteur ?? 'INDEFINI',
-            'idNature' => $request->idNature,
-            'idPers'   => $request->idPers,
-        ]);
-
+    if ($validator->fails()) {
         return response()->json([
-            'message' => 'Épreuve créée avec succès',
-            'epreuve' => $epreuve->load('nature')
-        ], 201);
+            'message' => 'Données de formulaire invalides',
+            'errors'  => $validator->errors()
+        ], 422);
     }
 
+    $urlDoc = 'INDEFINI';
+
+    if ($request->hasFile('document') && $request->file('document')->isValid()) {
+        try {
+            if (!Storage::disk('public')->exists('epreuves')) {
+                Storage::disk('public')->makeDirectory('epreuves');
+            }
+            $path = $request->file('document')->store('epreuves', 'public');
+            $urlDoc = Storage::url($path);
+        } catch (\Exception $e) {
+            Log::error("Upload PDF échoué : " . $e->getMessage());
+            // On continue sans fichier plutôt que de bloquer
+        }
+    }
+
+    $epreuve = Epreuve::create([
+        'libelle'  => $request->libelle,
+        'urlDoc'   => $urlDoc,
+        'auteur'   => $request->auteur ?? 'INDEFINI',
+        'idNature' => $request->idNature,
+        'idPers'   => (int) $request->idPers, // ✅ cast explicite
+    ]);
+
+    return response()->json([
+        'message' => 'Épreuve créée avec succès',
+        'epreuve' => $epreuve->load('nature')
+    ], 201);
+}
+
+    // ─── SHOW ─────────────────────────────────────────────────
     public function show($id)
     {
         $epreuve = Epreuve::with(['nature', 'evaluations.eleve'])->findOrFail($id);
         return response()->json($epreuve);
     }
 
+    // ─── UPDATE ───────────────────────────────────────────────
     public function update(Request $request, $id)
     {
         $epreuve = Epreuve::findOrFail($id);
 
-        $request->validate([
+        $validator = Validator::make($request->all(), [
             'libelle'  => 'sometimes|string|max:255',
             'idNature' => 'sometimes|exists:natureepreuve,idNature',
             'auteur'   => 'nullable|string|max:100',
-            'document' => 'nullable|file|mimes:pdf|max:10240',
+            'document' => 'nullable|file|mimes:pdf|max:12288',
         ]);
 
+        if ($validator->fails()) {
+            return response()->json([
+                'message' => 'Modification invalide',
+                'errors'  => $validator->errors()
+            ], 422);
+        }
+
         if ($request->hasFile('document')) {
-            // Suppression ancien fichier
             if ($epreuve->urlDoc && $epreuve->urlDoc !== 'INDEFINI') {
                 $oldPath = str_replace('/storage/', '', $epreuve->urlDoc);
                 Storage::disk('public')->delete($oldPath);
@@ -95,6 +130,7 @@ class EpreuveController extends Controller
         ]);
     }
 
+    // ─── DESTROY ──────────────────────────────────────────────
     public function destroy($id)
     {
         $epreuve = Epreuve::findOrFail($id);
@@ -105,7 +141,6 @@ class EpreuveController extends Controller
             ], 422);
         }
 
-        // Supprimer le fichier
         if ($epreuve->urlDoc && $epreuve->urlDoc !== 'INDEFINI') {
             $oldPath = str_replace('/storage/', '', $epreuve->urlDoc);
             Storage::disk('public')->delete($oldPath);

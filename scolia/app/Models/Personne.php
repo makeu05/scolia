@@ -10,11 +10,11 @@ class Personne extends Authenticatable {
     use HasApiTokens;
     protected $table = 'Personne';
     protected $primaryKey = 'idPers';
-    public $incrementing = false;
+    public $incrementing = true;
     public $timestamps = false;
  
     protected $fillable = [
-        'idPers', 'nom', 'prenom', 'dateNaissance', 'lieuNaissance',
+         'nom', 'prenom', 'dateNaissance', 'lieuNaissance',
         'mobile', 'phone', 'typePersonne', 'username', 'password',
         'alanyaID', 'idAdmin',
     ];

@@ -24,6 +24,7 @@ export interface EpreuveFilters {
   page?: number;
   search?: string;
   idNature?: string;
+  idPers?: string;
 }
 
 // ─── Helpers ─────────────────────────────────────────────────
@@ -51,6 +52,7 @@ export async function getEpreuves(
   if (filters.page)     params.append('page',      String(filters.page));
   if (filters.search)   params.append('search',    filters.search);
   if (filters.idNature) params.append('idNature',  filters.idNature);
+  if (filters.idPers)   params.append('idPers',    filters.idPers);
 
   const res = await fetch(`${API}/epreuves?${params}`, {
     headers: authHeaders(),
@@ -66,49 +68,27 @@ export async function getEpreuve(id: number): Promise<Epreuve> {
 }
 
 export async function createEpreuve(
-  payload: {
-    libelle: string;
-    idNature: string;
-    auteur?: string;
-    idPers?: string;
-  },
-  document?: File
+  payload: FormData
 ): Promise<{ message: string; epreuve: Epreuve }> {
-  const formData = new FormData();
-  formData.append('libelle',  payload.libelle);
-  formData.append('idNature', payload.idNature);
-  formData.append('auteur',   payload.auteur ?? '');
-  formData.append('idPers',   payload.idPers ?? '1');
-  if (document) formData.append('document', document);
-
   const res = await fetch(`${API}/epreuves`, {
     method: 'POST',
-    headers: authHeaders(), // pas de Content-Type pour FormData
-    body: formData,
+    headers: authHeaders(), // Le navigateur définit automatiquement le Content-Type pour le FormData
+    body: payload,
   });
   return handleResponse(res);
 }
 
 export async function updateEpreuve(
   id: number,
-  payload: {
-    libelle?: string;
-    idNature?: string;
-    auteur?: string;
-  },
-  document?: File
+  payload: FormData
 ): Promise<{ message: string; epreuve: Epreuve }> {
-  const formData = new FormData();
-  formData.append('_method', 'PUT');
-  if (payload.libelle)  formData.append('libelle',  payload.libelle);
-  if (payload.idNature) formData.append('idNature', payload.idNature);
-  if (payload.auteur !== undefined) formData.append('auteur', payload.auteur);
-  if (document) formData.append('document', document);
-
+  // Pour supporter l'envoi de fichiers avec Laravel en modification, on utilise POST + _method PUT
+  payload.append('_method', 'PUT');
+  
   const res = await fetch(`${API}/epreuves/${id}`, {
-    method: 'POST', // POST + _method PUT pour FormData
+    method: 'POST',
     headers: authHeaders(),
-    body: formData,
+    body: payload,
   });
   return handleResponse(res);
 }

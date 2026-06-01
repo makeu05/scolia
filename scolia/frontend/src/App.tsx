@@ -57,6 +57,11 @@ import InscriptionPage from "./pages/inscriptions/inscriptionPage";
 import InscriptionForm from "./pages/inscriptions/inscriptionForm";
 import InscriptionDetail from "./pages/inscriptions/inscriptionDetail";
 
+// ==================== ÉPREUVES ====================
+import EpreuvesPage from "./pages/epreuves/EpreuvePage";
+import EpreuveDetail from "./pages/epreuves/EpreuveDetail";
+import EpreuveForm from "./pages/epreuves/EpreuveForm"; 
+
 // ==================== NOTES ====================
 import NotesHome from "./pages/notes/NotesHome";
 import NotesForm from "./pages/notes/NotesSaisie";
@@ -126,7 +131,7 @@ export default function App() {
       <Route path="/"             element={<HomeRedirect />} />
 
       {/* ── DASHBOARD ───────────────────────────────────── */}
-      <Route path="/dashboard"            element={<Page roles={ALL_ROLES}><Dashboard /></Page>} />
+      <Route path="/dashboard"            element={<Page roles={["root", "admin", "directeur", "fondateur"]}><Dashboard /></Page>} />
       <Route path="/dashboard-enseignant" element={<Page roles={["enseignant"]}><EnseignantDashboard /></Page>} />
       <Route path="/dashboard-parent"     element={<Page roles={["parent"]}><ParentDashboard /></Page>} />
 
@@ -170,8 +175,8 @@ export default function App() {
       <Route path="/enseignants/:id/modifier"  element={<Page roles={ADMIN_ROLES}><EnseignantForm /></Page>} />
 
       {/* ── FICHES ENSEIGNANT ───────────────────────────── */}
-      <Route path="/enseignants/:idEnseignant/fiches"             element={<Page roles={ADMIN_ROLES}><FicheEnseignantPage /></Page>} />
-      <Route path="/enseignants/:idEnseignant/fiches/nouveau"     element={<Page roles={ADMIN_ROLES}><FicheEnseignantForm /></Page>} />
+      <Route path="/enseignants/:idEnseignant/fiches"                  element={<Page roles={ADMIN_ROLES}><FicheEnseignantPage /></Page>} />
+      <Route path="/enseignants/:idEnseignant/fiches/nouveau"          element={<Page roles={ADMIN_ROLES}><FicheEnseignantForm /></Page>} />
       <Route path="/enseignants/:idEnseignant/fiches/:idRap/modifier" element={<Page roles={ADMIN_ROLES}><FicheEnseignantForm /></Page>} />
 
       {/* ── INSCRIPTIONS ────────────────────────────────── */}
@@ -179,6 +184,12 @@ export default function App() {
       <Route path="/inscriptions/ajouter"   element={<Page roles={ADMIN_ROLES}><InscriptionForm /></Page>} />
       <Route path="/inscriptions/:id"       element={<Page roles={ADMIN_ROLES}><InscriptionDetail /></Page>} />
       <Route path="/inscriptions/:id/modifier" element={<Page roles={ADMIN_ROLES}><InscriptionForm /></Page>} />
+
+      {/* ── ÉPREUVES ────────────────────────────────────── */}
+      <Route path="/epreuves"                    element={<Page roles={NOTES_ROLES}><EpreuvesPage /></Page>} />
+      <Route path="/epreuves/ajouter"            element={<Page roles={NOTES_ROLES}><EpreuveForm /></Page>} />
+      <Route path="/epreuves/:idEpreuve"         element={<Page roles={NOTES_ROLES}><EpreuveDetail /></Page>} />
+      <Route path="/epreuves/:idEpreuve/modifier" element={<Page roles={NOTES_ROLES}><EpreuveForm /></Page>} />
 
       {/* ── NOTES ───────────────────────────────────────── */}
       <Route path="/notes"           element={<Page roles={[...NOTES_ROLES,"parent"]}><NotesHome /></Page>} />
@@ -194,6 +205,7 @@ export default function App() {
       <Route path="/paiements/stats"        element={<Page roles={FINANCE_ROLES}><PaiementStats /></Page>} />
       <Route path="/paiements/par-classe"   element={<Page roles={FINANCE_ROLES}><PaiementParClasse /></Page>} />
       <Route path="/paiements/:id/modifier" element={<Page roles={FINANCE_ROLES}><PaiementForm /></Page>} />
+      <Route path="/paiements/:id"          element={<Page><PaiementPage /></Page>} />
 
       {/* ── SCOLARITÉS ──────────────────────────────────── */}
       <Route path="/scolarites"           element={<Page roles={FINANCE_ROLES}><ScolaritePage /></Page>} />
@@ -207,13 +219,11 @@ export default function App() {
       <Route path="/admin/utilisateurs/:id"       element={<Page roles={["root","admin"]}><UserDetail /></Page>} />
       <Route path="/admin/utilisateurs/:id/modifier" element={<Page roles={["root","admin"]}><UserForm /></Page>} />
 
+      {/* ── AUTRES PAGES ET PROFIL ──────────────────────── */}
       <Route path="/emploi-du-temps" element={<Page><EmploiDuTempsPage /></Page>} />
       <Route path="/bibliotheque"    element={<Page><BibliothequePage /></Page>} />
       <Route path="/communication"   element={<Page><CommunicationPage /></Page>} />
-      <Route path="/paiements/:id" element={<Page><PaiementPage /></Page>} />
-
-      {/* ── PROFIL ──────────────────────────────────────── */}
-      <Route path="/mon-profil" element={<Page><MonProfil /></Page>} />
+      <Route path="/mon-profil"      element={<Page><MonProfil /></Page>} />
 
       {/* ==================== 404 ==================== */}
       <Route
@@ -236,83 +246,6 @@ export default function App() {
           </div>
         }
       />
-     {/* ==================== GESTION UTILISATEURS (Root + Admin) ==================== */}
-<Route
-  path="/admin/utilisateurs"
-  element={
-    <ProtectedRoute roles={['root', 'admin']}>
-      <UserManagementPage />
-    </ProtectedRoute>
-  }
-/>
-
-<Route
-  path="/admin/utilisateurs/nouveau"
-  element={
-    <ProtectedRoute roles={['root', 'admin']}>
-      <UserForm />
-    </ProtectedRoute>
-  }
-/>
-
-<Route
-  path="/admin/utilisateurs/:id/modifier"
-  element={
-    <ProtectedRoute roles={['root', 'admin']}>
-      <UserForm />
-    </ProtectedRoute>
-  }
-/>
-
-<Route
-  path="/admin/utilisateurs/:id"
-  element={
-    <ProtectedRoute roles={['root', 'admin']}>
-      <UserDetail />
-    </ProtectedRoute>
-  }
-/>
-<Route
-  path="/mon-profil"
-  element={
-    <ProtectedRoute>
-      <MonProfil />
-    </ProtectedRoute>
-  }
-/>
-
-{/* ─── Redirection racine selon rôle ─── */}
-<Route path="/" element={<HomeRedirect />} />
-
-{/* Dashboard admin/directeur/root/fondateur */}
-<Route
-  path="/dashboard"
-  element={
-    <ProtectedRoute roles={['root', 'admin', 'directeur', 'fondateur']}>
-      <Dashboard />
-    </ProtectedRoute>
-  }
-/>
-
-{/* Dashboard enseignant */}
-<Route
-  path="/dashboard-enseignant"
-  element={
-    <ProtectedRoute roles={['enseignant']}>
-      <EnseignantDashboard />
-    </ProtectedRoute>
-  }
-/>
-
-{/* Dashboard parent */}
-<Route
-  path="/dashboard-parent"
-  element={
-    <ProtectedRoute roles={['parent']}>
-      <ParentDashboard />
-    </ProtectedRoute>
-  }
-/>
     </Routes>
   );
 }
