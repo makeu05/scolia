@@ -148,3 +148,50 @@ export async function deleteCours(idCours: number | string): Promise<{ message: 
 
   return handleResponse(res);
 }
+
+export interface EnseignantDisponible {
+  idEnseignant: number;
+  nom: string;
+  prenom: string;
+  affecte: boolean; // true = déjà affecté à CE cours
+}
+ 
+// ─── Fonctions à ajouter dans cours_service.ts ────────────────────────────────
+ 
+ 
+/**
+ * Récupère les enseignants disponibles pour un cours donné.
+ * Renvoie aussi l'enseignant déjà affecté (affecte: true).
+ */
+export async function getEnseignantsDisponibles(
+  idCours: string | number
+): Promise<EnseignantDisponible[]> {
+  const res = await authFetch(`${API}/cours/${idCours}/enseignants-disponibles`);
+  if (!res.ok) throw new Error("Impossible de charger les enseignants disponibles");
+  return res.json();
+}
+
+export async function affecterEnseignant(
+  idCours: string | number,
+  idEnseignant: number
+): Promise<void> {
+  const res = await authFetch(`${API}/cours/${idCours}/affecter`, {
+    method: "POST",
+    headers: { "Content-Type": "application/json" },
+    body: JSON.stringify({ idEnseignant }),
+  });
+  if (!res.ok) {
+    const data = await res.json().catch(() => ({}));
+    throw new Error(data.message || "Erreur lors de l'affectation");
+  }
+}
+
+export async function desaffecterEnseignant(
+  idCours: string | number
+): Promise<void> {
+  const res = await authFetch(`${API}/cours/${idCours}/desaffecter`, {
+    method: "POST",
+    headers: { "Content-Type": "application/json" },
+  });
+  if (!res.ok) throw new Error("Erreur lors de la désaffectation");
+}

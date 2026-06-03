@@ -10,6 +10,7 @@ import {
  getSalles,
   type Salle,
 } from "../../service/salle_service";
+import TitulairePicker from './TitulairePicker';
 
 export default function SalleDetails() {
   const { id } = useParams();
@@ -147,6 +148,16 @@ export default function SalleDetails() {
                 : "Inactive"}
             </span>
           </div>
+          <div className="card p-5">
+  <h3 className="section-title mb-1">Professeur principal (titulaire)</h3>
+  <p className="text-xs text-slate-400 mb-4">
+    Le titulaire est le professeur principal responsable de cette salle.
+  </p>
+  <TitulairePicker
+    idSalle={salle.idSalle}
+    onChanged={loadSalle}
+  />
+</div>
 
         </div>
       </div>
