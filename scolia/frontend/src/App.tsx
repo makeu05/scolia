@@ -96,6 +96,8 @@ import MonProfil from "./pages/mon-profil/MonProfil";
 import ParentDashboard from "./pages/parent/ParentDashboard";
 
 import { getUser } from './service/auth';
+import NotificationBell from "./pages/composants/NotificationBell";
+import NotificationsPage from "./pages/notifications/NotificationsPage";
 
 
 // ─── Redirection intelligente selon rôle ─────────────────────
@@ -237,6 +239,7 @@ export default function App() {
       <Route path="/bibliotheque"    element={<Page><BibliothequePage /></Page>} />
       <Route path="/communication"   element={<Page><CommunicationPage /></Page>} />
       <Route path="/mon-profil"      element={<Page><MonProfil /></Page>} />
+      <Route path='/notifications'     element={<Page><NotificationsPage /></Page>} />
 
       {/* ==================== 404 ==================== */}
       <Route
