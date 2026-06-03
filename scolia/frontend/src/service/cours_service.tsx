@@ -18,12 +18,21 @@ export interface Cours {
   classe?: {
     idClasse: number;
     libelle: string;
+    idCycle?: number;
+    cycle?: {
+      idCycle: number;
+      libelle: string;
+    };
   };
   enseignant?: {
     idEnseignant: number;
+    Actif?: number;
     personne?: {
       nom: string;
       prenom: string;
+      mobile?: string;
+      phone?: string;
+      username?: string;
     };
   };
 }
