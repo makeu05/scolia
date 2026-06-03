@@ -1,7 +1,11 @@
+// pages/cours/CoursDetail.tsx  (version mise à jour)
+// Remplace le bloc "Enseignant assigné" par EnseignantPicker en mode détail
+
 import { useEffect, useState } from "react";
 import { useParams, useNavigate } from "react-router-dom";
 import { Edit, Trash2, BookOpen, Users, Award } from "lucide-react";
 import PageLayout from "../../components/layout/PageLayout";
+import EnseignantPicker from "./EnseignantPicker";
 import { getCoursById, deleteCours, type Cours } from "../../service/cours_service";
 
 export default function CoursDetail() {
@@ -11,14 +15,16 @@ export default function CoursDetail() {
   const [loading, setLoading] = useState(true);
   const [error, setError]     = useState("");
 
-  useEffect(() => {
+  const loadCours = () => {
     if (!idCours) return;
     setLoading(true);
     getCoursById(idCours)
       .then(setCours)
       .catch(err => setError(err.message))
       .finally(() => setLoading(false));
-  }, [idCours]);
+  };
+
+  useEffect(loadCours, [idCours]);
 
   const handleDelete = async () => {
     if (!confirm("Supprimer ce cours ? Action irréversible.")) return;
@@ -120,7 +126,6 @@ export default function CoursDetail() {
             {[
               { label: "Matière",      value: cours.libelle },
               { label: "Classe",       value: cours.classe?.libelle ?? "—" },
-              { label: "Cycle",        value: cours.classe?.cycle?.libelle ?? "—" },
               { label: "Coefficient",  value: String(cours.coefficient ?? "—") },
               { label: "Note max",     value: cours.note ? `${cours.note}/20` : "20/20" },
               { label: "Statut",       value: cours.actif ? "Actif" : "Inactif" },
@@ -133,45 +138,17 @@ export default function CoursDetail() {
           </div>
         </div>
 
-        {/* Enseignant */}
+        {/* Enseignant — géré inline via EnseignantPicker */}
         <div className="card p-5">
-          <h3 className="section-title mb-4">Enseignant assigné</h3>
-          {cours.enseignant?.personne ? (
-            <div
-              className="flex items-center gap-4 p-4 bg-slate-50 rounded-2xl cursor-pointer hover:bg-slate-100 transition-colors"
-              onClick={() => navigate(`/enseignants/${cours.enseignant?.idEnseignant}`)}
-            >
-              <div className="w-12 h-12 rounded-2xl bg-violet-50 border border-violet-100 flex items-center justify-center flex-shrink-0">
-                <span className="text-sm font-bold text-violet-600">
-                  {cours.enseignant.personne.prenom?.[0]}{cours.enseignant.personne.nom?.[0]}
-                </span>
-              </div>
-              <div>
-                <p className="font-semibold text-slate-900">
-                  {cours.enseignant.personne.prenom} {cours.enseignant.personne.nom}
-                </p>
-                <p className="text-xs text-slate-400 mt-0.5">
-                  {cours.enseignant.personne.mobile}
-                </p>
-              </div>
-              <div className="ml-auto">
-                <span className={`badge ${cours.enseignant.Actif ? "badge-green" : "badge-red"}`}>
-                  {cours.enseignant.Actif ? "Actif" : "Inactif"}
-                </span>
-              </div>
-            </div>
-          ) : (
-            <div className="flex flex-col items-center justify-center py-8 text-slate-400 gap-2">
-              <Users className="w-8 h-8 opacity-30" />
-              <p className="text-sm">Aucun enseignant assigné</p>
-              <button
-                onClick={() => navigate(`/cours/${cours.idCours}/modifier`)}
-                className="btn-secondary text-xs py-1.5 px-3 mt-1"
-              >
-                Assigner un enseignant
-              </button>
-            </div>
-          )}
+          <h3 className="section-title mb-1">Enseignant assigné</h3>
+          <p className="text-xs text-slate-400 mb-4">
+            Sélectionnez un enseignant disponible et confirmez l'affectation.
+          </p>
+
+          <EnseignantPicker
+            idCours={cours.idCours}
+            onChanged={loadCours}   // Rafraîchit la fiche après changement
+          />
 
           {/* Description */}
           {cours.description && (
