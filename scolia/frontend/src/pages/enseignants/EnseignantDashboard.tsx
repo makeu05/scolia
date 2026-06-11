@@ -12,27 +12,38 @@ export default function EnseignantDashboard() {
   const [cours, setCours] = useState<any>(null);
   const [loading, setLoading] = useState(true);
 
-  useEffect(() => {
-    if (!user?.idCours) {
+ useEffect(() => {
+    // Selon comment ton authentification est faite, l'ID peut s'appeler id ou idPers
+    const userId = user?.id;
+
+    if (!userId) {
       setLoading(false);
       return;
     }
 
-    const loadCours = async () => {
+    const loadMesCours = async () => {
       try {
-        const res = await authFetch(`${API}/cours/${user.idCours}`);
+        // On cherche le(s) profil(s) enseignant lié(s) à cette personne
+        const res = await authFetch(`${API}/enseignants?idPers=${userId}`);
+        
         if (res.ok) {
           const data = await res.json();
-          setCours(data);
+          // Le backend renvoie des données paginées (data.data) avec les cours inclus (cours.classe)
+          if (data.data && data.data.length > 0) {
+            // On récupère le cours du premier profil enseignant trouvé
+            setCours(data.data[0].cours); 
+          } else {
+            setCours(null);
+          }
         }
       } catch (err) {
-        console.error(err);
+        console.error("Erreur chargement des cours:", err);
       } finally {
         setLoading(false);
       }
     };
 
-    loadCours();
+    loadMesCours();
   }, [user]);
 
   return (

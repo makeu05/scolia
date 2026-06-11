@@ -21,6 +21,9 @@ public function index(Request $request)
     if ($request->filled('idCours')) {
         $query->where('Enseignant.idCours', $request->idCours);
     }
+    if ($request->filled('idPers')) {
+        $query->where('Enseignant.idPers', $request->idPers);
+    }
 
     if ($request->filled('actif')) {
         $query->where('Enseignant.Actif', $request->actif);
@@ -33,6 +36,7 @@ public function index(Request $request)
               ->orWhere('Personne.prenom', 'like', "%$search%");
         });
     }
+
 
     return response()->json($query->paginate(15));
 }
@@ -53,7 +57,6 @@ public function show($idEnseignant)
     public function store(Request $request)
     {
         $request->validate([
-            'idPers'        => 'required|integer|unique:Personne,idPers',
             'nom'           => 'required|string|max:255',
             'prenom'        => 'required|string|max:255',
             'dateNaissance' => 'required|date',
@@ -68,8 +71,9 @@ public function show($idEnseignant)
 
         DB::beginTransaction();
         try {
-            $personne = Personne::create([
-                'idPers'        => $request->idPers,
+            // 1. On utilise le Query Builder (insertGetId) qui est 100% infaillible 
+            // pour récupérer l'ID auto-incrémenté généré par la table 'personne'
+            $idPersGenere = DB::table('personne')->insertGetId([
                 'nom'           => $request->nom,
                 'prenom'        => $request->prenom,
                 'dateNaissance' => $request->dateNaissance,
@@ -83,11 +87,13 @@ public function show($idEnseignant)
                 'idAdmin'       => $request->idAdmin,
             ]);
 
-            $idEnseignant = DB::table('Enseignant')->max('idEnseignant') + 1;
+            // 2. On génère le nouvel idEnseignant
+            $idEnseignant = DB::table('enseignant')->max('idEnseignant') + 1;
 
+            // 3. On crée l'enseignant avec le véritable ID récupéré
             $enseignant = Enseignant::create([
                 'idEnseignant' => $idEnseignant,
-                'idPers'       => $personne->idPers,
+                'idPers'       => $idPersGenere, 
                 'idCours'      => $request->idCours,
                 'Actif'        => 1,
                 'idAdmin'      => $request->idAdmin,

@@ -12,12 +12,9 @@ class Eleve extends Model {
  
     protected $fillable = [
         'matricule', 'nom', 'prenom', 'dateNaissance', 'lieuNaissance',
-        'sexe', 'langue', 'photoURL', 'actif', 'idVilleNaissance', 'idAdmin',
+        'sexe', 'langue', 'photoURL', 'actif', 'idAdmin',
     ];
  
-    public function villeNaissance() {
-        return $this->belongsTo(VilleNaissance::class, 'idVilleNaissance', 'idVille');
-    }
  
     public function parents() {
         return $this->hasMany(Parents::class, 'matricule', 'matricule');
@@ -38,4 +35,13 @@ class Eleve extends Model {
     public function rapports() {
         return $this->hasMany(Rapport::class, 'matricule', 'matricule');
     }
+    public function sante()
+{
+    return $this->hasOne(EleveSante::class, 'matricule', 'matricule');
+}
+
+public function scolariteAnterieure()
+{
+    return $this->hasMany(EleveScolariteAnterieure::class, 'matricule', 'matricule');
+}
 }

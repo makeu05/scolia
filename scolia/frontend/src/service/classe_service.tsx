@@ -15,6 +15,7 @@ export interface Classe {
   idCycle: number;
   cours_count?: number;
   cycle?: Cycle;
+  idSection?: number | null;
 }
 
 export interface ClassePaginated {

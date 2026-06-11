@@ -14,44 +14,35 @@ export default function NotesHome() {
   const isParent     = user?.role === "parent";
 
   const ACTIONS = [
-    {
-      label: "Saisir des notes",
-      desc: "Entrer les notes des élèves par épreuve",
-      icon: Edit,
-      path: "/notes/saisie",
-      gradient: "linear-gradient(135deg,#667eea,#764ba2)",
-      shadow: "rgba(102,126,234,0.35)",
-      roles: ["root","admin","directeur","enseignant"],
-    },
-    {
-      label: "Voir le classement",
-      desc: "Classement des élèves par classe et trimestre",
-      icon: BarChart2,
-      path: "/notes/classement",
-      gradient: "linear-gradient(135deg,#4facfe,#00f2fe)",
-      shadow: "rgba(79,172,254,0.35)",
-      roles: ["root","admin","directeur","enseignant","parent"],
-    },
-    {
-      label: "Bulletins de notes",
-      desc: "Générer et consulter les bulletins trimestriels",
-      icon: FileText,
-      path: "/notes/bulletin",
-      gradient: "linear-gradient(135deg,#43e97b,#38f9d7)",
-      shadow: "rgba(67,233,123,0.35)",
-      roles: ["root","admin","directeur","enseignant","parent"],
-    },
-    {
-      label: "Moyennes & Résultats",
-      desc: "Consulter les moyennes générales",
-      icon: Award,
-      path: "/notes/classement",
-      gradient: "linear-gradient(135deg,#f6d365,#fda085)",
-      shadow: "rgba(246,211,101,0.35)",
-      roles: ["root","admin","directeur","enseignant","parent"],
-    },
-  ].filter(a => a.roles.includes(user?.role ?? ""));
-
+  {
+    label: "Saisir des notes",
+    desc: "Entrer les notes des élèves par épreuve",
+    icon: Edit,
+    path: "/notes/saisie",
+    gradient: "linear-gradient(135deg,#667eea,#764ba2)",
+    shadow: "rgba(102,126,234,0.35)",
+    roles: ["root","admin","directeur","enseignant"],
+  },
+  {
+    label: "Voir le classement",
+    desc: "Classement des élèves par classe et trimestre",
+    icon: BarChart2,
+    path: "/notes/classement",
+    gradient: "linear-gradient(135deg,#4facfe,#00f2fe)",
+    shadow: "rgba(79,172,254,0.35)",
+    roles: ["root","admin","directeur","enseignant","parent"],
+  },
+  {
+    label: "Bulletins de notes",
+    desc: "Générer et consulter les bulletins trimestriels",
+    icon: FileText,
+    path: "/notes/bulletin",
+    gradient: "linear-gradient(135deg,#43e97b,#38f9d7)",
+    shadow: "rgba(67,233,123,0.35)",
+    roles: ["root","admin","directeur","enseignant","parent"],
+  },
+  // ✅ "Moyennes & Résultats" supprimé — c'était un doublon de /notes/classement
+].filter(a => a.roles.includes(user?.role ?? ""));
   const INFO_CARDS = [
     { label: "Notes sur 20", desc: "Système de notation", icon: "📝", color: "#667eea" },
     { label: "Coefficients", desc: "Pondération par matière", icon: "⚖️", color: "#f093fb" },

@@ -69,6 +69,14 @@
     gap: 18px;
   }
 }
+@media print {
+  /* Cache tout */
+  body > * { display: none !important; }
+  
+  /* Affiche seulement le bulletin */
+  #bulletin-print-wrapper { display: block !important; }
+  #bulletin-print-wrapper * { display: revert !important; }
+}
 
 #next-steps {
   display: flex;

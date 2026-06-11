@@ -1,8 +1,9 @@
-// src/pages/admin/UserManagementPage.tsx — Version colorée premium
+// src/pages/admin/UserManagementPage.tsx
 import { useEffect, useState } from "react";
 import { useNavigate } from "react-router-dom";
-import { Plus, Edit, Eye, UserX, UserCheck, Search, Shield } from "lucide-react";
+import { Plus, Edit, Eye, UserX, UserCheck, Search, Shield, Printer } from "lucide-react";
 import { authFetch } from "../../service/auth";
+import { imprimerUtilisateurs } from "../../utils/impression";
 
 const API = import.meta.env.VITE_API_URL ?? "http://localhost:8000/api";
 
@@ -12,12 +13,12 @@ interface UserItem {
 }
 
 const ROLE_CONFIG: Record<string, { gradient: string; shadow: string; label: string }> = {
-  root:       { gradient: "linear-gradient(135deg,#f5576c,#f093fb)", shadow: "rgba(245,87,108,0.3)",  label: "Root" },
-  admin:      { gradient: "linear-gradient(135deg,#667eea,#764ba2)", shadow: "rgba(102,126,234,0.3)", label: "Admin" },
-  directeur:  { gradient: "linear-gradient(135deg,#a18cd1,#fbc2eb)", shadow: "rgba(161,140,209,0.3)", label: "Directeur" },
-  fondateur:  { gradient: "linear-gradient(135deg,#f6d365,#fda085)", shadow: "rgba(246,211,101,0.3)", label: "Fondateur" },
+  root:       { gradient: "linear-gradient(135deg,#f5576c,#f093fb)", shadow: "rgba(245,87,108,0.3)",  label: "Root"       },
+  admin:      { gradient: "linear-gradient(135deg,#667eea,#764ba2)", shadow: "rgba(102,126,234,0.3)", label: "Admin"      },
+  directeur:  { gradient: "linear-gradient(135deg,#a18cd1,#fbc2eb)", shadow: "rgba(161,140,209,0.3)", label: "Directeur"  },
+  fondateur:  { gradient: "linear-gradient(135deg,#f6d365,#fda085)", shadow: "rgba(246,211,101,0.3)", label: "Fondateur"  },
   enseignant: { gradient: "linear-gradient(135deg,#43e97b,#38f9d7)", shadow: "rgba(67,233,123,0.3)",  label: "Enseignant" },
-  parent:     { gradient: "linear-gradient(135deg,#f093fb,#f5576c)", shadow: "rgba(240,147,251,0.3)", label: "Parent" },
+  parent:     { gradient: "linear-gradient(135deg,#f093fb,#f5576c)", shadow: "rgba(240,147,251,0.3)", label: "Parent"     },
 };
 
 export default function UserManagementPage() {
@@ -25,7 +26,7 @@ export default function UserManagementPage() {
   const [users, setUsers]           = useState<UserItem[]>([]);
   const [loading, setLoading]       = useState(true);
   const [search, setSearch]         = useState("");
-  const [typeFilter, setTypeFilter] = useState<"all"|"admin"|"personne">("all");
+  const [typeFilter, setTypeFilter] = useState<"all" | "admin" | "personne">("all");
   const [mounted, setMounted]       = useState(false);
 
   useEffect(() => { setMounted(true); }, []);
@@ -48,20 +49,20 @@ export default function UserManagementPage() {
     fetchUsers();
   };
 
-  const totalAdmins = users.filter(u => u.source === "admin").length;
+  const totalAdmins    = users.filter(u => u.source === "admin").length;
   const totalPersonnes = users.filter(u => u.source === "personne").length;
-  
 
   return (
     <div className="max-w-[1400px] mx-auto px-6 py-6 space-y-6">
 
-      {/* Bannière violet */}
+      {/* Bannière */}
       <div className={`rounded-2xl p-5 relative overflow-hidden transition-all duration-500 ${mounted ? "opacity-100 translate-y-0" : "opacity-0 translate-y-3"}`}
         style={{ background: "linear-gradient(135deg,#667eea 0%,#764ba2 100%)", boxShadow: "0 4px 24px rgba(102,126,234,0.35)" }}>
         <div className="absolute inset-0 pointer-events-none"
           style={{ backgroundImage: "linear-gradient(rgba(255,255,255,0.04) 1px,transparent 1px),linear-gradient(90deg,rgba(255,255,255,0.04) 1px,transparent 1px)", backgroundSize: "40px 40px" }} />
         <div className="absolute -right-12 -top-12 w-48 h-48 rounded-full pointer-events-none"
           style={{ background: "radial-gradient(circle,rgba(255,255,255,0.15) 0%,transparent 70%)" }} />
+
         <div className="relative z-10 flex items-center justify-between">
           <div>
             <div className="flex items-center gap-2 mb-1">
@@ -71,20 +72,32 @@ export default function UserManagementPage() {
             <h1 className="text-white text-2xl font-bold" style={{ letterSpacing: "-0.03em" }}>Utilisateurs</h1>
             <p className="text-purple-200/70 text-sm mt-1">{users.length} compte(s) enregistré(s)</p>
           </div>
-          <button onClick={() => navigate("/admin/utilisateurs/nouveau")}
-            className="flex items-center gap-2 bg-white text-purple-700 font-semibold text-sm px-5 py-3 rounded-xl hover:bg-purple-50 transition-all active:scale-[0.97]"
-            style={{ boxShadow: "0 2px 12px rgba(0,0,0,0.15)" }}>
-            <Plus className="w-4 h-4" /> Nouvel utilisateur
-          </button>
+
+          {/* ✅ Les deux boutons dans le même div */}
+          <div className="flex gap-2">
+            <button
+              onClick={() => imprimerUtilisateurs(users)}
+              className="flex items-center gap-2 bg-white/20 border border-white/30 text-white font-semibold text-sm px-4 py-2.5 rounded-xl hover:bg-white/30 transition-all backdrop-blur-sm"
+            >
+              <Printer className="w-4 h-4" /> Imprimer
+            </button>
+            <button
+              onClick={() => navigate("/admin/utilisateurs/nouveau")}
+              className="flex items-center gap-2 bg-white text-purple-700 font-semibold text-sm px-5 py-2.5 rounded-xl hover:bg-purple-50 transition-all active:scale-[0.97]"
+              style={{ boxShadow: "0 2px 12px rgba(0,0,0,0.15)" }}
+            >
+              <Plus className="w-4 h-4" /> Nouvel utilisateur
+            </button>
+          </div>
         </div>
       </div>
 
       {/* Stats */}
       <div className="grid grid-cols-3 gap-4 stagger">
         {[
-          { label: "Total",        value: users.length,    gradient: "linear-gradient(135deg,#667eea,#764ba2)", shadow: "rgba(102,126,234,0.3)" },
-          { label: "Admins",       value: totalAdmins,     gradient: "linear-gradient(135deg,#4facfe,#00f2fe)", shadow: "rgba(79,172,254,0.3)" },
-          { label: "Personnel",    value: totalPersonnes,  gradient: "linear-gradient(135deg,#43e97b,#38f9d7)", shadow: "rgba(67,233,123,0.3)" },
+          { label: "Total",     value: users.length,   gradient: "linear-gradient(135deg,#667eea,#764ba2)", shadow: "rgba(102,126,234,0.3)" },
+          { label: "Admins",    value: totalAdmins,    gradient: "linear-gradient(135deg,#4facfe,#00f2fe)", shadow: "rgba(79,172,254,0.3)"  },
+          { label: "Personnel", value: totalPersonnes, gradient: "linear-gradient(135deg,#43e97b,#38f9d7)", shadow: "rgba(67,233,123,0.3)"  },
         ].map((s, i) => (
           <div key={i} className="bg-white rounded-2xl p-4 border border-slate-100 animate-fade-in relative overflow-hidden"
             style={{ boxShadow: "0 2px 8px rgba(15,31,61,0.06)", transition: "all 0.2s" }}
@@ -117,20 +130,29 @@ export default function UserManagementPage() {
         style={{ boxShadow: "0 2px 8px rgba(15,31,61,0.06)" }}>
         <table className="w-full">
           <thead>
-            <tr>{["Utilisateur","Rôle","Type","Statut","Actions"].map(h => <th key={h} className="table-th">{h}</th>)}</tr>
+            <tr>{["Utilisateur", "Rôle", "Type", "Statut", "Actions"].map(h => (
+              <th key={h} className="table-th">{h}</th>
+            ))}</tr>
           </thead>
           <tbody>
             {loading ? (
               Array.from({ length: 5 }).map((_, i) => (
-                <tr key={i}>{Array.from({ length: 5 }).map((_, j) => <td key={j} className="table-td"><div className="skeleton h-4 rounded w-3/4" /></td>)}</tr>
+                <tr key={i}>{Array.from({ length: 5 }).map((_, j) => (
+                  <td key={j} className="table-td"><div className="skeleton h-4 rounded w-3/4" /></td>
+                ))}</tr>
               ))
             ) : users.length === 0 ? (
-              <tr><td colSpan={5} className="py-16 text-center text-slate-400 text-sm">Aucun utilisateur trouvé</td></tr>
+              <tr>
+                <td colSpan={5} className="py-16 text-center text-slate-400 text-sm">
+                  Aucun utilisateur trouvé
+                </td>
+              </tr>
             ) : (
               users.map(u => {
                 const rc = ROLE_CONFIG[u.role];
                 return (
-                  <tr key={u.id} className="border-b border-slate-50 hover:bg-slate-50/60 transition-colors cursor-pointer"
+                  <tr key={u.id}
+                    className="border-b border-slate-50 hover:bg-slate-50/60 transition-colors cursor-pointer"
                     onClick={() => navigate(`/admin/utilisateurs/${u.id}`)}>
                     <td className="table-td">
                       <div className="flex items-center gap-3">
@@ -150,7 +172,9 @@ export default function UserManagementPage() {
                         <Shield className="w-3 h-3" />{rc?.label ?? u.role}
                       </span>
                     </td>
-                    <td className="table-td text-sm text-slate-600">{u.source === "admin" ? "Administrateur" : "Personnel"}</td>
+                    <td className="table-td text-sm text-slate-600">
+                      {u.source === "admin" ? "Administrateur" : "Personnel"}
+                    </td>
                     <td className="table-td">
                       <span className={`inline-flex items-center gap-1 px-2.5 py-1 rounded-full text-xs font-semibold ${u.actif ? "text-emerald-700" : "text-red-600"}`}
                         style={{ background: u.actif ? "rgba(67,233,123,0.1)" : "rgba(245,87,108,0.08)" }}>
@@ -160,9 +184,16 @@ export default function UserManagementPage() {
                     </td>
                     <td className="table-td" onClick={ev => ev.stopPropagation()}>
                       <div className="flex items-center gap-1">
-                        <button onClick={() => navigate(`/admin/utilisateurs/${u.id}`)} className="p-1.5 rounded-lg hover:bg-blue-50 text-slate-400 hover:text-blue-600 transition-colors"><Eye className="w-4 h-4" /></button>
-                        <button onClick={() => navigate(`/admin/utilisateurs/${u.id}/modifier`)} className="p-1.5 rounded-lg hover:bg-amber-50 text-slate-400 hover:text-amber-600 transition-colors"><Edit className="w-4 h-4" /></button>
-                        <button onClick={() => toggleActif(u.id)} className={`p-1.5 rounded-lg transition-colors text-slate-400 ${u.actif ? "hover:bg-red-50 hover:text-red-600" : "hover:bg-emerald-50 hover:text-emerald-600"}`}>
+                        <button onClick={() => navigate(`/admin/utilisateurs/${u.id}`)}
+                          className="p-1.5 rounded-lg hover:bg-blue-50 text-slate-400 hover:text-blue-600 transition-colors">
+                          <Eye className="w-4 h-4" />
+                        </button>
+                        <button onClick={() => navigate(`/admin/utilisateurs/${u.id}/modifier`)}
+                          className="p-1.5 rounded-lg hover:bg-amber-50 text-slate-400 hover:text-amber-600 transition-colors">
+                          <Edit className="w-4 h-4" />
+                        </button>
+                        <button onClick={() => toggleActif(u.id)}
+                          className={`p-1.5 rounded-lg transition-colors text-slate-400 ${u.actif ? "hover:bg-red-50 hover:text-red-600" : "hover:bg-emerald-50 hover:text-emerald-600"}`}>
                           {u.actif ? <UserX className="w-4 h-4" /> : <UserCheck className="w-4 h-4" />}
                         </button>
                       </div>

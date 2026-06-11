@@ -249,11 +249,10 @@ export async function getSessions(idTrimestre: number | string): Promise<Session
 }
 
 export async function getClasses(): Promise<Classe[]> {
-  const res = await fetch(`${API}/classes`, { headers: authHeaders() });
+  const res = await fetch(`${API}/classes?paginate=false`, { headers: authHeaders() });
   const data = await handleResponse<any>(res);
   return data.data ?? data;
 }
-
 export async function getCoursByClasse(idClasse: number | string): Promise<Cours[]> {
   const res = await fetch(`${API}/cours?idClasse=${idClasse}&actif=1`, {
     headers: authHeaders(),
@@ -277,6 +276,18 @@ export async function getElevesByClasse(
     { headers: authHeaders() }
   );
   return handleResponse<EleveSimple[]>(res);
+}
+export async function getCoursByEnseignant(idPers: number | string): Promise<(Cours & { idClasse: number; classe?: { idClasse: number; libelle: string } })[]> {
+  const res = await fetch(`${API}/cours?idPers=${idPers}&actif=1&paginate=false`, {
+    headers: authHeaders(),
+  });
+  const data = await handleResponse<any>(res);
+  return data.data ?? data;
+}
+export async function getEpreuvesByEnseignant(idPers: number | string): Promise<Epreuve[]> {
+  const res = await fetch(`${API}/epreuves?idPers=${idPers}`, { headers: authHeaders() });
+  const data = await handleResponse<any>(res);
+  return data.data ?? data;
 }
 
 // ─── Helpers locaux ───────────────────────────────────────────

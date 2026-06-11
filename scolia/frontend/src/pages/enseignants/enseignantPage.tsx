@@ -1,7 +1,11 @@
-// src/pages/enseignants/enseignantPage.tsx — Version colorée premium
+// src/pages/enseignants/enseignantPage.tsx
 import { useEffect, useState, useCallback } from "react";
 import { useNavigate } from "react-router-dom";
-import { Plus, Eye, Edit, UserCheck, UserX, Search, Filter, GraduationCap, Users, BookOpen } from "lucide-react";
+import {
+  Plus, Eye, Edit, UserCheck, UserX, Search,
+  Filter, GraduationCap, Users, BookOpen, Printer,
+} from "lucide-react";
+import { imprimerEnseignants } from "../../utils/impression";
 import {
   getEnseignants, desactiverEnseignant, reactiverEnseignant,
   type EnseignantPaginate,
@@ -19,12 +23,12 @@ const GRADIENTS = [
 export default function EnseignantsPage() {
   const navigate = useNavigate();
   const [enseignantsData, setEnseignantsData] = useState<EnseignantPaginate | null>(null);
-  const [loading, setLoading]   = useState(true);
-  const [error, setError]       = useState("");
-  const [search, setSearch]     = useState("");
-  const [actif, setActif]       = useState("");
-  const [page, setPage]         = useState(1);
-  const [mounted, setMounted]   = useState(false);
+  const [loading, setLoading] = useState(true);
+  const [error, setError]     = useState("");
+  const [search, setSearch]   = useState("");
+  const [actif, setActif]     = useState("");
+  const [page, setPage]       = useState(1);
+  const [mounted, setMounted] = useState(false);
 
   useEffect(() => { setMounted(true); }, []);
 
@@ -51,13 +55,14 @@ export default function EnseignantsPage() {
   return (
     <div className="max-w-[1400px] mx-auto px-6 py-6 space-y-6">
 
-      {/* Bannière rose/rouge */}
+      {/* Bannière */}
       <div className={`rounded-2xl p-5 relative overflow-hidden transition-all duration-500 ${mounted ? "opacity-100 translate-y-0" : "opacity-0 translate-y-3"}`}
         style={{ background: "linear-gradient(135deg,#f093fb 0%,#f5576c 100%)", boxShadow: "0 4px 24px rgba(240,147,251,0.4)" }}>
         <div className="absolute inset-0 pointer-events-none"
           style={{ backgroundImage: "linear-gradient(rgba(255,255,255,0.05) 1px,transparent 1px),linear-gradient(90deg,rgba(255,255,255,0.05) 1px,transparent 1px)", backgroundSize: "40px 40px" }} />
         <div className="absolute -right-12 -top-12 w-48 h-48 rounded-full pointer-events-none"
           style={{ background: "radial-gradient(circle,rgba(255,255,255,0.15) 0%,transparent 70%)" }} />
+
         <div className="relative z-10 flex items-center justify-between">
           <div>
             <div className="flex items-center gap-2 mb-1">
@@ -67,20 +72,32 @@ export default function EnseignantsPage() {
             <h1 className="text-white text-2xl font-bold" style={{ letterSpacing: "-0.03em" }}>Enseignants</h1>
             <p className="text-pink-100/70 text-sm mt-1">{enseignantsData?.total ?? 0} enseignant(s) enregistré(s)</p>
           </div>
-          <button onClick={() => navigate("/enseignants/nouveau")}
-            className="flex items-center gap-2 bg-white text-pink-600 font-semibold text-sm px-5 py-3 rounded-xl hover:bg-pink-50 transition-all active:scale-[0.97]"
-            style={{ boxShadow: "0 2px 12px rgba(0,0,0,0.15)" }}>
-            <Plus className="w-4 h-4" /> Nouvel enseignant
-          </button>
+
+          {/* ✅ Les deux boutons dans le même div flex */}
+          <div className="flex gap-2">
+            <button
+              onClick={() => imprimerEnseignants(enseignantsData?.data ?? [])}
+              className="flex items-center gap-2 bg-white/20 border border-white/30 text-white font-semibold text-sm px-4 py-2.5 rounded-xl hover:bg-white/30 transition-all backdrop-blur-sm"
+            >
+              <Printer className="w-4 h-4" /> Imprimer
+            </button>
+            <button
+              onClick={() => navigate("/enseignants/nouveau")}
+              className="flex items-center gap-2 bg-white text-pink-600 font-semibold text-sm px-5 py-2.5 rounded-xl hover:bg-pink-50 transition-all active:scale-[0.97]"
+              style={{ boxShadow: "0 2px 12px rgba(0,0,0,0.15)" }}
+            >
+              <Plus className="w-4 h-4" /> Nouvel enseignant
+            </button>
+          </div>
         </div>
       </div>
 
       {/* Stats */}
       <div className="grid grid-cols-3 gap-4 stagger">
         {[
-          { label: "Total",   value: enseignantsData?.total ?? 0, icon: Users,      gradient: "linear-gradient(135deg,#f093fb,#f5576c)", shadow: "rgba(240,147,251,0.3)" },
-          { label: "Actifs",  value: totalActifs,                 icon: UserCheck,  gradient: "linear-gradient(135deg,#43e97b,#38f9d7)", shadow: "rgba(67,233,123,0.3)" },
-          { label: "Inactifs",value: (enseignantsData?.total ?? 0) - totalActifs, icon: UserX, gradient: "linear-gradient(135deg,#f6d365,#fda085)", shadow: "rgba(253,160,133,0.3)" },
+          { label: "Total",    value: enseignantsData?.total ?? 0,                         icon: Users,     gradient: "linear-gradient(135deg,#f093fb,#f5576c)", shadow: "rgba(240,147,251,0.3)" },
+          { label: "Actifs",   value: totalActifs,                                         icon: UserCheck, gradient: "linear-gradient(135deg,#43e97b,#38f9d7)", shadow: "rgba(67,233,123,0.3)"  },
+          { label: "Inactifs", value: (enseignantsData?.total ?? 0) - totalActifs,         icon: UserX,     gradient: "linear-gradient(135deg,#f6d365,#fda085)", shadow: "rgba(253,160,133,0.3)" },
         ].map((s, i) => (
           <div key={i} className="bg-white rounded-2xl p-4 border border-slate-100 animate-fade-in relative overflow-hidden"
             style={{ boxShadow: "0 2px 8px rgba(15,31,61,0.06)", transition: "all 0.2s" }}
@@ -88,7 +105,8 @@ export default function EnseignantsPage() {
             onMouseLeave={e => { (e.currentTarget as HTMLElement).style.boxShadow = "0 2px 8px rgba(15,31,61,0.06)"; (e.currentTarget as HTMLElement).style.transform = "translateY(0)"; }}>
             <div className="absolute top-0 left-0 right-0 h-1 rounded-t-2xl" style={{ background: s.gradient }} />
             <div className="flex items-center gap-3 mt-1">
-              <div className="w-10 h-10 rounded-xl flex items-center justify-center" style={{ background: s.gradient, boxShadow: `0 2px 8px ${s.shadow}` }}>
+              <div className="w-10 h-10 rounded-xl flex items-center justify-center"
+                style={{ background: s.gradient, boxShadow: `0 2px 8px ${s.shadow}` }}>
                 <s.icon className="w-5 h-5 text-white" />
               </div>
               <div>
@@ -126,7 +144,7 @@ export default function EnseignantsPage() {
         <table className="w-full">
           <thead>
             <tr>
-              {["Enseignant","Cours","Classe","Contact","Statut","Actions"].map(h => (
+              {["Enseignant", "Cours", "Classe", "Contact", "Statut", "Actions"].map(h => (
                 <th key={h} className="table-th">{h}</th>
               ))}
             </tr>
@@ -170,7 +188,10 @@ export default function EnseignantsPage() {
                   <td className="table-td text-sm text-slate-700">{e.cours?.libelle ?? "—"}</td>
                   <td className="table-td">
                     {e.cours?.classe?.libelle
-                      ? <span className="inline-flex items-center gap-1 text-xs font-semibold px-2.5 py-1 rounded-full" style={{ background: "linear-gradient(135deg,rgba(79,172,254,0.1),rgba(0,242,254,0.1))", color: "#4facfe" }}><BookOpen className="w-3 h-3" />{e.cours.classe.libelle}</span>
+                      ? <span className="inline-flex items-center gap-1 text-xs font-semibold px-2.5 py-1 rounded-full"
+                          style={{ background: "linear-gradient(135deg,rgba(79,172,254,0.1),rgba(0,242,254,0.1))", color: "#4facfe" }}>
+                          <BookOpen className="w-3 h-3" />{e.cours.classe.libelle}
+                        </span>
                       : "—"}
                   </td>
                   <td className="table-td text-sm text-slate-500">{e.personne?.mobile}</td>
@@ -184,9 +205,13 @@ export default function EnseignantsPage() {
                   <td className="table-td" onClick={ev => ev.stopPropagation()}>
                     <div className="flex items-center gap-1">
                       <button onClick={() => navigate(`/enseignants/${e.idEnseignant}`)}
-                        className="p-1.5 rounded-lg hover:bg-blue-50 text-slate-400 hover:text-blue-600 transition-colors"><Eye className="w-4 h-4" /></button>
+                        className="p-1.5 rounded-lg hover:bg-blue-50 text-slate-400 hover:text-blue-600 transition-colors">
+                        <Eye className="w-4 h-4" />
+                      </button>
                       <button onClick={() => navigate(`/enseignants/${e.idEnseignant}/modifier`)}
-                        className="p-1.5 rounded-lg hover:bg-amber-50 text-slate-400 hover:text-amber-600 transition-colors"><Edit className="w-4 h-4" /></button>
+                        className="p-1.5 rounded-lg hover:bg-amber-50 text-slate-400 hover:text-amber-600 transition-colors">
+                        <Edit className="w-4 h-4" />
+                      </button>
                       <button onClick={() => toggleStatut(e.idEnseignant, e.Actif)}
                         className={`p-1.5 rounded-lg transition-colors text-slate-400 ${e.Actif ? "hover:bg-red-50 hover:text-red-600" : "hover:bg-emerald-50 hover:text-emerald-600"}`}>
                         {e.Actif ? <UserX className="w-4 h-4" /> : <UserCheck className="w-4 h-4" />}
@@ -202,10 +227,14 @@ export default function EnseignantsPage() {
 
       {enseignantsData && enseignantsData.last_page > 1 && (
         <div className="flex items-center justify-between">
-          <p className="text-sm text-slate-400">Page <span className="font-semibold text-slate-700">{enseignantsData.current_page}</span> sur {enseignantsData.last_page}</p>
+          <p className="text-sm text-slate-400">
+            Page <span className="font-semibold text-slate-700">{enseignantsData.current_page}</span> sur {enseignantsData.last_page}
+          </p>
           <div className="flex gap-2">
-            <button onClick={() => setPage(p => Math.max(1, p-1))} disabled={page===1} className="btn-secondary py-2 px-4 disabled:opacity-40">Précédent</button>
-            <button onClick={() => setPage(p => Math.min(enseignantsData.last_page, p+1))} disabled={page===enseignantsData.last_page} className="btn-secondary py-2 px-4 disabled:opacity-40">Suivant</button>
+            <button onClick={() => setPage(p => Math.max(1, p - 1))} disabled={page === 1}
+              className="btn-secondary py-2 px-4 disabled:opacity-40">Précédent</button>
+            <button onClick={() => setPage(p => Math.min(enseignantsData.last_page, p + 1))} disabled={page === enseignantsData.last_page}
+              className="btn-secondary py-2 px-4 disabled:opacity-40">Suivant</button>
           </div>
         </div>
       )}

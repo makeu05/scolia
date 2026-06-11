@@ -1,6 +1,6 @@
-const API =
-  import.meta.env.VITE_API_URL ??
-  'http://localhost:8000/api';
+// src/service/eleve_service.ts — version corrigée
+
+const API = import.meta.env.VITE_API_URL ?? 'http://localhost:8000/api';
 
 import { authFetch, getToken } from '../service/auth';
 
@@ -16,9 +16,16 @@ export interface Eleve {
   langue: string;
   photoURL: string;
   actif: number;
-  idVilleNaissance: number;
   idAdmin: number;
-  villeNaissance?: { idVille: number; libelle: string };
+  // Nouveaux champs
+  religion?: string;
+  situation_familiale?: string;
+  contact_urgence_nom?: string;
+  contact_urgence_tel?: string;
+  contact_urgence_lien?: string;
+  tuteur_nom?: string;
+  tuteur_tel?: string;
+  tuteur_profession?: string;
   parents?: Parent[];
 }
 
@@ -26,6 +33,7 @@ export interface Parent {
   idParent: number;
   idPers: number;
   matricule: number;
+  lien?: string;
   personne?: {
     nom: string;
     prenom: string;
@@ -46,19 +54,26 @@ export interface EleveFilters {
   search?: string;
   actif?: string;
   sexe?: string;
-  idVille?: string;
 }
 
+// ✅ ElevePayload mis à jour avec tous les champs
 export interface ElevePayload {
-  matricule: number | string;
   nom: string;
   prenom: string;
   dateNaissance: string;
   lieuNaissance: string;
   sexe: number | string;
   langue?: string;
-  idVilleNaissance: number | string;
   idAdmin?: number | string;
+  // Nouveaux champs
+  religion?: string;
+  situation_familiale?: string;
+  contact_urgence_nom?: string;
+  contact_urgence_tel?: string;
+  contact_urgence_lien?: string;
+  tuteur_nom?: string;
+  tuteur_tel?: string;
+  tuteur_profession?: string;
 }
 
 // ─── Helpers ─────────────────────────────────────────────────────────────────
@@ -76,260 +91,138 @@ function authJsonHeaders(): HeadersInit {
 
 async function handleResponse<T>(res: Response): Promise<T> {
   const data = await res.json();
-  if (!res.ok) {
-    throw new Error(data.message ?? 'Une erreur est survenue');
-  }
+  if (!res.ok) throw new Error(data.message ?? 'Une erreur est survenue');
   return data as T;
 }
 
 // ─── Fonctions ───────────────────────────────────────────────────────────────
 
-/**
- * Récupère la liste paginée des élèves avec filtres optionnels
- */
 export async function getEleves(filters: EleveFilters = {}): Promise<ElevePaginate> {
   const params = new URLSearchParams();
-
-  if (filters.page)    params.append('page',    String(filters.page));
-  if (filters.search)  params.append('search',  filters.search);
+  if (filters.page)   params.append('page',   String(filters.page));
+  if (filters.search) params.append('search', filters.search);
   if (filters.actif !== undefined && filters.actif !== '')
-                       params.append('actif',   filters.actif);
+                      params.append('actif',  filters.actif);
   if (filters.sexe !== undefined && filters.sexe !== '')
-                       params.append('sexe',    filters.sexe);
-  if (filters.idVille) params.append('idVille', filters.idVille);
+                      params.append('sexe',   filters.sexe);
 
-  const res = await authFetch(`${API}/eleves?${params}`, {
-    headers: authHeaders(),
-  });
-
+  const res = await authFetch(`${API}/eleves?${params}`);
   return handleResponse<ElevePaginate>(res);
 }
 
-/**
- * Récupère le détail d'un élève par matricule
- */
 export async function getEleve(matricule: number | string): Promise<Eleve> {
-  const res = await authFetch(`${API}/eleves/${matricule}`, {
-    headers: authHeaders(),
-  });
-
+  const res = await authFetch(`${API}/eleves/${matricule}`);
   return handleResponse<Eleve>(res);
 }
 
-/**
- * Crée un nouvel élève (avec photo optionnelle)
- */
 export async function createEleve(
   payload: ElevePayload,
   photo?: File
 ): Promise<{ message: string; eleve: Eleve }> {
-  const formData = new FormData();
+  const fd = new FormData();
 
   Object.entries(payload).forEach(([key, value]) => {
-    if (value !== undefined && value !== null) {
-      formData.append(key, String(value));
+    if (value !== undefined && value !== null && value !== '') {
+      fd.append(key, String(value));
     }
   });
 
-  if (photo) formData.append('photo', photo);
+  if (photo) fd.append('photo', photo);
 
   const res = await authFetch(`${API}/eleves`, {
     method: 'POST',
-    headers: authHeaders(), // pas de Content-Type pour FormData
-    body: formData,
+    headers: authHeaders(),
+    body: fd,
   });
-
   return handleResponse(res);
 }
 
-/**
- * Modifie un élève existant (avec photo optionnelle)
- */
 export async function updateEleve(
   matricule: number | string,
   payload: Partial<ElevePayload>,
   photo?: File
 ): Promise<{ message: string; eleve: Eleve }> {
-  const formData = new FormData();
-  formData.append('_method', 'PUT');
+  const fd = new FormData();
+  fd.append('_method', 'PUT');
 
+  // ✅ En modification : envoyer TOUS les champs, même vides
+  // pour permettre d'effacer une valeur existante
   Object.entries(payload).forEach(([key, value]) => {
-    if (value !== undefined && value !== null) {
-      formData.append(key, String(value));
-    }
+    fd.append(key, value !== undefined && value !== null ? String(value) : '');
   });
 
-  if (photo) formData.append('photo', photo);
+  if (photo) fd.append('photo', photo);
 
   const res = await authFetch(`${API}/eleves/${matricule}`, {
-    method: 'POST', // POST + _method PUT pour FormData
+    method: 'POST',
     headers: authHeaders(),
-    body: formData,
+    body: fd,
   });
-
   return handleResponse(res);
 }
 
-/**
- * Archive un élève (actif = 0)
- */
-export async function archiverEleve(
-  matricule: number | string
-): Promise<{ message: string }> {
-  const res = await authFetch(`${API}/eleves/${matricule}/archiver`, {
-    method: 'PATCH',
-    headers: authHeaders(),
-  });
-
+export async function archiverEleve(matricule: number | string): Promise<{ message: string }> {
+  const res = await authFetch(`${API}/eleves/${matricule}/archiver`, { method: 'PATCH' });
   return handleResponse(res);
 }
 
-/**
- * Réactive un élève (actif = 1)
- */
-export async function reactiverEleve(
-  matricule: number | string
-): Promise<{ message: string }> {
-  const res = await authFetch(`${API}/eleves/${matricule}/reactiver`, {
-    method: 'PATCH',
-    headers: authHeaders(),
-  });
-
+export async function reactiverEleve(matricule: number | string): Promise<{ message: string }> {
+  const res = await authFetch(`${API}/eleves/${matricule}/reactiver`, { method: 'PATCH' });
   return handleResponse(res);
 }
 
-/**
- * Supprime définitivement un élève
- */
 export async function deleteEleve(matricule: number | string): Promise<{ message: string }> {
-  const res = await authFetch(`${API}/eleves/${matricule}`, {
-    method: 'DELETE',
-    headers: authHeaders(),
-  });
-
+  const res = await authFetch(`${API}/eleves/${matricule}`, { method: 'DELETE' });
   return handleResponse(res);
 }
-/**
- * Récupère les parents d'un élève
- */
-export async function getParentsEleve(
-  matricule: number | string
-): Promise<Parent[]> {
-  const res = await authFetch(`${API}/eleves/${matricule}/parents`, {
-    headers: authHeaders(),
-  });
 
+export async function getParentsEleve(matricule: number | string): Promise<Parent[]> {
+  const res = await authFetch(`${API}/eleves/${matricule}/parents`);
   return handleResponse<Parent[]>(res);
 }
 
-/**
- * Ajoute un parent à un élève
- */
-export async function addParentEleve(
-  matricule: number | string,
-  payload: {
-    idPers: number | string;
-    nom: string;
-    prenom: string;
-    mobile: string;
-    phone?: string;
-    username: string;
-    password: string;
-    idAdmin: number | string;
-  }
-): Promise<{ message: string; parent: Parent }> {
-  const res = await authFetch(`${API}/eleves/${matricule}/parents`, {
-    method: 'POST',
-    headers: authJsonHeaders(),
-    body: JSON.stringify(payload),
-  });
-
-  return handleResponse(res);
-}
-
-/**
- * Supprime un parent d'un élève
- */
 export async function deleteParentEleve(
   matricule: number | string,
   idParent: number | string
 ): Promise<{ message: string }> {
-  const res = await authFetch(`${API}/eleves/${matricule}/parents/${idParent}`, {
-    method: 'DELETE',
-    headers: authHeaders(),
-  });
-
+  const res = await authFetch(`${API}/eleves/${matricule}/parents/${idParent}`, { method: 'DELETE' });
   return handleResponse(res);
 }
 
-/**
- * Récupère les élèves d'une classe pour une année académique
- * (utilisé dans la saisie des notes)
- */
 export async function getElevesByClasse(
   idClasse: number | string,
   idAcademi: number | string
 ): Promise<Eleve[]> {
   const res = await authFetch(
-    `${API}/inscriptions/eleves-classe?idClasse=${idClasse}&idAcademi=${idAcademi}`,
-    { headers: authHeaders() }
+    `${API}/inscriptions/eleves-classe?idClasse=${idClasse}&idAcademi=${idAcademi}`
   );
-
   return handleResponse<Eleve[]>(res);
 }
 
-/**
- * Recherche rapide d'élèves (pour les selects/autocomplete)
- */
 export async function searchEleves(query: string): Promise<Eleve[]> {
   if (!query || query.length < 2) return [];
-
-  const res = await authFetch(`${API}/eleves?search=${encodeURIComponent(query)}`, {
-    headers: authHeaders(),
-  });
-
+  const res = await authFetch(`${API}/eleves?search=${encodeURIComponent(query)}`);
   const data = await handleResponse<ElevePaginate>(res);
   return data.data;
 }
 
-/**
- * Retourne le label du sexe
- */
-export function getSexeLabel(sexe: number): string {
-  const map: Record<number, string> = {
-    0: 'Fille',
-    1: 'Garçon',
-    2: 'Autre',
-  };
-  return map[sexe] ?? '—';
+export async function getAllEleves(): Promise<Eleve[]> {
+  const res = await authFetch(`${API}/eleves?paginate=false`);
+  const data = await handleResponse<any>(res);
+  return Array.isArray(data) ? data : (data.data || []);
 }
 
-/**
- * Retourne le nom complet d'un élève
- */
+export function getSexeLabel(sexe: number): string {
+  return { 0: 'Fille', 1: 'Garçon', 2: 'Autre' }[sexe] ?? '—';
+}
+
 export function getNomComplet(eleve: Eleve): string {
   return `${eleve.prenom} ${eleve.nom}`;
 }
 
-/**
- * Retourne l'URL complète de la photo d'un élève
- */
-export function getPhotoUrl(photoURL: string): string {
-  if (!photoURL || photoURL === 'INDEFINI') {
-    return '/images/avatar-default.png';
-  }
+export function getPhotoUrl(photoURL?: string): string | null {
+  if (!photoURL || photoURL === 'INDEFINI') return null;
   if (photoURL.startsWith('http')) return photoURL;
-  return `http://localhost:8000${photoURL}`;
-}
-
-/**
- * Récupère TOUS les élèves (sans pagination) - Idéal pour les selects/dropdowns
- */
-export async function getAllEleves(): Promise<Eleve[]> {
-  const res = await authFetch(`${API}/eleves?paginate=false`, {
-    headers: authHeaders(),
-  });
-
-  const data = await handleResponse<any>(res);
-  return Array.isArray(data) ? data : (data.data || []);
+  const SERVER = import.meta.env.VITE_API_URL?.replace('/api', '') ?? 'http://localhost:8000';
+  return `${SERVER}/storage/${photoURL}`;
 }

@@ -18,6 +18,9 @@ class ClasseController extends Controller
         if ($request->filled('search')) {
             $query->where('libelle', 'like', '%' . $request->search . '%');
         }
+         if ($request->get('paginate') === 'false') {
+        return response()->json($query->orderBy('idClasse')->get());
+    }
 
         return response()->json($query->paginate(15));
     }

@@ -1,237 +1,197 @@
-import { useEffect, useRef, useState } from 'react';
-import { useNavigate, useParams } from 'react-router-dom';
-import {
-  getEpreuve,
-  createEpreuve,
-  updateEpreuve,
-  getDocumentUrl,
-} from '../../service/epreuve_service';
+import { useEffect, useState } from 'react';
+import { useNavigate, useParams, Link } from 'react-router-dom';
+import { ArrowLeft, Save, Upload } from 'lucide-react';
+import { useAuth } from '../../service/auth';
+import { createEpreuve, getEpreuve, updateEpreuve } from '../../service/epreuve_service';
 import { getNatures, type Nature } from '../../service/nature_service';
 
 export default function EpreuveForm() {
+  const { idEpreuve } = useParams<{ idEpreuve?: string }>();
   const navigate = useNavigate();
-  const { id }   = useParams();
-  const isEdit   = !!id;
-  const fileRef  = useRef<HTMLInputElement>(null);
+  const { user } = useAuth();
+  const isEdit = !!idEpreuve;
 
+  const [libelle, setLibelle]     = useState('');
+  const [idNature, setIdNature]   = useState('');
+  const [auteur, setAuteur]       = useState('');
+  const [document, setDocument]   = useState<File | null>(null);
+  const [previewName, setPreviewName] = useState('');
   const [natures, setNatures]     = useState<Nature[]>([]);
-  const [fileName, setFileName]   = useState('');
-  const [docActuel, setDocActuel] = useState('');
-  const [loading, setLoading]     = useState(false);
+  const [saving, setSaving]       = useState(false);
   const [error, setError]         = useState('');
-
-  const [form, setForm] = useState({
-    libelle:  '',
-    auteur:   '',
-    idNature: '',
-    idPers:   '1',
-  });
 
   useEffect(() => {
     getNatures().then(setNatures).catch(() => {});
-    if (isEdit) loadEpreuve();
   }, []);
 
-  async function loadEpreuve() {
-    try {
-      setLoading(true);
-      const data = await getEpreuve(Number(id));
-      setForm({
-        libelle:  data.libelle,
-        auteur:   data.auteur !== 'INDEFINI' ? (data.auteur ?? '') : '',
-        idNature: String(data.idNature),
-        idPers:   String(data.idPers),
-      });
-      const url = getDocumentUrl(data.urlDoc);
-      if (url) setDocActuel(url);
-    } catch (err: any) {
-      setError(err.message);
-    } finally {
-      setLoading(false);
-    }
-  }
+  useEffect(() => {
+    if (!isEdit || !idEpreuve) return;
+    getEpreuve(Number(idEpreuve))
+      .then(data => {
+        setLibelle(data.libelle || '');
+        setIdNature(String(data.idNature || ''));
+        setAuteur(data.auteur !== 'INDEFINI' ? data.auteur : user?.name || '');
+      })
+      .catch(err => setError(err.message));
+  }, [idEpreuve, isEdit, user]);
 
-  function update(field: string, value: string) {
-    setForm(prev => ({ ...prev, [field]: value }));
-  }
-
-  function handleFileChange(e: React.ChangeEvent<HTMLInputElement>) {
+  const handleFileChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0];
-    setFileName(file ? file.name : '');
-  }
+    if (!file) return;
+    if (file.type !== 'application/pdf') {
+      setError('Seuls les fichiers PDF sont acceptés');
+      return;
+    }
+    if (file.size > 10 * 1024 * 1024) {
+      setError('Le fichier ne doit pas dépasser 10 Mo');
+      return;
+    }
+    setDocument(file);
+    setPreviewName(file.name);
+    setError('');
+  };
 
-  async function handleSubmit(e: React.FormEvent) {
+  const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
-    const file = fileRef.current?.files?.[0];
+    setSaving(true);
+    setError('');
+
+    if (!libelle || !idNature) {
+      setError("Le libellé et la nature sont obligatoires");
+      setSaving(false);
+      return;
+    }
+
+    // ✅ Extraction sécurisée + conversion numérique explicite
+    const rawId = user?.idPers ?? user?.id;
+    const numericIdPers = rawId !== undefined && rawId !== null
+      ? Number(rawId)
+      : null;
+
+    if (!numericIdPers || isNaN(numericIdPers)) {
+      setError("Impossible d'identifier l'enseignant connecté. Veuillez vous reconnecter.");
+      setSaving(false);
+      return;
+    }
+
+    const formData = new FormData();
+    formData.append('libelle', libelle);
+    formData.append('idNature', idNature);
+    formData.append('idPers', String(numericIdPers)); // ex: "42" garanti numérique
+    formData.append('auteur', auteur || user?.name || 'INDEFINI');
+
+    if (document) {
+      // ✅ Blob avec type MIME explicite pour éviter "failed to upload"
+      const blob = new Blob([document], { type: 'application/pdf' });
+      formData.append('document', blob, document.name);
+    }
+
     try {
-      setLoading(true);
-      if (isEdit) {
-        await updateEpreuve(Number(id), form, file);
+      if (isEdit && idEpreuve) {
+        await updateEpreuve(Number(idEpreuve), formData);
+        alert('Épreuve modifiée avec succès !');
       } else {
-        await createEpreuve(form, file);
+        await createEpreuve(formData);
+        alert('Épreuve créée avec succès !');
       }
       navigate('/epreuves');
     } catch (err: any) {
-      setError(err.message);
+      console.error(err);
+      setError(err.message || "Erreur lors de l'enregistrement");
     } finally {
-      setLoading(false);
+      setSaving(false);
     }
-  }
+  };
 
   return (
-    <div className="p-6 max-w-2xl mx-auto">
-
-      {/* HEADER */}
-      <div className="mb-6">
-        <h1 className="text-2xl font-bold text-foreground">
-          {isEdit ? "Modifier l'épreuve" : "Ajouter une épreuve"}
+    <div className="max-w-2xl mx-auto px-6 py-6 space-y-6">
+      <div className="flex items-center gap-4">
+        <Link to="/epreuves" className="flex items-center gap-2 text-slate-500 hover:text-slate-800 text-sm font-medium transition">
+          <ArrowLeft size={18} /> Retour
+        </Link>
+        <h1 className="text-2xl font-bold text-slate-900">
+          {isEdit ? "Modifier l'Épreuve" : "Nouvelle Épreuve"}
         </h1>
-        <p className="text-sm text-muted-foreground">
-          {isEdit ? 'Mettre à jour les informations' : 'Créer une nouvelle épreuve'}
-        </p>
       </div>
 
-      {/* ERREUR */}
       {error && (
-        <div className="bg-red-500/10 border border-red-500/20 text-red-400 px-4 py-3 rounded-xl text-sm mb-4">
+        <div className="bg-red-50 border border-red-200 text-red-700 px-4 py-3 rounded-xl text-sm shadow-sm">
           {error}
         </div>
       )}
 
-      <form
-        onSubmit={handleSubmit}
-        className="bg-card border border-border rounded-2xl p-6 space-y-5"
-      >
+      <form onSubmit={handleSubmit} className="bg-white border border-slate-100 rounded-2xl p-8 shadow-sm space-y-6">
 
-        {/* LIBELLE */}
         <div>
-          <label className="block text-sm mb-2">Libellé</label>
+          <label className="block text-sm font-semibold text-slate-700 mb-2">Libellé de l'épreuve *</label>
           <input
             type="text"
             required
-            value={form.libelle}
-            onChange={e => update('libelle', e.target.value)}
-            placeholder="ex: Devoir 1, Examen final..."
-            className="w-full bg-background border border-border rounded-lg px-4 py-3 text-sm focus:outline-none focus:ring-1 focus:ring-primary"
+            value={libelle}
+            onChange={(e) => setLibelle(e.target.value)}
+            placeholder="Ex: Devoir de Mathématiques 3ème"
+            className="w-full border border-gray-200 rounded-xl px-4 py-3 text-sm focus:outline-none focus:border-[#fda085] bg-white transition"
           />
         </div>
 
-        {/* NATURE */}
-        <div>
-          <label className="block text-sm mb-2">Nature de l'épreuve</label>
-          <select
-            required
-            value={form.idNature}
-            onChange={e => update('idNature', e.target.value)}
-            className="w-full bg-background border border-border rounded-lg px-4 py-3 text-sm"
-          >
-            <option value="">Sélectionner une nature</option>
-            {natures.map(n => (
-              <option key={n.idNature} value={n.idNature}>{n.libelle}</option>
-            ))}
-          </select>
-          {natures.length === 0 && (
-            <p className="text-xs text-yellow-500 mt-1">
-              Aucune nature disponible.{' '}
-              <button
-                type="button"
-                onClick={() => navigate('/natures/ajouter')}
-                className="underline"
-              >
-                En créer une
-              </button>
-            </p>
-          )}
-        </div>
-
-        {/* AUTEUR */}
-        <div>
-          <label className="block text-sm mb-2">Auteur (optionnel)</label>
-          <input
-            type="text"
-            value={form.auteur}
-            onChange={e => update('auteur', e.target.value)}
-            placeholder="Nom de l'auteur..."
-            className="w-full bg-background border border-border rounded-lg px-4 py-3 text-sm focus:outline-none focus:ring-1 focus:ring-primary"
-          />
-        </div>
-
-        {/* DOCUMENT ACTUEL */}
-        {isEdit && docActuel && !fileName && (
-          <div className="bg-muted/30 border border-border rounded-lg px-4 py-3">
-            <p className="text-xs text-muted-foreground mb-2">Document actuel :</p>
-            
-              <a href={docActuel}
-              target="_blank"
-              rel="noopener noreferrer"
-              className="flex items-center gap-2 text-sm text-primary hover:underline"
+        <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+          <div>
+            <label className="block text-sm font-semibold text-slate-700 mb-2">Nature de l'évaluation *</label>
+            <select
+              required
+              value={idNature}
+              onChange={(e) => setIdNature(e.target.value)}
+              className="w-full border border-gray-200 rounded-xl px-4 py-3 text-sm focus:outline-none focus:border-[#fda085] bg-white transition cursor-pointer"
             >
-              <span>📄</span>
-              <span>Voir le PDF actuel</span>
-            </a>
-           </div>
-        )};
-       
+              <option value="">Sélectionner une nature</option>
+              {natures.map(n => (
+                <option key={n.idNature} value={n.idNature}>{n.libelle}</option>
+              ))}
+            </select>
+          </div>
 
-        {/* UPLOAD PDF */}
-        <div>
-          <label className="block text-sm mb-2">
-            {isEdit && docActuel ? 'Remplacer le document PDF' : 'Document PDF (optionnel)'}
-          </label>
-          <div
-            onClick={() => fileRef.current?.click()}
-            className={`w-full border-2 border-dashed rounded-xl px-4 py-6 text-center cursor-pointer transition ${
-              fileName
-                ? 'border-primary bg-primary/5'
-                : 'border-border hover:border-muted-foreground'
-            }`}
-          >
+          <div>
+            <label className="block text-sm font-semibold text-slate-700 mb-2">Auteur / Enseignant</label>
             <input
-              type="file"
-              ref={fileRef}
-              accept=".pdf"
-              onChange={handleFileChange}
-              className="hidden"
+              type="text"
+              value={auteur}
+              onChange={(e) => setAuteur(e.target.value)}
+              placeholder="Nom de l'auteur"
+              className="w-full border border-gray-200 rounded-xl px-4 py-3 text-sm focus:outline-none focus:border-[#fda085] bg-white transition"
             />
-            {fileName ? (
-              <div className="flex items-center justify-center gap-3">
-                <span className="text-2xl">📄</span>
-                <div className="text-left">
-                  <p className="text-sm font-medium text-primary">{fileName}</p>
-                  <p className="text-xs text-muted-foreground">Cliquer pour changer</p>
-                </div>
-              </div>
-            ) : (
-              <div>
-                <p className="text-3xl mb-2">📎</p>
-                <p className="text-sm text-muted-foreground">
-                  {isEdit && docActuel
-                    ? 'Cliquer pour remplacer le PDF existant'
-                    : 'Cliquer pour sélectionner un PDF'
-                  }
-                </p>
-                <p className="text-xs text-muted-foreground/50 mt-1">Max 10 MB</p>
-              </div>
-            )}
           </div>
         </div>
 
-        {/* ACTIONS */}
-        <div className="flex gap-3 pt-2">
+        <div>
+          <label className="block text-sm font-semibold text-slate-700 mb-2">Document Sujet (PDF)</label>
+          <label className="border-2 border-dashed border-gray-200 rounded-2xl p-8 text-center hover:border-[#fda085] hover:bg-slate-50/50 cursor-pointer block transition">
+            <Upload className="mx-auto h-12 w-12 text-gray-400" />
+            <p className="mt-3 text-sm font-semibold text-slate-800">
+              {previewName ? previewName : "Cliquez ou glissez pour charger le sujet d'épreuve"}
+            </p>
+            <p className="text-xs text-slate-400 mt-1">Fichier PDF uniquement (Max: 10Mo)</p>
+            <input
+              type="file"
+              accept="application/pdf"
+              onChange={handleFileChange}
+              className="hidden"
+            />
+          </label>
+        </div>
+
+        <div className="pt-4 flex gap-4">
           <button
             type="submit"
-            disabled={loading}
-            className="bg-primary text-primary-foreground px-5 py-3 rounded-lg text-sm hover:opacity-90 transition disabled:opacity-50"
+            disabled={saving}
+            className="flex-1 text-white py-3.5 rounded-xl font-semibold text-sm transition flex items-center justify-center gap-2 disabled:opacity-70"
+            style={{ background: "linear-gradient(135deg,#f6d365 0%,#fda085 100%)", boxShadow: "0 2px 12px rgba(253,160,133,0.3)" }}
           >
-            {loading ? 'Enregistrement...' : isEdit ? 'Mettre à jour' : 'Créer'}
+            <Save size={18} />
+            {saving ? "Enregistrement..." : isEdit ? "Enregistrer les modifications" : "Créer l'épreuve"}
           </button>
-          <button
-            type="button"
-            onClick={() => navigate('/epreuves')}
-            className="bg-secondary px-5 py-3 rounded-lg text-sm hover:opacity-80 transition"
-          >
+          <Link to="/epreuves" className="flex-1 border border-gray-200 text-slate-600 py-3.5 rounded-xl font-semibold text-sm text-center hover:bg-slate-50 transition flex items-center justify-center">
             Annuler
-          </button>
+          </Link>
         </div>
       </form>
     </div>
