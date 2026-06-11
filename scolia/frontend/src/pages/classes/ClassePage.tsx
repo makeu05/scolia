@@ -1,4 +1,5 @@
-// src/pages/classes/ClassePage.tsx — Version colorée premium
+// src/pages/classes/ClassePage.tsx — fix button-dans-button + 422
+
 import { useEffect, useState, useCallback } from "react";
 import { useNavigate } from "react-router-dom";
 import { Plus, Trash2, Eye, Edit, Search, Building2, Layers } from "lucide-react";
@@ -46,14 +47,18 @@ export default function ClassesPage() {
 
   async function handleCreateCycle(e: React.FormEvent) {
     e.preventDefault();
-    try { await createCycle(cycleForm); setCycleForm({ libelle: "", description: "", idAdmin: "1" }); setShowCycleForm(false); fetchCycles(); fetchClasses(); }
-    catch { alert("Erreur lors de la création du cycle"); }
+    try {
+      await createCycle(cycleForm);
+      setCycleForm({ libelle: "", description: "", idAdmin: "1" });
+      setShowCycleForm(false);
+      fetchCycles(); fetchClasses();
+    } catch { alert("Erreur lors de la création du cycle"); }
   }
 
   return (
     <div className="max-w-[1400px] mx-auto px-6 py-6 space-y-6">
 
-      {/* Bannière bleu cyan */}
+      {/* Bannière */}
       <div className={`rounded-2xl p-5 relative overflow-hidden transition-all duration-500 ${mounted ? "opacity-100 translate-y-0" : "opacity-0 translate-y-3"}`}
         style={{ background: "linear-gradient(135deg,#4facfe 0%,#00f2fe 100%)", boxShadow: "0 4px 24px rgba(79,172,254,0.4)" }}>
         <div className="absolute inset-0 pointer-events-none"
@@ -98,7 +103,8 @@ export default function ClassesPage() {
         </div>
       )}
 
-      {/* Cycles colorés */}
+      {/* ── Cycles ── */}
+      {/* ✅ CORRECTION : <div> au lieu de <button> pour éviter button-dans-button */}
       <div>
         <p className="text-xs font-semibold text-slate-400 uppercase tracking-wider mb-3">Cycles disponibles</p>
         <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-5 gap-3 stagger">
@@ -106,25 +112,50 @@ export default function ClassesPage() {
             const c = CYCLE_GRADIENTS[i % CYCLE_GRADIENTS.length];
             const isSelected = idCycle === String(cycle.idCycle);
             return (
-              <button key={cycle.idCycle}
+              <div
+                key={cycle.idCycle}
+                role="button"
+                tabIndex={0}
                 onClick={() => setIdCycle(isSelected ? "" : String(cycle.idCycle))}
-                className="relative rounded-2xl p-4 text-left transition-all duration-200 animate-fade-in border overflow-hidden"
+                onKeyDown={e => e.key === "Enter" && setIdCycle(isSelected ? "" : String(cycle.idCycle))}
+                className="relative rounded-2xl p-4 text-left transition-all duration-200 animate-fade-in border overflow-hidden cursor-pointer select-none"
                 style={{
-                  background: isSelected ? c.gradient : "white",
-                  borderColor: isSelected ? "transparent" : "#f1f5f9",
-                  boxShadow: isSelected ? `0 4px 16px ${c.shadow}` : "0 2px 8px rgba(15,31,61,0.06)",
-                  transform: isSelected ? "translateY(-2px)" : "translateY(0)",
+                  background:   isSelected ? c.gradient : "white",
+                  borderColor:  isSelected ? "transparent" : "#f1f5f9",
+                  boxShadow:    isSelected ? `0 4px 16px ${c.shadow}` : "0 2px 8px rgba(15,31,61,0.06)",
+                  transform:    isSelected ? "translateY(-2px)" : "translateY(0)",
                 }}
                 onMouseEnter={e => { if (!isSelected) { (e.currentTarget as HTMLElement).style.boxShadow = `0 6px 20px ${c.shadow}`; (e.currentTarget as HTMLElement).style.transform = "translateY(-2px)"; }}}
-                onMouseLeave={e => { if (!isSelected) { (e.currentTarget as HTMLElement).style.boxShadow = "0 2px 8px rgba(15,31,61,0.06)"; (e.currentTarget as HTMLElement).style.transform = "translateY(0)"; }}}>
-                {!isSelected && <div className="absolute top-0 left-0 right-0 h-1 rounded-t-2xl" style={{ background: c.gradient }} />}
-                <p className={`font-bold text-sm mt-1 ${isSelected ? "text-white" : "text-slate-900"}`}>{cycle.libelle}</p>
-                <p className={`text-xs mt-1 ${isSelected ? "text-white/70" : "text-slate-400"}`}>{cycle.classes?.length ?? 0} classe(s)</p>
-                <button onClick={ev => { ev.stopPropagation(); if (confirm("Supprimer ce cycle ?")) { deleteCycle(cycle.idCycle); fetchCycles(); fetchClasses(); } }}
-                  className={`absolute top-2 right-2 p-1 rounded-lg transition-colors ${isSelected ? "hover:bg-white/20 text-white/60" : "hover:bg-red-50 text-slate-300 hover:text-red-500"}`}>
+                onMouseLeave={e => { if (!isSelected) { (e.currentTarget as HTMLElement).style.boxShadow = "0 2px 8px rgba(15,31,61,0.06)"; (e.currentTarget as HTMLElement).style.transform = "translateY(0)"; }}}
+              >
+                {!isSelected && (
+                  <div className="absolute top-0 left-0 right-0 h-1 rounded-t-2xl" style={{ background: c.gradient }} />
+                )}
+                <p className={`font-bold text-sm mt-1 ${isSelected ? "text-white" : "text-slate-900"}`}>
+                  {cycle.libelle}
+                </p>
+                <p className={`text-xs mt-1 ${isSelected ? "text-white/70" : "text-slate-400"}`}>
+                  {cycle.classes?.length ?? 0} classe(s)
+                </p>
+                {/* ✅ Bouton suppression — stopPropagation pour ne pas déclencher la sélection */}
+                <button
+                  onClick={e => {
+                    e.stopPropagation();
+                    if (confirm("Supprimer ce cycle ?")) {
+                      deleteCycle(cycle.idCycle);
+                      fetchCycles();
+                      fetchClasses();
+                    }
+                  }}
+                  className={`absolute top-2 right-2 p-1 rounded-lg transition-colors ${
+                    isSelected
+                      ? "hover:bg-white/20 text-white/60"
+                      : "hover:bg-red-50 text-slate-300 hover:text-red-500"
+                  }`}
+                >
                   <Trash2 className="w-3.5 h-3.5" />
                 </button>
-              </button>
+              </div>
             );
           })}
         </div>
@@ -149,7 +180,9 @@ export default function ClassesPage() {
           <tbody>
             {loading ? (
               Array.from({ length: 5 }).map((_, i) => (
-                <tr key={i}>{Array.from({ length: 4 }).map((_, j) => <td key={j} className="table-td"><div className="skeleton h-4 rounded w-3/4" /></td>)}</tr>
+                <tr key={i}>{Array.from({ length: 4 }).map((_, j) => (
+                  <td key={j} className="table-td"><div className="skeleton h-4 rounded w-3/4" /></td>
+                ))}</tr>
               ))
             ) : classes.length === 0 ? (
               <tr>
@@ -159,20 +192,32 @@ export default function ClassesPage() {
               classes.map((cl) => {
                 const c = CYCLE_GRADIENTS[cycles.findIndex(cy => cy.idCycle === cl.idCycle) % CYCLE_GRADIENTS.length];
                 return (
-                  <tr key={cl.idClasse} className="border-b border-slate-50 hover:bg-slate-50/60 transition-colors cursor-pointer"
+                  <tr key={cl.idClasse}
+                    className="border-b border-slate-50 hover:bg-slate-50/60 transition-colors cursor-pointer"
                     onClick={() => navigate(`/classes/${cl.idClasse}`)}>
                     <td className="table-td font-semibold text-slate-900">{cl.libelle}</td>
                     <td className="table-td">
                       {cl.cycle?.libelle
-                        ? <span className="inline-flex items-center gap-1.5 text-xs font-semibold px-2.5 py-1 rounded-full text-white" style={{ background: c?.gradient ?? "#e2e8f0" }}>{cl.cycle.libelle}</span>
+                        ? <span className="inline-flex items-center gap-1.5 text-xs font-semibold px-2.5 py-1 rounded-full text-white"
+                            style={{ background: c?.gradient ?? "#e2e8f0" }}>{cl.cycle.libelle}</span>
                         : "—"}
                     </td>
                     <td className="table-td text-sm text-slate-500">{cl.cours_count ?? 0} cours</td>
-                    <td className="table-td" onClick={ev => ev.stopPropagation()}>
+                    {/* ✅ stopPropagation sur la cellule pour éviter la navigation */}
+                    <td className="table-td" onClick={e => e.stopPropagation()}>
                       <div className="flex items-center gap-1">
-                        <button onClick={() => navigate(`/classes/${cl.idClasse}`)} className="p-1.5 rounded-lg hover:bg-blue-50 text-slate-400 hover:text-blue-600 transition-colors"><Eye className="w-4 h-4" /></button>
-                        <button onClick={() => navigate(`/classes/${cl.idClasse}/modifier`)} className="p-1.5 rounded-lg hover:bg-amber-50 text-slate-400 hover:text-amber-600 transition-colors"><Edit className="w-4 h-4" /></button>
-                        <button onClick={() => { if (confirm("Supprimer cette classe ?")) { deleteClasse(cl.idClasse); fetchClasses(); } }} className="p-1.5 rounded-lg hover:bg-red-50 text-slate-400 hover:text-red-600 transition-colors"><Trash2 className="w-4 h-4" /></button>
+                        <button onClick={() => navigate(`/classes/${cl.idClasse}`)}
+                          className="p-1.5 rounded-lg hover:bg-blue-50 text-slate-400 hover:text-blue-600 transition-colors">
+                          <Eye className="w-4 h-4" />
+                        </button>
+                        <button onClick={() => navigate(`/classes/${cl.idClasse}/modifier`)}
+                          className="p-1.5 rounded-lg hover:bg-amber-50 text-slate-400 hover:text-amber-600 transition-colors">
+                          <Edit className="w-4 h-4" />
+                        </button>
+                        <button onClick={() => { if (confirm("Supprimer cette classe ?")) { deleteClasse(cl.idClasse); fetchClasses(); } }}
+                          className="p-1.5 rounded-lg hover:bg-red-50 text-slate-400 hover:text-red-600 transition-colors">
+                          <Trash2 className="w-4 h-4" />
+                        </button>
                       </div>
                     </td>
                   </tr>
@@ -187,9 +232,9 @@ export default function ClassesPage() {
         <div className="flex items-center justify-between">
           <p className="text-sm text-slate-400">{meta.total} classe(s)</p>
           <div className="flex gap-2">
-            <button onClick={() => setPage(p => p-1)} disabled={page===1} className="btn-secondary py-2 px-4 disabled:opacity-40">Précédent</button>
+            <button onClick={() => setPage(p => p - 1)} disabled={page === 1} className="btn-secondary py-2 px-4 disabled:opacity-40">Précédent</button>
             <span className="flex items-center px-3 text-sm text-slate-600">{page} / {meta.last_page}</span>
-            <button onClick={() => setPage(p => p+1)} disabled={page===meta.last_page} className="btn-secondary py-2 px-4 disabled:opacity-40">Suivant</button>
+            <button onClick={() => setPage(p => p + 1)} disabled={page === meta.last_page} className="btn-secondary py-2 px-4 disabled:opacity-40">Suivant</button>
           </div>
         </div>
       )}

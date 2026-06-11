@@ -59,6 +59,8 @@ const NAV_MAIN: NavItem[] = [
   { id: "bibliotheque",    label: "Bibliothèque",    icon: BookOpen,      path: "/bibliotheque",    roles: ["root","admin","directeur","enseignant","parent"] },
   { id: "communication",   label: "Communication",   icon: MessageSquare, path: "/communication",   roles: ["root","admin","directeur","fondateur"] },
   {id:"disciplines", label:"Disciplines", icon: Shield, path:"/discipline", roles:["root","admin","directeur","enseignant","parent"]},
+  {id:"sections", label:"Sections", icon: Building2, path:"/sections", roles:["root","admin","directeur"]},
+  {id:"absences", label:"Absences", icon: Clock, path:"/absences", roles:["root","admin","directeur","enseignant"]},
 ];
 
 const ROLE_LABELS: Record<string, string> = {
