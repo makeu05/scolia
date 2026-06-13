@@ -4,7 +4,7 @@ import { Link } from "react-router-dom";
 import {
   Plus, Trash2, ChevronDown, ChevronUp, Calendar, Clock,
   ArrowRight, CheckCircle, Lock, Play, BarChart2, Users,
-  CreditCard, BookOpen, AlertTriangle, X,
+  CreditCard, BookOpen, AlertTriangle, X, ArrowUp,
 } from "lucide-react";
 import {
   getAnnees, createAnnee, deleteAnnee,
@@ -31,18 +31,18 @@ const TRIM_GRADIENTS = [
 ];
 
 export default function AnneesPage() {
-  const [annees, setAnnees]         = useState<AnneeAcademique[]>([]);
-  const [loading, setLoading]       = useState(true);
-  const [error, setError]           = useState("");
-  const [showForm, setShowForm]     = useState(false);
-  const [expanded, setExpanded]     = useState<number | null>(null);
+  const [annees, setAnnees]           = useState<AnneeAcademique[]>([]);
+  const [loading, setLoading]         = useState(true);
+  const [error, setError]             = useState("");
+  const [showForm, setShowForm]       = useState(false);
+  const [expanded, setExpanded]       = useState<number | null>(null);
   const [showTriForm, setShowTriForm] = useState<number | null>(null);
-  const [mounted, setMounted]       = useState(false);
-  const [dashboard, setDashboard]   = useState<Record<number, any>>({});
+  const [mounted, setMounted]         = useState(false);
+  const [dashboard, setDashboard]     = useState<Record<number, any>>({});
   const [loadingDash, setLoadingDash] = useState<number | null>(null);
-  const [showDash, setShowDash]     = useState<number | null>(null);
+  const [showDash, setShowDash]       = useState<number | null>(null);
   const [confirmCloture, setConfirmCloture] = useState<number | null>(null);
-  const [filtre, setFiltre]         = useState<'toutes' | 'active' | 'cloturee' | 'brouillon'>('toutes');
+  const [filtre, setFiltre]           = useState<'toutes' | 'active' | 'cloturee' | 'brouillon'>('toutes');
 
   const [formAnnee, setFormAnnee] = useState({ libelle: "", periode: "", idAdmin: "1" });
   const [formTri, setFormTri]     = useState({ libelle: "", periode: "", idAca: "", idAdmin: "1" });
@@ -77,14 +77,16 @@ export default function AnneesPage() {
 
   const handleActiver = async (id: number) => {
     try {
-      await authFetch(`${API}/annees/${id}/activer`, { method: 'PATCH' });
+      const res = await authFetch(`${API}/annees/${id}/activer`, { method: 'PATCH' });
+      if (!res.ok) { const d = await res.json(); throw new Error(d.message); }
       load();
     } catch (err: any) { setError(err.message); }
   };
 
   const handleCloturer = async (id: number) => {
     try {
-      await authFetch(`${API}/annees/${id}/cloturer`, { method: 'PATCH' });
+      const res = await authFetch(`${API}/annees/${id}/cloturer`, { method: 'PATCH' });
+      if (!res.ok) { const d = await res.json(); throw new Error(d.message); }
       setConfirmCloture(null);
       load();
     } catch (err: any) { setError(err.message); }
@@ -102,11 +104,9 @@ export default function AnneesPage() {
     finally { setLoadingDash(null); }
   };
 
-  const anneesFiltrees = annees.filter(a => {
-    if (filtre === 'toutes') return true;
-    return (a as any).statut === filtre;
-  });
-
+  const anneesFiltrees = annees.filter(a =>
+    filtre === 'toutes' ? true : (a as any).statut === filtre
+  );
   const anneeActive = annees.find(a => (a as any).statut === 'active');
 
   return (
@@ -129,9 +129,14 @@ export default function AnneesPage() {
               {anneeActive ? `Active : ${anneeActive.libelle}` : "Aucune année active"}
             </p>
           </div>
-          <div className="flex gap-2">
+          <div className="flex gap-2 flex-wrap">
+            {/* ✅ Bouton Promotions */}
+            <Link to="/promotions"
+              className="flex items-center gap-2 bg-white/20 border border-white/30 text-white font-semibold text-sm px-4 py-2.5 rounded-xl hover:bg-white/30 transition-all backdrop-blur-sm">
+              <ArrowUp className="w-4 h-4" /> Promotions
+            </Link>
             <Link to="/sessions"
-              className="flex items-center gap-2 bg-white/20 border border-white/30 text-white font-semibold text-sm px-4 py-2.5 rounded-xl hover:bg-white/30 transition-all">
+              className="flex items-center gap-2 bg-white/20 border border-white/30 text-white font-semibold text-sm px-4 py-2.5 rounded-xl hover:bg-white/30 transition-all backdrop-blur-sm">
               Sessions <ArrowRight className="w-4 h-4" />
             </Link>
             <button onClick={() => setShowForm(v => !v)}
@@ -179,10 +184,10 @@ export default function AnneesPage() {
       {/* Filtres */}
       <div className="flex gap-1 p-1 bg-slate-100 rounded-2xl w-fit">
         {([
-          { id: 'toutes',   label: `Toutes (${annees.length})`                                              },
-          { id: 'active',   label: `Actives (${annees.filter(a => (a as any).statut === 'active').length})`    },
-          { id: 'cloturee', label: `Clôturées (${annees.filter(a => (a as any).statut === 'cloturee').length})` },
-          { id: 'brouillon',label: `Brouillons (${annees.filter(a => (a as any).statut === 'brouillon').length})`},
+          { id: 'toutes',    label: `Toutes (${annees.length})` },
+          { id: 'active',    label: `Actives (${annees.filter(a => (a as any).statut === 'active').length})` },
+          { id: 'cloturee',  label: `Clôturées (${annees.filter(a => (a as any).statut === 'cloturee').length})` },
+          { id: 'brouillon', label: `Brouillons (${annees.filter(a => (a as any).statut === 'brouillon').length})` },
         ] as const).map(f => (
           <button key={f.id} onClick={() => setFiltre(f.id)}
             className={`px-4 py-2 rounded-xl text-xs font-semibold transition-all ${
@@ -206,11 +211,11 @@ export default function AnneesPage() {
       ) : (
         <div className="space-y-3">
           {anneesFiltrees.map((annee, anneeIdx) => {
-            const statut = (annee as any).statut ?? 'brouillon';
-            const sc     = STATUT_CONFIG[statut as keyof typeof STATUT_CONFIG] ?? STATUT_CONFIG.brouillon;
+            const statut     = (annee as any).statut ?? 'brouillon';
+            const sc         = STATUT_CONFIG[statut as keyof typeof STATUT_CONFIG] ?? STATUT_CONFIG.brouillon;
             const isCloturee = statut === 'cloturee';
             const isActive   = statut === 'active';
-            const dash = dashboard[annee.idAnnee];
+            const dash       = dashboard[annee.idAnnee];
 
             return (
               <div key={annee.idAnnee} className={`bg-white rounded-2xl border overflow-hidden ${
@@ -249,9 +254,8 @@ export default function AnneesPage() {
                       {annee.trimestres?.length ?? 0} trimestre{(annee.trimestres?.length ?? 0) > 1 ? "s" : ""}
                     </span>
 
-                    {/* Bouton Dashboard */}
-                    <button
-                      onClick={ev => { ev.stopPropagation(); loadDashboard(annee.idAnnee); }}
+                    {/* Stats */}
+                    <button onClick={ev => { ev.stopPropagation(); loadDashboard(annee.idAnnee); }}
                       disabled={loadingDash === annee.idAnnee}
                       className="flex items-center gap-1.5 text-xs font-semibold px-3 py-1.5 rounded-xl bg-blue-50 text-blue-600 hover:bg-blue-100 transition-colors">
                       {loadingDash === annee.idAnnee
@@ -260,39 +264,48 @@ export default function AnneesPage() {
                       Stats
                     </button>
 
-                    {/* Bouton Activer */}
+                    {/* ✅ Bouton Promotions sur chaque année clôturée ou active */}
+                    {(isActive || isCloturee) && (
+                      <Link
+                        to={`/promotions?idAcaSource=${annee.idAnnee}`}
+                        onClick={ev => ev.stopPropagation()}
+                        className="flex items-center gap-1.5 text-xs font-semibold px-3 py-1.5 rounded-xl bg-violet-50 text-violet-600 hover:bg-violet-100 transition-colors">
+                        <ArrowUp className="w-3.5 h-3.5" /> Promotions
+                      </Link>
+                    )}
+
+                    {/* Activer */}
                     {!isActive && !isCloturee && (
-                      <button
-                        onClick={ev => { ev.stopPropagation(); handleActiver(annee.idAnnee); }}
+                      <button onClick={ev => { ev.stopPropagation(); handleActiver(annee.idAnnee); }}
                         className="flex items-center gap-1.5 text-xs font-semibold px-3 py-1.5 rounded-xl bg-emerald-50 text-emerald-600 hover:bg-emerald-100 transition-colors">
                         <Play className="w-3.5 h-3.5" /> Activer
                       </button>
                     )}
 
-                    {/* Bouton Clôturer */}
+                    {/* Clôturer */}
                     {!isCloturee && (
-                      <button
-                        onClick={ev => { ev.stopPropagation(); setConfirmCloture(annee.idAnnee); }}
+                      <button onClick={ev => { ev.stopPropagation(); setConfirmCloture(annee.idAnnee); }}
                         className="flex items-center gap-1.5 text-xs font-semibold px-3 py-1.5 rounded-xl bg-red-50 text-red-600 hover:bg-red-100 transition-colors">
                         <Lock className="w-3.5 h-3.5" /> Clôturer
                       </button>
                     )}
 
-                    {/* Bouton Supprimer */}
+                    {/* Supprimer */}
                     {!isCloturee && (
-                      <button
-                        onClick={ev => { ev.stopPropagation(); if (confirm("Supprimer cette année ?")) { deleteAnnee(annee.idAnnee); load(); } }}
+                      <button onClick={ev => { ev.stopPropagation(); if (confirm("Supprimer cette année ?")) { deleteAnnee(annee.idAnnee); load(); } }}
                         className="p-1.5 rounded-lg hover:bg-red-50 text-slate-300 hover:text-red-500 transition-colors">
                         <Trash2 className="w-4 h-4" />
                       </button>
                     )}
 
                     {isCloturee && <Lock className="w-4 h-4 text-slate-300" />}
-                    {expanded === annee.idAnnee ? <ChevronUp className="w-4 h-4 text-slate-400" /> : <ChevronDown className="w-4 h-4 text-slate-400" />}
+                    {expanded === annee.idAnnee
+                      ? <ChevronUp className="w-4 h-4 text-slate-400" />
+                      : <ChevronDown className="w-4 h-4 text-slate-400" />}
                   </div>
                 </div>
 
-                {/* ── Dashboard modal ── */}
+                {/* Dashboard */}
                 {showDash === annee.idAnnee && dash && (
                   <div className="border-t border-slate-100 p-5 bg-slate-50/60 space-y-4">
                     <div className="flex items-center justify-between">
@@ -301,14 +314,12 @@ export default function AnneesPage() {
                         <X className="w-4 h-4 text-slate-400" />
                       </button>
                     </div>
-
-                    {/* KPIs */}
                     <div className="grid grid-cols-2 md:grid-cols-4 gap-3">
                       {[
-                        { label: 'Élèves inscrits', value: dash.eleves_inscrits,   icon: Users,        color: 'text-violet-600', bg: 'bg-violet-50' },
-                        { label: 'Paiements',       value: fmt(dash.total_paiements), icon: CreditCard, color: 'text-emerald-600', bg: 'bg-emerald-50' },
-                        { label: 'Taux recouvrement', value: `${dash.taux_recouvrement}%`, icon: CheckCircle, color: 'text-blue-600', bg: 'bg-blue-50' },
-                        { label: 'Absences',        value: dash.total_absences,    icon: AlertTriangle, color: 'text-amber-600', bg: 'bg-amber-50' },
+                        { label: 'Élèves inscrits',    value: dash.eleves_inscrits,        icon: Users,         color: 'text-violet-600',  bg: 'bg-violet-50'  },
+                        { label: 'Paiements',          value: fmt(dash.total_paiements),   icon: CreditCard,    color: 'text-emerald-600', bg: 'bg-emerald-50' },
+                        { label: 'Taux recouvrement',  value: `${dash.taux_recouvrement}%`,icon: CheckCircle,   color: 'text-blue-600',    bg: 'bg-blue-50'    },
+                        { label: 'Absences',           value: dash.total_absences,         icon: AlertTriangle, color: 'text-amber-600',   bg: 'bg-amber-50'   },
                       ].map(k => (
                         <div key={k.label} className="card p-4">
                           <div className={`w-8 h-8 rounded-xl ${k.bg} flex items-center justify-center mb-2`}>
@@ -319,8 +330,6 @@ export default function AnneesPage() {
                         </div>
                       ))}
                     </div>
-
-                    {/* Résultats par trimestre */}
                     {dash.resultats_trimestriels?.length > 0 && (
                       <div>
                         <p className="text-xs font-semibold text-slate-500 uppercase tracking-wide mb-2">Résultats par trimestre</p>
@@ -329,16 +338,12 @@ export default function AnneesPage() {
                             <div key={i} className="card p-4 space-y-1">
                               <p className="text-sm font-semibold text-slate-800">{t.trimestre}</p>
                               <p className="text-xs text-slate-400">{t.nb_evalues} élève{t.nb_evalues > 1 ? 's' : ''} évalué{t.nb_evalues > 1 ? 's' : ''}</p>
-                              {t.moyenne_globale && (
-                                <p className="text-base font-bold text-violet-600">{t.moyenne_globale}/20</p>
-                              )}
+                              {t.moyenne_globale && <p className="text-base font-bold text-violet-600">{t.moyenne_globale}/20</p>}
                             </div>
                           ))}
                         </div>
                       </div>
                     )}
-
-                    {/* Élèves par classe */}
                     {dash.par_classe?.length > 0 && (
                       <div>
                         <p className="text-xs font-semibold text-slate-500 uppercase tracking-wide mb-2">Élèves par classe</p>
@@ -355,7 +360,7 @@ export default function AnneesPage() {
                   </div>
                 )}
 
-                {/* ── Trimestres ── */}
+                {/* Trimestres */}
                 {expanded === annee.idAnnee && (
                   <div className="border-t border-slate-100 p-5 bg-slate-50/40">
                     {!isCloturee && (
@@ -387,7 +392,6 @@ export default function AnneesPage() {
                         </button>
                       )
                     )}
-
                     {annee.trimestres && annee.trimestres.length > 0 ? (
                       <div className="grid grid-cols-1 sm:grid-cols-3 gap-3">
                         {annee.trimestres.map((t, ti) => (
@@ -399,13 +403,14 @@ export default function AnneesPage() {
                                 <p className="font-bold text-sm text-slate-900">{t.libelle}</p>
                                 {t.periode && <p className="text-xs text-slate-400 mt-0.5">{t.periode}</p>}
                               </div>
-                              {!isCloturee && (
+                              {!isCloturee ? (
                                 <button onClick={() => { if (confirm("Supprimer ?")) { deleteTrimestre(t.idTrimes); load(); } }}
                                   className="p-1 rounded-lg hover:bg-red-50 text-slate-300 hover:text-red-500 transition-colors">
                                   <Trash2 className="w-3.5 h-3.5" />
                                 </button>
+                              ) : (
+                                <Lock className="w-3.5 h-3.5 text-slate-300" />
                               )}
-                              {isCloturee && <Lock className="w-3.5 h-3.5 text-slate-300" />}
                             </div>
                           </div>
                         ))}
@@ -423,7 +428,7 @@ export default function AnneesPage() {
         </div>
       )}
 
-      {/* ── Modal confirmation clôture ── */}
+      {/* Modal clôture */}
       {confirmCloture && (
         <div className="fixed inset-0 bg-black/30 z-50 flex items-center justify-center p-4">
           <div className="bg-white rounded-2xl p-6 max-w-md w-full shadow-2xl space-y-4">
@@ -445,9 +450,7 @@ export default function AnneesPage() {
               </ul>
             </div>
             <div className="flex gap-3">
-              <button onClick={() => setConfirmCloture(null)} className="btn-secondary flex-1">
-                Annuler
-              </button>
+              <button onClick={() => setConfirmCloture(null)} className="btn-secondary flex-1">Annuler</button>
               <button onClick={() => handleCloturer(confirmCloture)}
                 className="flex-1 bg-red-600 text-white py-3 rounded-xl font-semibold hover:bg-red-700 transition flex items-center justify-center gap-2">
                 <Lock className="w-4 h-4" /> Confirmer la clôture

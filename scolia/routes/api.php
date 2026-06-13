@@ -34,6 +34,7 @@ use App\Http\Controllers\PaiementTrancheController;
 use App\Http\Controllers\SectionController;
 use App\Http\Controllers\FraisAnnexeController;
 use App\Http\Controllers\AbsenceController;
+use App\Http\Controllers\PromotionController;
 
 // ── PUBLIC ────────────────────────────────────────────────────────────────────
 Route::post('/login',          [AuthController::class, 'login']);
@@ -67,6 +68,8 @@ Route::patch('/annees/{id}/activer',   [AnneeAcademiqueController::class, 'activ
 Route::patch('/annees/{id}/cloturer',  [AnneeAcademiqueController::class, 'cloturer']);
 Route::get('/annees/{id}/dashboard',   [AnneeAcademiqueController::class, 'dashboard']);
 Route::get('/annees/{id}/eleves',      [AnneeAcademiqueController::class, 'eleves']);
+Route::get('/promotions/preview',    [PromotionController::class, 'preview']);
+Route::post('/promotions/appliquer', [PromotionController::class, 'appliquer']);
 
 // ── ROUTES PROTÉGÉES ─────────────────────────────────────────────────────────
 Route::middleware('auth:sanctum')->group(function () {
