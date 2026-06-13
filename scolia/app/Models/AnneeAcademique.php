@@ -11,7 +11,7 @@ class AnneeAcademique extends Model {
     public $timestamps = false;
  
     protected $fillable = [
-        'idAnnee', 'libelle', 'periode', 'created_at', 'idAdmin',
+        'idAnnee', 'libelle', 'periode', 'created_at', 'idAdmin', 'statut', 'date_cloture'
     ];
  
     public function trimestres() {

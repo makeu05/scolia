@@ -4,15 +4,13 @@ import { useNavigate, useLocation } from "react-router-dom";
 import {
   LayoutDashboard, Users, BookOpen, ClipboardList,
   CreditCard, GraduationCap, BarChart2,
-  Bell, ChevronDown, LogOut, UserCircle, Settings,
-  Building2, Calendar, Home, Shield,
+  ChevronDown, LogOut, UserCircle, Settings,
+  Building2, Calendar, Home, Shield, Clock, MessageSquare,
 } from "lucide-react";
 import { useAuth } from "../../service/auth";
-import { Clock, MessageSquare } from "lucide-react";
+import { useAnnee } from "../../context/AnneeContext"; // ✅
 import NotificationBell from "../../pages/composants/NotificationBell";
 
-
-// Logo SVG inline
 function ScoliaLogo() {
   const i = 32;
   const left = i * 0.22, right = i * 0.72;
@@ -40,27 +38,26 @@ interface NavItem {
   roles?: string[];
 }
 
-// Navigation principale — tous les modules visibles
 const NAV_MAIN: NavItem[] = [
-  { id: "dashboard",      label: "Dashboard",    icon: LayoutDashboard, path: "/dashboard",          roles: ["root","admin","directeur","fondateur","enseignant","parent"] },
-  { id: "eleves",         label: "Élèves",       icon: Users,           path: "/eleves",             roles: ["root","admin","directeur"] },
-  { id: "enseignants",    label: "Enseignants",  icon: GraduationCap,   path: "/enseignants",        roles: ["root","admin","directeur"] },
-  { id: "notes",          label: "Notes",        icon: ClipboardList,   path: "/notes",              roles: ["root","admin","directeur","enseignant","parent"] },
-  { id: "finance",        label: "Finance",      icon: CreditCard,      path: "/finance",            roles: ["root","admin","directeur","fondateur"] },
-  { id: "classes",        label: "Classes",      icon: Building2,       path: "/classes",            roles: ["root","admin","directeur"] },
-  { id: "cours",          label: "Cours",        icon: BookOpen,        path: "/cours",              roles: ["root","admin","directeur"] },
-  { id: "inscriptions",   label: "Inscriptions", icon: Users,           path: "/inscriptions",       roles: ["root","admin","directeur"] },
-  { id: "annees",         label: "Années",       icon: Calendar,        path: "/annees",             roles: ["root","admin"] },
-  { id: "salles",         label: "Salles",       icon: Home,            path: "/salles",             roles: ["root","admin","directeur"] },
-  { id: "scolarites",     label: "Scolarités",   icon: CreditCard,      path: "/scolarites",         roles: ["root","admin","fondateur"] },
-  { id: "stats",          label: "Statistiques", icon: BarChart2,       path: "/paiements/stats",    roles: ["root","admin","directeur","fondateur"] },
-  { id: "utilisateurs",   label: "Utilisateurs", icon: Shield,          path: "/admin/utilisateurs", roles: ["root","admin"] }, 
-  { id: "emploi-du-temps", label: "Emploi du temps", icon: Clock,         path: "/emploi-du-temps", roles: ["root","admin","directeur","enseignant"] },
-  { id: "bibliotheque",    label: "Bibliothèque",    icon: BookOpen,      path: "/bibliotheque",    roles: ["root","admin","directeur","enseignant","parent"] },
-  { id: "communication",   label: "Communication",   icon: MessageSquare, path: "/communication",   roles: ["root","admin","directeur","fondateur"] },
-  {id:"disciplines", label:"Disciplines", icon: Shield, path:"/discipline", roles:["root","admin","directeur","enseignant","parent"]},
-  {id:"sections", label:"Sections", icon: Building2, path:"/sections", roles:["root","admin","directeur"]},
-  {id:"absences", label:"Absences", icon: Clock, path:"/absences", roles:["root","admin","directeur","enseignant"]},
+  { id: "dashboard",        label: "Dashboard",       icon: LayoutDashboard, path: "/dashboard",          roles: ["root","admin","directeur","fondateur","enseignant","parent"] },
+  { id: "eleves",           label: "Élèves",          icon: Users,           path: "/eleves",             roles: ["root","admin","directeur"] },
+  { id: "enseignants",      label: "Enseignants",     icon: GraduationCap,   path: "/enseignants",        roles: ["root","admin","directeur"] },
+  { id: "notes",            label: "Notes",           icon: ClipboardList,   path: "/notes",              roles: ["root","admin","directeur","enseignant","parent"] },
+  { id: "finance",          label: "Finance",         icon: CreditCard,      path: "/finance",            roles: ["root","admin","directeur","fondateur"] },
+  { id: "classes",          label: "Classes",         icon: Building2,       path: "/classes",            roles: ["root","admin","directeur"] },
+  { id: "cours",            label: "Cours",           icon: BookOpen,        path: "/cours",              roles: ["root","admin","directeur"] },
+  { id: "inscriptions",     label: "Inscriptions",    icon: Users,           path: "/inscriptions",       roles: ["root","admin","directeur"] },
+  { id: "annees",           label: "Années",          icon: Calendar,        path: "/annees",             roles: ["root","admin"] },
+  { id: "salles",           label: "Salles",          icon: Home,            path: "/salles",             roles: ["root","admin","directeur"] },
+  { id: "scolarites",       label: "Scolarités",      icon: CreditCard,      path: "/scolarites",         roles: ["root","admin","fondateur"] },
+  { id: "stats",            label: "Statistiques",    icon: BarChart2,       path: "/paiements/stats",    roles: ["root","admin","directeur","fondateur"] },
+  { id: "utilisateurs",     label: "Utilisateurs",    icon: Shield,          path: "/admin/utilisateurs", roles: ["root","admin"] },
+  { id: "emploi-du-temps",  label: "Emploi du temps", icon: Clock,           path: "/emploi-du-temps",   roles: ["root","admin","directeur","enseignant"] },
+  { id: "bibliotheque",     label: "Bibliothèque",    icon: BookOpen,        path: "/bibliotheque",       roles: ["root","admin","directeur","enseignant","parent"] },
+  { id: "communication",    label: "Communication",   icon: MessageSquare,   path: "/communication",      roles: ["root","admin","directeur","fondateur"] },
+  { id: "disciplines",      label: "Disciplines",     icon: Shield,          path: "/discipline",         roles: ["root","admin","directeur","enseignant","parent"] },
+  { id: "sections",         label: "Sections",        icon: Building2,       path: "/sections",           roles: ["root","admin","directeur"] },
+  { id: "absences",         label: "Absences",        icon: Clock,           path: "/absences",           roles: ["root","admin","directeur","enseignant"] },
 ];
 
 const ROLE_LABELS: Record<string, string> = {
@@ -69,21 +66,24 @@ const ROLE_LABELS: Record<string, string> = {
 };
 
 const ROLE_COLORS: Record<string, string> = {
-  root: "bg-red-50 text-red-700", admin: "bg-blue-50 text-blue-700",
+  root: "bg-red-50 text-red-700",       admin: "bg-blue-50 text-blue-700",
   fondateur: "bg-amber-50 text-amber-700", directeur: "bg-violet-50 text-violet-700",
   enseignant: "bg-emerald-50 text-emerald-700", parent: "bg-pink-50 text-pink-700",
 };
 
-interface TopNavProps {
-  annees?: { idAnnee: number; libelle: string }[];
-  selectedAnnee?: string;
-  onAnneeChange?: (id: string) => void;
-}
+const STATUT_BADGE: Record<string, string> = {
+  active:   ' ✓',
+  cloturee: ' 🔒',
+  brouillon:'',
+};
 
-export default function TopNav({ annees = [], selectedAnnee, onAnneeChange }: TopNavProps) {
+// ✅ Plus de props annees/selectedAnnee/onAnneeChange — tout vient du contexte
+export default function TopNav() {
   const navigate  = useNavigate();
   const location  = useLocation();
   const { user, logout } = useAuth();
+  const { annees, idAca, setIdAca, anneeActive } = useAnnee(); // ✅
+
   const [userOpen, setUserOpen] = useState(false);
   const userRef = useRef<HTMLDivElement>(null);
 
@@ -114,6 +114,7 @@ export default function TopNav({ annees = [], selectedAnnee, onAnneeChange }: To
 
       {/* Ligne 1 — Logo + Année + User */}
       <div className="flex items-center h-12 px-5 gap-3 border-b border-slate-50">
+        {/* Logo */}
         <div className="flex items-center gap-2.5 flex-shrink-0 cursor-pointer"
           onClick={() => navigate("/dashboard")}>
           <ScoliaLogo />
@@ -125,24 +126,39 @@ export default function TopNav({ annees = [], selectedAnnee, onAnneeChange }: To
 
         <div className="flex-1" />
 
-        {/* Année */}
+        {/* ✅ Sélecteur d'année global — lié au contexte */}
         {annees.length > 0 && (
-          <select
-            value={selectedAnnee}
-            onChange={e => onAnneeChange?.(e.target.value)}
-            className="appearance-none bg-slate-50 border border-slate-200 text-slate-600 text-xs font-medium px-3 py-1.5 rounded-lg focus:outline-none cursor-pointer"
-            style={{ maxWidth: 180 }}
-          >
-            {annees.map(a => (
-              <option key={a.idAnnee} value={a.idAnnee}>{a.libelle}</option>
-            ))}
-          </select>
+          <div className="flex items-center gap-2">
+            {/* Badge année active */}
+            {anneeActive?.statut === 'active' && (
+              <span className="text-[10px] font-bold px-2 py-0.5 rounded-full bg-emerald-50 text-emerald-600 hidden sm:inline-flex items-center gap-1">
+                <span className="w-1.5 h-1.5 rounded-full bg-emerald-500 inline-block" />
+                Active
+              </span>
+            )}
+            {anneeActive?.statut === 'cloturee' && (
+              <span className="text-[10px] font-bold px-2 py-0.5 rounded-full bg-red-50 text-red-600 hidden sm:inline-flex items-center gap-1">
+                🔒 Clôturée
+              </span>
+            )}
+            <select
+              value={idAca}
+              onChange={e => setIdAca(e.target.value)}
+              className="appearance-none bg-slate-50 border border-slate-200 text-slate-600 text-xs font-medium px-3 py-1.5 rounded-lg focus:outline-none cursor-pointer focus:ring-2 focus:ring-violet-200 focus:border-violet-400 transition-all"
+              style={{ maxWidth: 200 }}
+            >
+              {annees.map(a => (
+                <option key={a.idAnnee} value={a.idAnnee}>
+                  {a.libelle}{STATUT_BADGE[(a as any).statut] ?? ''}
+                </option>
+              ))}
+            </select>
+          </div>
         )}
 
-        {/* Après — remplace par */}
-          <NotificationBell />
+        <NotificationBell />
 
-        {/* User */}
+        {/* User menu */}
         <div className="relative" ref={userRef}>
           <button onClick={() => setUserOpen(v => !v)}
             className="flex items-center gap-2 pl-1 pr-2.5 py-1 rounded-lg hover:bg-slate-50 transition-colors">
@@ -198,7 +214,7 @@ export default function TopNav({ annees = [], selectedAnnee, onAnneeChange }: To
         </div>
       </div>
 
-      {/* Ligne 2 — Tabs navigation (scroll horizontal) */}
+      {/* Ligne 2 — Tabs navigation */}
       <div className="flex items-center overflow-x-auto scrollbar-hide px-3 h-10 gap-0.5">
         {filtered.map(item => {
           const active = isActive(item.path);

@@ -36,13 +36,12 @@ use App\Http\Controllers\FraisAnnexeController;
 use App\Http\Controllers\AbsenceController;
 
 // ── PUBLIC ────────────────────────────────────────────────────────────────────
-Route::post('/login',            [AuthController::class, 'login']);
-Route::post('/password-reset',   [AuthController::class, 'passwordReset']);
-Route::get('/villes',            [VilleNaissanceController::class, 'index']);
-Route::get('/sections',          [SectionController::class, 'index']);
+Route::post('/login',          [AuthController::class, 'login']);
+Route::post('/password-reset', [AuthController::class, 'passwordReset']);
+Route::get('/villes',          [VilleNaissanceController::class, 'index']);
+Route::get('/sections',        [SectionController::class, 'index']);
 
-
-// ── EMPLOI DU TEMPS ── (spécifiques AVANT apiResource)
+// ── EMPLOI DU TEMPS ──
 Route::get('/emploi-du-temps/classe/{idClasse}', [EmploiDuTempsController::class, 'parClasse']);
 Route::apiResource('emploi-du-temps', EmploiDuTempsController::class);
 
@@ -53,16 +52,21 @@ Route::get('/specialites', function () {
     return response()->json(\App\Models\Specialite::orderBy('libelle')->get());
 });
 
-// ── COMMUNICATION ──
+// ── COMMUNICATION (spécifiques AVANT apiResource) ──
 Route::get('/messages/conversations',           [MessagesController::class, 'conversations']);
 Route::get('/messages/conversation/{idParent}', [MessagesController::class, 'conversation']);
 Route::post('/messages/parent',                 [MessagesController::class, 'storeParent']);
 Route::get('/messages/polling',                 [MessagesController::class, 'polling']);
-Route::get('/messages/stats',          [MessagesController::class, 'stats']);
-Route::get('/messages/parent/{id}',    [MessagesController::class, 'messagesParent']);
-Route::post('/messages/tous',          [MessagesController::class, 'envoyerATous']);
-Route::patch('/messages/{id}/valider', [MessagesController::class, 'valider']);
+Route::get('/messages/stats',                   [MessagesController::class, 'stats']);
+Route::get('/messages/parent/{id}',             [MessagesController::class, 'messagesParent']);
+Route::post('/messages/tous',                   [MessagesController::class, 'envoyerATous']);
+Route::patch('/messages/{id}/valider',          [MessagesController::class, 'valider']);
 Route::apiResource('messages', MessagesController::class);
+
+Route::patch('/annees/{id}/activer',   [AnneeAcademiqueController::class, 'activer']);
+Route::patch('/annees/{id}/cloturer',  [AnneeAcademiqueController::class, 'cloturer']);
+Route::get('/annees/{id}/dashboard',   [AnneeAcademiqueController::class, 'dashboard']);
+Route::get('/annees/{id}/eleves',      [AnneeAcademiqueController::class, 'eleves']);
 
 // ── ROUTES PROTÉGÉES ─────────────────────────────────────────────────────────
 Route::middleware('auth:sanctum')->group(function () {
@@ -80,43 +84,34 @@ Route::middleware('auth:sanctum')->group(function () {
     Route::apiResource('annees',     AnneeAcademiqueController::class);
     Route::apiResource('trimestres', TrimestreController::class);
 
-    // Parent — ses enfants
+    // Parent
     Route::get('/parent/enfants', [ParentsController::class, 'mesEnfants']);
-    Route::get('/parent/mon-id', [ParentsController::class, 'monId']);
+    Route::get('/parent/mon-id',  [ParentsController::class, 'monId']);
 
-    // ── PARENT + tous les rôles connectés ────────────────────────────────────────
-Route::middleware('role:root,admin,directeur,fondateur,enseignant,parent')->group(function () {
-    Route::get('/eleves/{matricule}/absences', [AbsenceController::class, 'parEleve']);
-    Route::get('/eleves/{matricule}/tranches', [PaiementTrancheController::class, 'parEleve']);
-    Route::get('/messages/conversation/{idParent}', [MessagesController::class, 'conversation']);
-    Route::post('/messages/parent', [MessagesController::class, 'storeParent']);
-});
+    // ✅ ROUTES ACCESSIBLES À TOUS LES RÔLES CONNECTÉS (sans middleware role)
+    // Le parent peut voir les absences et tranches de ses enfants
+    // La sécurité est gérée dans les controllers (filtrage par matricule)
+    Route::get('/eleves/{matricule}/absences',      [AbsenceController::class,         'parEleve']);
+    Route::get('/eleves/{matricule}/tranches',      [PaiementTrancheController::class,  'parEleve']);
+    Route::get('/messages/conversation/{idParent}', [MessagesController::class,         'conversation']);
+    Route::post('/messages/parent',                 [MessagesController::class,         'storeParent']);
 
     // ── ROOT + ADMIN + DIRECTEUR + ENSEIGNANT ────────────────────────────────
     Route::middleware('role:root,admin,directeur,enseignant')->group(function () {
 
-        // ✅ Routes spécifiques AVANT apiResource pour éviter les conflits
         Route::get('/inscriptions/eleves-classe', [FrequenteController::class, 'elevesByClasse']);
 
-        // Élèves — routes spécifiques AVANT apiResource
+        // Élèves — spécifiques AVANT apiResource
         Route::patch('/eleves/{matricule}/archiver',  [EleveController::class, 'archiver']);
         Route::patch('/eleves/{matricule}/reactiver', [EleveController::class, 'reactiver']);
+        Route::get('/eleves/{matricule}/sante',       [EleveController::class, 'getSante']);
+        Route::put('/eleves/{matricule}/sante',       [EleveController::class, 'updateSante']);
+        Route::get('/eleves/{matricule}/scolarite-anterieure',                [EleveController::class, 'getScolariteAnterieure']);
+        Route::post('/eleves/{matricule}/scolarite-anterieure',               [EleveController::class, 'storeScolariteAnterieure']);
+        Route::delete('/eleves/{matricule}/scolarite-anterieure/{id}',        [EleveController::class, 'destroyScolariteAnterieure']);
+        Route::post('/eleves/{matricule}/scolarite-anterieure/{id}/bulletin', [EleveController::class, 'uploadBulletin']);
 
-        // ✅ Santé & scolarité antérieure AVANT apiResource eleves
-        Route::get('/eleves/{matricule}/sante',
-            [EleveController::class, 'getSante']);
-        Route::put('/eleves/{matricule}/sante',
-            [EleveController::class, 'updateSante']);
-        Route::get('/eleves/{matricule}/scolarite-anterieure',
-            [EleveController::class, 'getScolariteAnterieure']);
-        Route::post('/eleves/{matricule}/scolarite-anterieure',
-            [EleveController::class, 'storeScolariteAnterieure']);
-        Route::delete('/eleves/{matricule}/scolarite-anterieure/{id}',
-            [EleveController::class, 'destroyScolariteAnterieure']);
-        Route::post('/eleves/{matricule}/scolarite-anterieure/{id}/bulletin',
-            [EleveController::class, 'uploadBulletin']);
-
-        // Parents d'un élève AVANT apiResource
+        // Parents d'un élève
         Route::get('/eleves/{matricule}/parents',         [ParentsController::class, 'index']);
         Route::post('/eleves/{matricule}/parents',        [ParentsController::class, 'store']);
         Route::delete('/eleves/{matricule}/parents/{id}', [ParentsController::class, 'destroy']);
@@ -190,10 +185,11 @@ Route::middleware('role:root,admin,directeur,fondateur,enseignant,parent')->grou
         Route::post('/activites',           [EmploiDuTempsController::class, 'storeActivite']);
         Route::put('/activites/{id}',       [EmploiDuTempsController::class, 'updateActivite']);
         Route::delete('/activites/{id}',    [EmploiDuTempsController::class, 'destroyActivite']);
-        Route::get('/absences/stats',              [AbsenceController::class, 'stats']);
-Route::post('/absences/bulk',              [AbsenceController::class, 'storeBulk']);
-Route::get('/eleves/{matricule}/absences', [AbsenceController::class, 'parEleve']);
-Route::apiResource('absences',             AbsenceController::class);
+
+        // Absences — spécifiques AVANT apiResource
+        Route::get('/absences/stats', [AbsenceController::class, 'stats']);
+        Route::post('/absences/bulk', [AbsenceController::class, 'storeBulk']);
+        Route::apiResource('absences', AbsenceController::class);
     });
 
     // ── FONDATEUR + ROOT + ADMIN + DIRECTEUR ─────────────────────────────────
@@ -210,10 +206,11 @@ Route::apiResource('absences',             AbsenceController::class);
         Route::put('/paiements/{id}',              [PaiementController::class, 'update']);
         Route::delete('/paiements/{id}',           [PaiementController::class, 'destroy']);
 
-        // Tranches — spécifiques AVANT les routes avec paramètre
-        Route::get('/tranches/retards',            [PaiementTrancheController::class, 'statsRetards']);
-        Route::post('/tranches/payer',             [PaiementTrancheController::class, 'payer']);
-        Route::get('/eleves/{matricule}/tranches', [PaiementTrancheController::class, 'parEleve']);
+        // Tranches
+        Route::get('/tranches/retards', [PaiementTrancheController::class, 'statsRetards']);
+        Route::post('/tranches/payer',  [PaiementTrancheController::class, 'payer']);
+        // ✅ /eleves/{matricule}/tranches est déjà déclaré sans middleware ci-dessus
+
         Route::get('/eleves/{matricule}/frais-annexes', [FraisAnnexeController::class, 'parEleve']);
 
         // Scolarités
@@ -243,13 +240,12 @@ Route::apiResource('absences',             AbsenceController::class);
         Route::post('/frais-annexes/payer',  [FraisAnnexeController::class, 'payer']);
 
         // Paramètres
-        // Route::get('/parametres',           [ParametreController::class, 'index']);
-        // Route::put('/parametres',           [ParametreController::class, 'update']);
-        // Route::post('/parametres/logo',     [ParametreController::class, 'uploadLogo']);
-        // Route::put('/parametres/mentions',  [ParametreController::class, 'updateMentions']);
+        // Route::get('/parametres',        [ParametreController::class, 'index']);
+        // Route::put('/parametres',        [ParametreController::class, 'update']);
+        // Route::post('/parametres/logo',  [ParametreController::class, 'uploadLogo']);
     });
 
-    // ── NOTES ─────────────────────────────────────────────────────────────────
+    // ── NOTES — tous les rôles connectés ─────────────────────────────────────
     Route::middleware('role:root,admin,directeur,enseignant,fondateur,parent')->group(function () {
         Route::get('/evaluations/moyenne/{matricule}',  [EvaluationController::class, 'moyenneEleve']);
         Route::get('/evaluations/bulletin/{matricule}', [EvaluationController::class, 'bulletin']);

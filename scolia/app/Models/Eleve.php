@@ -11,9 +11,18 @@ class Eleve extends Model {
     public $timestamps = false;
  
     protected $fillable = [
-        'matricule', 'nom', 'prenom', 'dateNaissance', 'lieuNaissance',
-        'sexe', 'langue', 'photoURL', 'actif', 'idAdmin',
-    ];
+    'matricule', 'nom', 'prenom', 'dateNaissance', 'lieuNaissance',
+    'sexe', 'langue', 'photoURL', 'actif', 'idAdmin',
+    // ✅ Ajouter ces lignes
+    'religion',
+    'situation_familiale',
+    'contact_urgence_nom',
+    'contact_urgence_tel',
+    'contact_urgence_lien',
+    'tuteur_nom',
+    'tuteur_tel',
+    'tuteur_profession',
+];
  
  
     public function parents() {

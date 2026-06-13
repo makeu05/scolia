@@ -2,10 +2,10 @@
 
 import { useEffect, useState, useRef } from 'react';
 import { authFetch, useAuth } from '../../service/auth';
-import { getAnnees, getTrimestres, getBulletin } from '../../service/evaluation_service';
+import { getAnnees, getTrimestres } from '../../service/evaluation_service';
 import {
   User, BookOpen, UserX, CreditCard, MessageSquare,
-  CheckCircle, AlertTriangle, Clock, Send, Loader2,
+  CheckCircle, AlertTriangle, Clock, Send, Loader2, ChevronDown, ChevronUp,
 } from 'lucide-react';
 
 const API    = import.meta.env.VITE_API_URL ?? 'http://localhost:8000/api';
@@ -35,53 +35,59 @@ const STATUT_ABSENCE = {
   retard:        { label: 'Retard',        bg: 'bg-amber-50',   text: 'text-amber-600',   icon: Clock        },
 };
 
+// Couleur note
+function couleurNote(note: number, max = 20) {
+  const pct = note / max;
+  if (pct >= 0.9)  return 'text-violet-600';
+  if (pct >= 0.7)  return 'text-emerald-600';
+  if (pct >= 0.5)  return 'text-blue-600';
+  if (pct >= 0.3)  return 'text-amber-600';
+  return 'text-red-500';
+}
+
 export default function ParentDashboard() {
   const { user } = useAuth();
   const messagesEndRef = useRef<HTMLDivElement>(null);
   const pollingRef     = useRef<ReturnType<typeof setInterval> | null>(null);
 
-  const [tab, setTab]             = useState<Tab>('enfants');
-  const [enfants, setEnfants]     = useState<any[]>([]);
-  const [annees, setAnnees]       = useState<any[]>([]);
+  const [tab, setTab]               = useState<Tab>('enfants');
+  const [enfants, setEnfants]       = useState<any[]>([]);
+  const [annees, setAnnees]         = useState<any[]>([]);
   const [trimestres, setTrimestres] = useState<any[]>([]);
-  const [idAca, setIdAca]         = useState('');
+  const [idAca, setIdAca]           = useState('');
   const [idTrimestre, setIdTrimestre] = useState('');
-  const [bulletins, setBulletins] = useState<Record<number, any>>({});
-  const [absences, setAbsences]   = useState<any[]>([]);
-  const [paiements, setPaiements] = useState<any[]>([]);
-  const [messages, setMessages]   = useState<any[]>([]);
-  const [idParent, setIdParent]   = useState<number | null>(null);
+  const [bulletins, setBulletins]   = useState<Record<number, any>>({});
+  const [absences, setAbsences]     = useState<any[]>([]);
+  const [paiements, setPaiements]   = useState<any[]>([]);
+  const [messages, setMessages]     = useState<any[]>([]);
+  const [idParent, setIdParent]     = useState<number | null>(null);
   const [dernierMsg, setDernierMsg] = useState<string | null>(null);
+  const [expandedEnfant, setExpandedEnfant] = useState<number | null>(null);
 
   const [loadingEnfants, setLoadingEnfants]     = useState(true);
   const [loadingBulletins, setLoadingBulletins] = useState(false);
   const [loadingAbsences, setLoadingAbsences]   = useState(false);
   const [loadingPaiements, setLoadingPaiements] = useState(false);
   const [loadingMessages, setLoadingMessages]   = useState(false);
-  const [error, setError]   = useState('');
-  const [newMsg, setNewMsg] = useState('');
+  const [error, setError]     = useState('');
+  const [newMsg, setNewMsg]   = useState('');
   const [sendingMsg, setSendingMsg] = useState(false);
 
-  // ── Init ──────────────────────────────────────────────────────────────────
+  // ── Init ─────────────────────────────────────────────────────────────────
   useEffect(() => {
-    // Charger enfants + idParent
     authFetch(`${API}/parent/enfants`)
       .then(r => r.json())
       .then(d => setEnfants(Array.isArray(d) ? d : (d.data ?? [])))
       .catch(() => setError("Impossible de charger les enfants"))
       .finally(() => setLoadingEnfants(false));
 
-    // Récupérer l'idParent de l'utilisateur connecté
     authFetch(`${API}/parent/mon-id`)
-  .then(r => r.json())
-  .then(d => {
-    // ✅ Si idParent null, utiliser idPers comme fallback
-    setIdParent(d.idParent ?? d.idPers ?? null);
-  })
-  .catch(() => {
-    const stored = localStorage.getItem('idPers');
-    if (stored) setIdParent(Number(stored));
-  });
+      .then(r => r.json())
+      .then(d => setIdParent(d.idParent ?? d.idPers ?? null))
+      .catch(() => {
+        const stored = localStorage.getItem('idPers');
+        if (stored) setIdParent(Number(stored));
+      });
 
     getAnnees().then(d => {
       setAnnees(d);
@@ -94,7 +100,7 @@ export default function ParentDashboard() {
     getTrimestres(idAca).then(setTrimestres).catch(() => {});
   }, [idAca]);
 
-  // ── Charger selon onglet ──────────────────────────────────────────────────
+  // ── Charger selon onglet ─────────────────────────────────────────────────
   useEffect(() => {
     if (tab === 'absences' && enfants.length > 0) loadAbsences();
     if (tab === 'paiements' && enfants.length > 0) loadPaiements();
@@ -102,12 +108,10 @@ export default function ParentDashboard() {
     return () => { if (tab !== 'messages') stopPolling(); };
   }, [tab, enfants, idAca, idParent]);
 
-  // Scroll vers le bas des messages
   useEffect(() => {
     messagesEndRef.current?.scrollIntoView({ behavior: 'smooth' });
   }, [messages]);
 
-  // ── Polling messages toutes les 3s ────────────────────────────────────────
   const startPolling = () => {
     stopPolling();
     pollingRef.current = setInterval(() => {
@@ -117,7 +121,6 @@ export default function ParentDashboard() {
   const stopPolling = () => {
     if (pollingRef.current) { clearInterval(pollingRef.current); pollingRef.current = null; }
   };
-
   useEffect(() => {
     if (tab === 'messages' && idParent) { stopPolling(); startPolling(); }
     return stopPolling;
@@ -136,20 +139,27 @@ export default function ParentDashboard() {
     } catch { }
   };
 
-  // ── Bulletins ─────────────────────────────────────────────────────────────
+  // ── Bulletins ────────────────────────────────────────────────────────────
   const chargerBulletins = async () => {
     if (!idTrimestre || enfants.length === 0) return;
     setLoadingBulletins(true);
     const results: Record<number, any> = {};
     for (const e of enfants) {
-      try { results[e.matricule] = await getBulletin(e.matricule, idTrimestre); }
-      catch { results[e.matricule] = null; }
+      try {
+       const res = await authFetch(
+  `${API}/evaluations/bulletin/${e.matricule}?idTrimestre=${idTrimestre}&idAca=${idAca}`
+);
+        if (res.ok) results[e.matricule] = await res.json();
+        else results[e.matricule] = null;
+      } catch { results[e.matricule] = null; }
     }
     setBulletins(results);
     setLoadingBulletins(false);
+    // Ouvrir automatiquement le premier enfant
+    if (enfants.length > 0) setExpandedEnfant(enfants[0].matricule);
   };
 
-  // ── Absences ──────────────────────────────────────────────────────────────
+  // ── Absences ─────────────────────────────────────────────────────────────
   const loadAbsences = async () => {
     setLoadingAbsences(true);
     const all: any[] = [];
@@ -167,23 +177,39 @@ export default function ParentDashboard() {
     setLoadingAbsences(false);
   };
 
-  // ── Paiements ─────────────────────────────────────────────────────────────
+  // ── Paiements ────────────────────────────────────────────────────────────
+  // ✅ Correction : essayer toutes les années si idAca ne retourne rien
   const loadPaiements = async () => {
     setLoadingPaiements(true);
     const results: any[] = [];
     for (const e of enfants) {
-      try {
-        const res  = await authFetch(`${API}/eleves/${e.matricule}/tranches${idAca ? `?idAca=${idAca}` : ''}`);
-        if (!res.ok) continue;
-        const data = await res.json();
-        if (!data.message) results.push({ enfant: e, ...data });
-      } catch { }
+      let found = false;
+      // Essayer d'abord avec l'année sélectionnée
+      if (idAca) {
+        try {
+          const res  = await authFetch(`${API}/eleves/${e.matricule}/tranches?idAca=${idAca}`);
+          if (res.ok) {
+            const data = await res.json();
+            if (!data.message) { results.push({ enfant: e, ...data }); found = true; }
+          }
+        } catch { }
+      }
+      // Si pas trouvé, essayer sans filtre d'année
+      if (!found) {
+        try {
+          const res  = await authFetch(`${API}/eleves/${e.matricule}/tranches`);
+          if (res.ok) {
+            const data = await res.json();
+            if (!data.message) results.push({ enfant: e, ...data });
+          }
+        } catch { }
+      }
     }
     setPaiements(results);
     setLoadingPaiements(false);
   };
 
-  // ── Messages : charger la conversation ────────────────────────────────────
+  // ── Messages ─────────────────────────────────────────────────────────────
   const loadMessages = async () => {
     if (!idParent) return;
     setLoadingMessages(true);
@@ -197,40 +223,27 @@ export default function ParentDashboard() {
     finally { setLoadingMessages(false); }
   };
 
-  // ── Envoyer message (parent → admin) ─────────────────────────────────────
   const sendMessage = async () => {
     if (!newMsg.trim() || !idParent) return;
     setSendingMsg(true);
     const contenu = newMsg.trim();
     setNewMsg('');
-
-    // Optimistic UI
     const optimistic = {
-      idMessages:  Date.now(),
-      information: contenu,
-      direction:   'parent_to_admin',
-      created_at:  new Date().toISOString(),
-      optimistic:  true,
+      idMessages: Date.now(), information: contenu,
+      direction: 'parent_to_admin', created_at: new Date().toISOString(), optimistic: true,
     };
     setMessages(prev => [...prev, optimistic]);
-
     try {
       const idPers = Number(localStorage.getItem('idPers') ?? 1);
       await authFetch(`${API}/messages/parent`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({
-          idParent,
-          information: contenu,
-          idExp_Pers:  idPers,
-        }),
+        body: JSON.stringify({ idParent, information: contenu, idExp_Pers: idPers }),
       });
       await loadMessages();
     } catch {
       setMessages(prev => prev.filter(m => !m.optimistic));
-    } finally {
-      setSendingMsg(false);
-    }
+    } finally { setSendingMsg(false); }
   };
 
   if (loadingEnfants) return (
@@ -297,13 +310,14 @@ export default function ParentDashboard() {
         ))}
       </div>
 
-      {/* ── TAB NOTES ── */}
+      {/* ── TAB NOTES & BULLETINS ── */}
       {tab === 'enfants' && (
         <div className="space-y-5">
+          {/* Filtres */}
           <div className="card p-5 flex gap-3 flex-wrap items-end">
             <div className="flex-1 min-w-[180px] space-y-1">
               <label className="text-xs font-semibold text-slate-600 uppercase tracking-wide">Année académique</label>
-              <select value={idAca} onChange={e => { setIdAca(e.target.value); setIdTrimestre(''); }} className="input w-full">
+              <select value={idAca} onChange={e => { setIdAca(e.target.value); setIdTrimestre(''); setBulletins({}); }} className="input w-full">
                 {annees.map(a => <option key={a.idAnnee} value={a.idAnnee}>{a.libelle}</option>)}
               </select>
             </div>
@@ -330,11 +344,14 @@ export default function ParentDashboard() {
             </div>
           ) : (
             enfants.map(e => {
-              const bulletin = bulletins[e.matricule];
-              const photo    = getPhotoUrl(e.photoURL);
+              const bulletin    = bulletins[e.matricule];
+              const photo       = getPhotoUrl(e.photoURL);
+              const isExpanded  = expandedEnfant === e.matricule;
+
               return (
-                <div key={e.matricule} className="card p-5 space-y-4">
-                  <div className="flex items-center gap-4">
+                <div key={e.matricule} className="card overflow-hidden">
+                  {/* En-tête enfant */}
+                  <div className="p-5 flex items-center gap-4">
                     {photo ? (
                       <img src={photo} alt={e.nom} className="w-14 h-14 rounded-2xl object-cover flex-shrink-0" />
                     ) : (
@@ -348,39 +365,168 @@ export default function ParentDashboard() {
                     </div>
                     {bulletin && (
                       <div className="text-right">
-                        <p className="text-3xl font-bold text-violet-600">{bulletin.moyenneGenerale ?? '—'}/20</p>
-                        <p className="text-sm text-slate-400">{bulletin.mention ?? ''}</p>
+                        <p className={`text-3xl font-bold ${couleurNote(bulletin.moyenneGenerale ?? 0)}`}>
+                          {bulletin.moyenneGenerale ?? '—'}/20
+                        </p>
+                        <p className="text-sm text-slate-400 font-medium">{bulletin.mention ?? ''}</p>
+                        {bulletin.rang && (
+                          <p className="text-xs text-slate-400">Rang : {bulletin.rang}{bulletin.effectif ? `/${bulletin.effectif}` : ''}</p>
+                        )}
                       </div>
                     )}
+                    {bulletin && (
+                      <button onClick={() => setExpandedEnfant(isExpanded ? null : e.matricule)}
+                        className="p-2 hover:bg-slate-100 rounded-xl transition-colors">
+                        {isExpanded ? <ChevronUp className="w-5 h-5 text-slate-400" /> : <ChevronDown className="w-5 h-5 text-slate-400" />}
+                      </button>
+                    )}
                   </div>
-                  {bulletin?.matieres?.length > 0 && (
-                    <div className="border border-slate-100 rounded-xl overflow-hidden">
-                      <table className="w-full text-sm">
-                        <thead className="bg-slate-50">
-                          <tr>
-                            <th className="text-left px-4 py-2 text-xs font-semibold text-slate-400 uppercase tracking-wide">Matière</th>
-                            <th className="text-center px-4 py-2 text-xs font-semibold text-slate-400 uppercase tracking-wide">Moyenne</th>
-                            <th className="text-center px-4 py-2 text-xs font-semibold text-slate-400 uppercase tracking-wide">Coeff</th>
-                          </tr>
-                        </thead>
-                        <tbody className="divide-y divide-slate-50">
-                          {bulletin.matieres.map((m: any, i: number) => (
-                            <tr key={`${e.matricule}-mat-${i}`} className="hover:bg-slate-50">
-                              <td className="px-4 py-2 font-medium text-slate-800">{m.libelle}</td>
-                              <td className="px-4 py-2 text-center">
-                                <span className={`font-bold ${m.moyenne >= 10 ? 'text-emerald-600' : 'text-red-500'}`}>
-                                  {m.moyenne ?? '—'}/20
+
+                  {/* ── Détail bulletin ── */}
+                  {bulletin && isExpanded && (
+                    <div className="border-t border-slate-100">
+
+                      {/* Barre de progression */}
+                      <div className="px-5 py-3 bg-slate-50 border-b border-slate-100">
+                        <div className="flex justify-between text-xs text-slate-500 mb-1">
+                          <span>Performance globale</span>
+                          <span className="font-bold">{Math.round((bulletin.moyenneGenerale / 20) * 100)}%</span>
+                        </div>
+                        <div className="w-full h-2 bg-slate-200 rounded-full overflow-hidden">
+                          <div className="h-full rounded-full transition-all"
+                            style={{
+                              width: `${(bulletin.moyenneGenerale / 20) * 100}%`,
+                              background: bulletin.moyenneGenerale >= 14
+                                ? 'linear-gradient(90deg,#8b5cf6,#6d28d9)'
+                                : bulletin.moyenneGenerale >= 10
+                                  ? 'linear-gradient(90deg,#34d399,#059669)'
+                                  : 'linear-gradient(90deg,#f87171,#ef4444)',
+                            }} />
+                        </div>
+                      </div>
+
+                      {/* Tableau des matières */}
+                      {bulletin.matieres?.length > 0 ? (
+                        <table className="w-full text-sm">
+                          <thead className="bg-slate-50">
+                            <tr>
+                              <th className="text-left px-5 py-3 text-xs font-semibold text-slate-400 uppercase tracking-wide">Matière</th>
+                              <th className="text-left px-4 py-3 text-xs font-semibold text-slate-400 uppercase tracking-wide hidden md:table-cell">Enseignant</th>
+                              <th className="text-center px-4 py-3 text-xs font-semibold text-slate-400 uppercase tracking-wide">Coeff</th>
+                              <th className="text-center px-4 py-3 text-xs font-semibold text-slate-400 uppercase tracking-wide">Moy. classe</th>
+                              <th className="text-center px-4 py-3 text-xs font-semibold text-slate-400 uppercase tracking-wide">Note élève</th>
+                              <th className="text-center px-4 py-3 text-xs font-semibold text-slate-400 uppercase tracking-wide hidden md:table-cell">Appréciation</th>
+                            </tr>
+                          </thead>
+                          <tbody className="divide-y divide-slate-50">
+                            {bulletin.matieres.map((m: any, i: number) => {
+                              const note    = m.moyenne ?? m.note ?? null;
+                              const noteMax = m.note_max ?? 20;
+                              return (
+                                <tr key={`${e.matricule}-mat-${i}`}
+                                  className={`hover:bg-slate-50 transition-colors ${note !== null && note < 10 ? 'bg-red-50/30' : ''}`}>
+                                  <td className="px-5 py-3">
+                                    <p className="font-semibold text-slate-900">{m.libelle}</p>
+                                  </td>
+                                  <td className="px-4 py-3 text-slate-500 hidden md:table-cell">
+                                    {m.enseignant
+                                      ? `${m.enseignant.prenom ?? ''} ${m.enseignant.nom ?? ''}`
+                                      : <span className="text-slate-300 italic text-xs">—</span>}
+                                  </td>
+                                  <td className="px-4 py-3 text-center">
+                                    <span className="text-xs font-medium text-amber-600 bg-amber-50 px-2 py-0.5 rounded-full">
+                                      ×{m.coefficient ?? 1}
+                                    </span>
+                                  </td>
+                                  <td className="px-4 py-3 text-center text-slate-400 text-sm">
+                                    {m.moyenne_classe != null ? `${m.moyenne_classe}/20` : '—'}
+                                  </td>
+                                  <td className="px-4 py-3 text-center">
+                                    {note !== null ? (
+                                      <span className={`text-base font-bold ${couleurNote(note, noteMax)}`}>
+                                        {note}/{noteMax}
+                                      </span>
+                                    ) : (
+                                      <span className="text-slate-300 text-sm">—</span>
+                                    )}
+                                  </td>
+                                  <td className="px-4 py-3 text-center hidden md:table-cell">
+                                    <span className={`text-xs px-2 py-0.5 rounded-full font-medium ${
+                                      note === null        ? 'text-slate-400 bg-slate-100'
+                                      : note >= 16        ? 'text-violet-600 bg-violet-50'
+                                      : note >= 14        ? 'text-emerald-600 bg-emerald-50'
+                                      : note >= 12        ? 'text-blue-600 bg-blue-50'
+                                      : note >= 10        ? 'text-amber-600 bg-amber-50'
+                                      :                     'text-red-600 bg-red-50'
+                                    }`}>
+                                      {note === null       ? '—'
+                                       : note >= 16        ? 'Excellent'
+                                       : note >= 14        ? 'Très bien'
+                                       : note >= 12        ? 'Bien'
+                                       : note >= 10        ? 'Passable'
+                                       :                     'Insuffisant'}
+                                    </span>
+                                  </td>
+                                </tr>
+                              );
+                            })}
+                          </tbody>
+                          {/* Pied de tableau : totaux */}
+                          <tfoot>
+                            <tr className="border-t-2 border-slate-200 bg-slate-50">
+                              <td className="px-5 py-3 font-bold text-slate-700" colSpan={2}>Moyenne générale</td>
+                              <td className="px-4 py-3 text-center">
+                                <span className="text-xs font-medium text-amber-600">
+                                  ×{bulletin.matieres.reduce((s: number, m: any) => s + (m.coefficient ?? 1), 0)}
                                 </span>
                               </td>
-                              <td className="px-4 py-2 text-center text-slate-400">×{m.coefficient}</td>
+                              <td className="px-4 py-3 text-center text-slate-400 text-sm">
+                                {bulletin.moyenneClasse != null ? `${bulletin.moyenneClasse}/20` : '—'}
+                              </td>
+                              <td className="px-4 py-3 text-center">
+                                <span className={`text-lg font-bold ${couleurNote(bulletin.moyenneGenerale ?? 0)}`}>
+                                  {bulletin.moyenneGenerale ?? '—'}/20
+                                </span>
+                              </td>
+                              <td className="px-4 py-3 text-center hidden md:table-cell">
+                                <span className="text-sm font-semibold text-violet-600">{bulletin.mention ?? '—'}</span>
+                              </td>
                             </tr>
-                          ))}
-                        </tbody>
-                      </table>
+                          </tfoot>
+                        </table>
+                      ) : (
+                        <div className="p-8 text-center text-slate-400">
+                          <BookOpen className="w-8 h-8 mx-auto mb-2 opacity-20" />
+                          <p className="text-sm">Aucune note disponible pour ce trimestre</p>
+                        </div>
+                      )}
+
+                      {/* Appréciations globales */}
+                      {(bulletin.appreciation || bulletin.conduite) && (
+                        <div className="px-5 py-4 bg-slate-50 border-t border-slate-100 grid grid-cols-2 gap-4">
+                          {bulletin.appreciation && (
+                            <div>
+                              <p className="text-xs font-semibold text-slate-500 uppercase tracking-wide mb-1">Appréciation générale</p>
+                              <p className="text-sm text-slate-700">{bulletin.appreciation}</p>
+                            </div>
+                          )}
+                          {bulletin.conduite && (
+                            <div>
+                              <p className="text-xs font-semibold text-slate-500 uppercase tracking-wide mb-1">Conduite</p>
+                              <p className="text-sm text-slate-700">{bulletin.conduite}</p>
+                            </div>
+                          )}
+                        </div>
+                      )}
                     </div>
                   )}
+
                   {!bulletin && idTrimestre && (
-                    <p className="text-sm text-slate-400 italic text-center py-2">Bulletin non disponible pour ce trimestre</p>
+                    <div className="px-5 pb-5">
+                      <p className="text-sm text-slate-400 italic text-center py-2 bg-slate-50 rounded-xl">
+                        Bulletin non disponible — cliquez sur "Voir les bulletins"
+                      </p>
+                    </div>
                   )}
                 </div>
               );
@@ -456,6 +602,7 @@ export default function ParentDashboard() {
             <div className="card p-12 text-center text-slate-400">
               <CreditCard className="w-10 h-10 mx-auto mb-3 opacity-20" />
               <p>Aucune information de paiement disponible</p>
+              <p className="text-xs mt-2">Vérifiez que l'élève est inscrit pour cette année</p>
             </div>
           ) : (
             paiements.map((p: any, i: number) => (
@@ -526,7 +673,6 @@ export default function ParentDashboard() {
       {/* ── TAB MESSAGES ── */}
       {tab === 'messages' && (
         <div className="card overflow-hidden flex flex-col" style={{ height: '60vh' }}>
-          {/* Header */}
           <div className="px-5 py-3 border-b border-slate-100 flex items-center gap-3 bg-slate-50">
             <div className="w-9 h-9 rounded-xl bg-violet-100 flex items-center justify-center flex-shrink-0">
               <MessageSquare className="w-5 h-5 text-violet-600" />
@@ -536,13 +682,9 @@ export default function ParentDashboard() {
               <p className="text-xs text-slate-400">Messagerie école</p>
             </div>
           </div>
-
-          {/* Messages */}
           <div className="flex-1 overflow-y-auto p-4 space-y-3 bg-slate-50">
             {loadingMessages ? (
-              <div className="flex justify-center py-8">
-                <Loader2 className="w-6 h-6 animate-spin text-slate-400" />
-              </div>
+              <div className="flex justify-center py-8"><Loader2 className="w-6 h-6 animate-spin text-slate-400" /></div>
             ) : messages.length === 0 ? (
               <div className="text-center py-12 text-slate-400">
                 <MessageSquare className="w-10 h-10 mx-auto mb-3 opacity-20" />
@@ -559,9 +701,7 @@ export default function ParentDashboard() {
                       </div>
                     )}
                     <div className={`max-w-[80%] px-4 py-2.5 rounded-2xl text-sm ${
-                      isMine
-                        ? 'bg-violet-500 text-white rounded-br-sm'
-                        : 'bg-white text-slate-800 rounded-bl-sm shadow-sm'
+                      isMine ? 'bg-violet-500 text-white rounded-br-sm' : 'bg-white text-slate-800 rounded-bl-sm shadow-sm'
                     } ${m.optimistic ? 'opacity-70' : ''}`}>
                       <p className="leading-relaxed">{m.information}</p>
                       <p className={`text-[10px] mt-1 ${isMine ? 'text-white/60 text-right' : 'text-slate-400'}`}>
@@ -574,8 +714,6 @@ export default function ParentDashboard() {
             )}
             <div ref={messagesEndRef} />
           </div>
-
-          {/* Input */}
           <div className="px-4 py-3 border-t border-slate-100 bg-white flex gap-2 items-end">
             <textarea
               value={newMsg}
@@ -589,9 +727,7 @@ export default function ParentDashboard() {
             <button onClick={sendMessage} disabled={sendingMsg || !newMsg.trim() || !idParent}
               className="w-10 h-10 rounded-xl flex items-center justify-center disabled:opacity-50 flex-shrink-0"
               style={{ background: 'linear-gradient(135deg,#667eea,#764ba2)' }}>
-              {sendingMsg
-                ? <Loader2 className="w-4 h-4 text-white animate-spin" />
-                : <Send className="w-4 h-4 text-white" />}
+              {sendingMsg ? <Loader2 className="w-4 h-4 text-white animate-spin" /> : <Send className="w-4 h-4 text-white" />}
             </button>
           </div>
         </div>
