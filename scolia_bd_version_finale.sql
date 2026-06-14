@@ -3,7 +3,7 @@
 -- https://www.phpmyadmin.net/
 --
 -- Hôte : 127.0.0.1:3306
--- Généré le : jeu. 11 juin 2026 à 12:16
+-- Généré le : dim. 14 juin 2026 à 08:36
 -- Version du serveur : 8.0.31
 -- Version de PHP : 8.2.0
 
@@ -132,6 +132,8 @@ CREATE TABLE IF NOT EXISTS `anneeacademique` (
   `idAnnee` int UNSIGNED NOT NULL,
   `libelle` varchar(200) COLLATE utf8mb4_unicode_ci NOT NULL,
   `periode` varchar(255) COLLATE utf8mb4_unicode_ci NOT NULL,
+  `statut` enum('brouillon','active','cloturee') COLLATE utf8mb4_unicode_ci NOT NULL DEFAULT 'brouillon',
+  `date_cloture` date DEFAULT NULL,
   `created_at` date NOT NULL,
   `idAdmin` int UNSIGNED NOT NULL,
   PRIMARY KEY (`idAnnee`)
@@ -141,9 +143,11 @@ CREATE TABLE IF NOT EXISTS `anneeacademique` (
 -- Déchargement des données de la table `anneeacademique`
 --
 
-INSERT INTO `anneeacademique` (`idAnnee`, `libelle`, `periode`, `created_at`, `idAdmin`) VALUES
-(1, 'Année académique 2023-2024', 'Septembre 2023 - Juillet 2024', '2026-05-18', 1),
-(2, 'Année académique 2024-2025', 'Septembre 2024 - Juillet 2025', '2026-05-18', 1);
+INSERT INTO `anneeacademique` (`idAnnee`, `libelle`, `periode`, `statut`, `date_cloture`, `created_at`, `idAdmin`) VALUES
+(1, 'Année académique 2023-2024', 'Septembre 2023 - Juillet 2024', 'cloturee', '2026-06-12', '2026-05-18', 1),
+(2, 'Année académique 2024-2025', 'Septembre 2024 - Juillet 2025', 'cloturee', '2026-06-12', '2026-05-18', 1),
+(3, 'ANNÉE ACADEMIQUE 2025-2026', 'septembre 2025-septembre 2026', 'cloturee', '2026-06-12', '2026-06-12', 1),
+(4, '2026-2027', '2026-2027', 'active', NULL, '2026-06-12', 1);
 
 -- --------------------------------------------------------
 
@@ -185,6 +189,7 @@ DROP TABLE IF EXISTS `classe`;
 CREATE TABLE IF NOT EXISTS `classe` (
   `idClasse` int UNSIGNED NOT NULL,
   `libelle` varchar(100) COLLATE utf8mb4_unicode_ci NOT NULL DEFAULT 'INDEFINI',
+  `ordre` int DEFAULT '0',
   `idCycle` int UNSIGNED NOT NULL,
   `idSection` bigint UNSIGNED DEFAULT NULL,
   `idAdmin` int UNSIGNED NOT NULL,
@@ -197,29 +202,49 @@ CREATE TABLE IF NOT EXISTS `classe` (
 -- Déchargement des données de la table `classe`
 --
 
-INSERT INTO `classe` (`idClasse`, `libelle`, `idCycle`, `idSection`, `idAdmin`, `created_at`) VALUES
-(1, 'CP', 2, NULL, 1, '2026-05-18 08:42:30'),
-(2, 'CE1', 2, NULL, 1, '2026-05-18 08:42:30'),
-(3, 'CE2', 2, NULL, 1, '2026-05-18 08:42:30'),
-(4, 'CM1', 2, NULL, 1, '2026-05-18 08:42:30'),
-(5, 'CM2', 2, NULL, 1, '2026-05-18 08:42:30'),
-(6, '6ème A', 3, NULL, 1, '2026-05-18 08:42:30'),
-(7, '6ème B', 3, NULL, 1, '2026-05-18 08:42:30'),
-(8, '5ème A', 3, NULL, 1, '2026-05-18 08:42:30'),
-(9, '5ème B', 3, NULL, 1, '2026-05-18 08:42:30'),
-(10, '4ème A', 3, NULL, 1, '2026-05-18 08:42:30'),
-(11, '4ème B', 3, NULL, 1, '2026-05-18 08:42:30'),
-(12, '3ème A', 3, NULL, 1, '2026-05-18 08:42:30'),
-(13, '3ème B', 3, NULL, 1, '2026-05-18 08:42:30'),
-(14, '2nde A', 4, NULL, 1, '2026-05-18 08:42:30'),
-(15, '2nde C', 4, NULL, 1, '2026-05-18 08:42:30'),
-(16, '1ère A', 4, NULL, 1, '2026-05-18 08:42:30'),
-(17, '1ère C', 4, NULL, 1, '2026-05-18 08:42:30'),
-(18, 'Terminale A', 4, NULL, 1, '2026-05-18 08:42:30'),
-(19, 'Terminale C', 4, NULL, 1, '2026-05-18 08:42:30'),
-(20, 'Terminale D', 4, NULL, 1, '2026-05-18 08:42:30'),
-(21, 'L1', 5, NULL, 1, '2026-05-20 17:12:48'),
-(22, 'L2', 5, NULL, 1, '2026-05-22 16:26:37');
+INSERT INTO `classe` (`idClasse`, `libelle`, `ordre`, `idCycle`, `idSection`, `idAdmin`, `created_at`) VALUES
+(1, 'CP', 2, 2, NULL, 1, '2026-06-13 16:14:44'),
+(2, 'CE1', 3, 2, NULL, 1, '2026-06-13 16:14:44'),
+(3, 'CE2', 4, 2, NULL, 1, '2026-06-13 16:14:44'),
+(4, 'CM1', 5, 2, NULL, 1, '2026-06-13 16:14:44'),
+(5, 'CM2', 6, 2, NULL, 1, '2026-06-13 16:14:44'),
+(6, '6ème A', 1, 3, NULL, 1, '2026-06-13 16:14:44'),
+(7, '6ème B', 1, 3, NULL, 1, '2026-06-13 16:14:44'),
+(8, '5ème A', 2, 3, NULL, 1, '2026-06-13 16:14:44'),
+(9, '5ème B', 2, 3, NULL, 1, '2026-06-13 16:14:44'),
+(10, '4ème A', 3, 3, NULL, 1, '2026-06-13 16:14:44'),
+(11, '4ème B', 3, 3, NULL, 1, '2026-06-13 16:14:44'),
+(12, '3ème A', 4, 3, NULL, 1, '2026-06-13 16:14:44'),
+(13, '3ème B', 4, 3, NULL, 1, '2026-06-13 16:14:44'),
+(14, '2nde A', 1, 4, NULL, 1, '2026-06-13 16:14:44'),
+(15, '2nde C', 1, 4, NULL, 1, '2026-06-13 16:14:44'),
+(16, '1ère A', 2, 4, NULL, 1, '2026-06-13 16:14:44'),
+(17, '1ère C', 2, 4, NULL, 1, '2026-06-13 16:14:44'),
+(18, 'Terminale A', 3, 4, NULL, 1, '2026-06-13 16:14:44'),
+(19, 'Terminale C', 3, 4, NULL, 1, '2026-06-13 16:14:44'),
+(20, 'Terminale D', 3, 4, NULL, 1, '2026-06-13 16:14:44'),
+(21, 'L1', 1, 5, NULL, 1, '2026-06-13 16:14:44'),
+(22, 'L2', 2, 5, NULL, 1, '2026-06-13 16:14:44'),
+(23, 'Petite Section', 1, 1, NULL, 1, '2026-06-13 16:14:44'),
+(24, 'Moyenne Section', 2, 1, NULL, 1, '2026-06-13 16:14:44'),
+(25, 'Grande Section', 3, 1, NULL, 1, '2026-06-13 16:14:44'),
+(26, 'Nursery 1', 1, 1, NULL, 1, '2026-06-13 16:14:44'),
+(27, 'Nursery 2', 2, 1, NULL, 1, '2026-06-13 16:14:44'),
+(28, 'Nursery 3', 3, 1, NULL, 1, '2026-06-13 16:14:44'),
+(29, 'SIL', 1, 2, NULL, 1, '2026-06-13 16:14:44'),
+(30, 'Class 1', 1, 3, NULL, 1, '2026-06-13 16:14:44'),
+(31, 'Class 2', 2, 3, NULL, 1, '2026-06-13 16:14:44'),
+(32, 'Class 3', 3, 3, NULL, 1, '2026-06-13 16:14:44'),
+(33, 'Class 4', 4, 3, NULL, 1, '2026-06-13 16:14:44'),
+(34, 'Class 5', 5, 3, NULL, 1, '2026-06-13 16:14:44'),
+(35, 'Class 6', 6, 3, NULL, 1, '2026-06-13 16:14:44'),
+(36, 'Form 1', 1, 5, NULL, 1, '2026-06-13 16:14:44'),
+(37, 'Form 2', 2, 5, NULL, 1, '2026-06-13 16:14:44'),
+(38, 'Form 3', 3, 5, NULL, 1, '2026-06-13 16:14:44'),
+(39, 'Form 4', 4, 5, NULL, 1, '2026-06-13 16:14:44'),
+(40, 'Form 5', 5, 5, NULL, 1, '2026-06-13 16:14:44'),
+(41, 'Lower Sixth', 1, 7, NULL, 1, '2026-06-13 16:14:45'),
+(42, 'Upper Sixth', 2, 7, NULL, 1, '2026-06-13 16:14:45');
 
 -- --------------------------------------------------------
 
@@ -298,7 +323,9 @@ INSERT INTO `cycle` (`idCycle`, `libelle`, `description`, `idAdmin`, `created`) 
 (2, 'Primaire', 'Cycle primaire, du CP au CM2', 1, '2026-05-18 08:42:30'),
 (3, 'Collège', 'Cycle secondaire premier degré, de la 6ème en 3ème', 1, '2026-05-18 08:42:30'),
 (4, 'Lycée', 'Cycle secondaire second degré, de la 2nde en Terminale', 1, '2026-05-18 08:42:30'),
-(5, 'Professionnel', 'Cycle d\'enseignement technique et professionnel', 1, '2026-05-18 08:42:30');
+(5, 'Professionnel', 'Cycle d\'enseignement technique et professionnel', 1, '2026-05-18 08:42:30'),
+(6, 'Lycée Francophone', '', 1, '2026-06-13 16:14:44'),
+(7, 'Lycée Anglophone', '', 1, '2026-06-13 16:14:44');
 
 -- --------------------------------------------------------
 
@@ -335,7 +362,7 @@ CREATE TABLE IF NOT EXISTS `eleve` (
 --
 
 INSERT INTO `eleve` (`matricule`, `nom`, `prenom`, `dateNaissance`, `lieuNaissance`, `sexe`, `langue`, `religion`, `situation_familiale`, `contact_urgence_nom`, `contact_urgence_tel`, `contact_urgence_lien`, `tuteur_nom`, `tuteur_tel`, `tuteur_profession`, `photoURL`, `actif`, `idAdmin`, `created_at`) VALUES
-(20260003, 'AXEL', 'axel', '2026-06-18', 'Yaoundé', 1, 'fr', NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, 'photos/eleves/wZyPgObpVfp5Fl6C6kxIifbEP39HwwGh8G3BIWZo.png', 1, 1, '2026-06-10 08:57:12'),
+(20260003, 'AXEL', 'axel', '2026-06-18', 'Yaoundé', 1, 'bi', 'Islam', 'deux_parents', NULL, NULL, NULL, NULL, NULL, NULL, 'photos/eleves/wZyPgObpVfp5Fl6C6kxIifbEP39HwwGh8G3BIWZo.png', 1, 1, '2026-06-12 10:55:32'),
 (1002, 'Nkeng', 'Diane', '2012-07-22', 'Douala', 0, 'Français', NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, 'INDEFINI', 1, 1, '2026-06-01 08:42:28'),
 (1003, 'Ateba', 'Marc', '2011-11-08', 'Bafoussam', 1, 'Français', NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, 'INDEFINI', 1, 1, '2026-05-18 08:42:34'),
 (1004, 'Owona', 'Sandra', '2012-01-30', 'Yaoundé', 0, 'Français', NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, 'INDEFINI', 1, 1, '2026-05-18 08:42:34'),
@@ -385,7 +412,7 @@ CREATE TABLE IF NOT EXISTS `eleve_sante` (
   `updated_at` timestamp NULL DEFAULT NULL,
   PRIMARY KEY (`idSante`),
   UNIQUE KEY `eleve_sante_matricule_unique` (`matricule`)
-) ENGINE=MyISAM AUTO_INCREMENT=5 DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
+) ENGINE=MyISAM AUTO_INCREMENT=7 DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
 
 --
 -- Déchargement des données de la table `eleve_sante`
@@ -395,7 +422,9 @@ INSERT INTO `eleve_sante` (`idSante`, `matricule`, `groupe_sanguin`, `handicap`,
 (1, 20260003, 'A+', 0, NULL, 'viande', 'accident', 0, NULL, '[]', NULL, NULL, NULL, NULL, '2026-06-10 10:41:01', '2026-06-11 08:08:36'),
 (2, 20260004, 'A+', 0, NULL, NULL, NULL, 0, NULL, '[]', NULL, NULL, NULL, NULL, '2026-06-10 10:44:08', '2026-06-10 10:44:48'),
 (3, 20260001, 'inconnu', 0, NULL, NULL, NULL, 0, NULL, NULL, NULL, NULL, NULL, NULL, '2026-06-10 10:59:42', '2026-06-10 10:59:42'),
-(4, 20260005, 'inconnu', 0, NULL, NULL, NULL, 0, NULL, NULL, NULL, NULL, NULL, NULL, '2026-06-11 08:26:55', '2026-06-11 08:26:55');
+(4, 20260005, 'inconnu', 0, NULL, NULL, NULL, 0, NULL, NULL, NULL, NULL, NULL, NULL, '2026-06-11 08:26:55', '2026-06-11 08:26:55'),
+(5, 1008, 'inconnu', 0, NULL, NULL, NULL, 0, NULL, NULL, NULL, NULL, NULL, NULL, '2026-06-12 07:57:09', '2026-06-12 07:57:09'),
+(6, 3003, 'inconnu', 0, NULL, NULL, NULL, 0, NULL, NULL, NULL, NULL, NULL, NULL, '2026-06-13 13:52:53', '2026-06-13 13:52:53');
 
 -- --------------------------------------------------------
 
@@ -454,7 +483,7 @@ CREATE TABLE IF NOT EXISTS `eleve_tranches` (
   UNIQUE KEY `eleve_tranches_matricule_idtranche_idaca_unique` (`matricule`,`idTranche`,`idAca`),
   KEY `eleve_tranches_matricule_idaca_index` (`matricule`,`idAca`),
   KEY `eleve_tranches_statut_index` (`statut`)
-) ENGINE=MyISAM AUTO_INCREMENT=8 DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
+) ENGINE=MyISAM AUTO_INCREMENT=11 DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
 
 --
 -- Déchargement des données de la table `eleve_tranches`
@@ -467,7 +496,10 @@ INSERT INTO `eleve_tranches` (`idEleveTranche`, `matricule`, `idTranche`, `idAca
 (4, 20260004, 7, 2, 50000, 10, 'payee', '2026-06-10', 0, '2026-06-10 10:50:40', '2026-06-10 10:50:40'),
 (5, 20260004, 8, 2, 250000, 12, 'payee', '2026-06-10', 0, '2026-06-10 10:50:47', '2026-06-10 10:50:55'),
 (6, 20260001, 7, 2, 50000, 13, 'payee', '2026-06-11', 0, '2026-06-11 07:59:11', '2026-06-11 07:59:11'),
-(7, 20260001, 8, 2, 250000, 14, 'payee', '2026-06-11', 0, '2026-06-11 07:59:52', '2026-06-11 07:59:52');
+(7, 20260001, 8, 2, 250000, 14, 'payee', '2026-06-11', 0, '2026-06-11 07:59:52', '2026-06-11 07:59:52'),
+(8, 1008, 9, 2, 100000, 15, 'payee', '2026-06-12', 0, '2026-06-12 08:01:08', '2026-06-12 08:01:08'),
+(9, 1008, 10, 2, 100000, 16, 'payee', '2026-06-12', 0, '2026-06-12 08:01:42', '2026-06-12 08:01:42'),
+(10, 1008, 11, 2, 150000, 17, 'payee', '2026-06-12', 0, '2026-06-12 08:01:57', '2026-06-12 08:01:57');
 
 -- --------------------------------------------------------
 
@@ -755,7 +787,15 @@ INSERT INTO `frequente` (`idFrequente`, `idSalle`, `idAcademi`, `matricule`, `co
 (19, 10, 2, 2026, 'RAS', 1, '2026-05-21 10:00:28'),
 (20, 16, 2, 20260001, 'ras', 1, '2026-05-23 14:22:49'),
 (21, 10, 2, 20260003, 'RAS', 1, '2026-06-09 11:59:03'),
-(22, 17, 2, 20260004, 'RAS', 1, '2026-06-10 12:47:13');
+(22, 17, 2, 20260004, 'RAS', 1, '2026-06-10 12:47:13'),
+(23, 11, 3, 2026, 'RAS', 1, '2026-06-13 15:27:17'),
+(24, 3, 3, 1005, 'RAS', 1, '2026-06-13 15:27:17'),
+(25, 3, 3, 1002, 'RAS', 1, '2026-06-13 15:27:17'),
+(26, 3, 3, 1006, 'RAS', 1, '2026-06-13 15:27:17'),
+(27, 3, 3, 1004, 'RAS', 1, '2026-06-13 15:27:17'),
+(28, 3, 3, 1007, 'RAS', 1, '2026-06-13 15:27:17'),
+(29, 11, 3, 20260003, 'RAS', 1, '2026-06-13 15:27:17'),
+(30, 3, 3, 1003, 'RAS', 1, '2026-06-13 15:27:17');
 
 -- --------------------------------------------------------
 
@@ -1051,7 +1091,7 @@ CREATE TABLE IF NOT EXISTS `notifications` (
   `created_at` timestamp NULL DEFAULT NULL,
   `updated_at` timestamp NULL DEFAULT NULL,
   PRIMARY KEY (`id`)
-) ENGINE=MyISAM AUTO_INCREMENT=48 DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
+) ENGINE=MyISAM AUTO_INCREMENT=51 DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
 
 --
 -- Déchargement des données de la table `notifications`
@@ -1104,7 +1144,10 @@ INSERT INTO `notifications` (`id`, `type`, `titre`, `message`, `icone`, `couleur
 (44, 'eleve', 'Nouvel élève', 'Nouvel élève : serve SERVE (#20260005)', '👤', 'blue', '/eleves/20260005', 0, 5, '2026-06-11 08:26:55', '2026-06-11 08:26:55'),
 (45, 'eleve', 'Nouvel élève', 'Nouvel élève : serve SERVE (#20260005)', '👤', 'blue', '/eleves/20260005', 0, 1, '2026-06-11 08:26:55', '2026-06-11 08:26:55'),
 (46, 'eleve', 'Nouvel élève', 'Nouvel élève : serve SERVE (#20260005)', '👤', 'blue', '/eleves/20260005', 0, 2, '2026-06-11 08:26:55', '2026-06-11 08:26:55'),
-(47, 'eleve', 'Nouvel élève', 'Nouvel élève : serve SERVE (#20260005)', '👤', 'blue', '/eleves/20260005', 0, 4, '2026-06-11 08:26:55', '2026-06-11 08:26:55');
+(47, 'eleve', 'Nouvel élève', 'Nouvel élève : serve SERVE (#20260005)', '👤', 'blue', '/eleves/20260005', 1, 4, '2026-06-11 08:26:55', '2026-06-12 08:47:14'),
+(48, 'paiement', 'Paiement inscription — Carine Manga', '100 000 FCFA — Soldée ✓', '🔔', 'blue', NULL, 0, 1, '2026-06-12 08:01:08', '2026-06-12 08:01:08'),
+(49, 'paiement', 'Paiement tranche 1 — Carine Manga', '100 000 FCFA — Soldée ✓', '🔔', 'blue', NULL, 0, 1, '2026-06-12 08:01:42', '2026-06-12 08:01:42'),
+(50, 'paiement', 'Paiement tranche 3 — Carine Manga', '150 000 FCFA — Soldée ✓', '🔔', 'blue', NULL, 0, 1, '2026-06-12 08:01:57', '2026-06-12 08:01:57');
 
 -- --------------------------------------------------------
 
@@ -1149,7 +1192,10 @@ INSERT INTO `paiement` (`idPaie`, `matricule`, `idAca`, `montant`, `url`, `comen
 (11, 20260004, 2, 2500, 'INDEFINI', 'Paiement pension', 1, 'INDEFINI', 1, '2026-06-10', '2026-06-10 11:50:47'),
 (12, 20260004, 2, 247500, 'INDEFINI', 'Paiement pension', 1, 'INDEFINI', 1, '2026-06-10', '2026-06-10 11:50:55'),
 (13, 20260001, 2, 50000, 'INDEFINI', 'Paiement inscription', 1, 'INDEFINI', 1, '2026-06-11', '2026-06-11 08:59:11'),
-(14, 20260001, 2, 250000, 'INDEFINI', 'Paiement pension', 1, 'INDEFINI', 1, '2026-06-11', '2026-06-11 08:59:52');
+(14, 20260001, 2, 250000, 'INDEFINI', 'Paiement pension', 1, 'INDEFINI', 1, '2026-06-11', '2026-06-11 08:59:52'),
+(15, 1008, 2, 100000, 'INDEFINI', 'Paiement inscription', 1, 'INDEFINI', 1, '2026-06-12', '2026-06-12 09:01:08'),
+(16, 1008, 2, 100000, 'INDEFINI', 'Paiement tranche 1', 1, 'INDEFINI', 1, '2026-06-12', '2026-06-12 09:01:42'),
+(17, 1008, 2, 150000, 'INDEFINI', 'Paiement tranche 3', 1, 'INDEFINI', 1, '2026-06-12', '2026-06-12 09:01:57');
 
 -- --------------------------------------------------------
 
@@ -1237,7 +1283,8 @@ CREATE TABLE IF NOT EXISTS `parents` (
 INSERT INTO `parents` (`idParent`, `idPers`, `matricule`, `idAdmin`, `created_at`) VALUES
 (1, 10, 1001, 1, '2026-05-20 13:40:34'),
 (2, 11, 1002, 1, '2026-05-24 14:42:34'),
-(3, 13, 20260002, 1, '2026-06-01 08:41:38');
+(3, 13, 20260002, 1, '2026-06-01 08:41:38'),
+(4, 11, 20260003, 1, '2026-06-12 10:03:37');
 
 -- --------------------------------------------------------
 
@@ -1306,7 +1353,7 @@ CREATE TABLE IF NOT EXISTS `personal_access_tokens` (
   UNIQUE KEY `personal_access_tokens_token_unique` (`token`),
   KEY `personal_access_tokens_tokenable_type_tokenable_id_index` (`tokenable_type`,`tokenable_id`),
   KEY `personal_access_tokens_expires_at_index` (`expires_at`)
-) ENGINE=InnoDB AUTO_INCREMENT=53 DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
+) ENGINE=InnoDB AUTO_INCREMENT=60 DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
 
 --
 -- Déchargement des données de la table `personal_access_tokens`
@@ -1315,9 +1362,9 @@ CREATE TABLE IF NOT EXISTS `personal_access_tokens` (
 INSERT INTO `personal_access_tokens` (`id`, `tokenable_type`, `tokenable_id`, `name`, `token`, `abilities`, `last_used_at`, `expires_at`, `created_at`, `updated_at`) VALUES
 (36, 'App\\Models\\User', 8, 'auth_token', '98fac676086e183f08f284d1943d049e06c466e6054c8a101d44a6da4abf6aef', '[\"*\"]', '2026-06-01 11:35:39', NULL, '2026-06-01 11:35:37', '2026-06-01 11:35:39'),
 (41, 'App\\Models\\User', 6, 'auth_token', '8ebc8a3116fabd2a53055bd74d52971d9c5ffc01d1f15a83086abc2db013d300', '[\"*\"]', '2026-06-09 09:59:48', NULL, '2026-06-09 09:59:38', '2026-06-09 09:59:48'),
-(44, 'App\\Models\\User', 9, 'auth_token', '7c9af352a0fcf5b1a8be3cc406bec9cad0dde01579585a634262c67690c7f35c', '[\"*\"]', '2026-06-09 10:04:00', NULL, '2026-06-09 10:03:19', '2026-06-09 10:04:00'),
-(51, 'App\\Models\\User', 5, 'auth_token', '1d6bef31c60e681a46e5c34905dd07d79cbce765313dbcef8727a957e3793e42', '[\"*\"]', '2026-06-11 11:16:20', NULL, '2026-06-11 10:43:46', '2026-06-11 11:16:20'),
-(52, 'App\\Models\\User', 4, 'auth_token', '20f8140573e691082ec8c2de6f8b00e17a8cf35bd01efe16fff05e5c304f2ce8', '[\"*\"]', '2026-06-11 11:16:36', NULL, '2026-06-11 10:54:06', '2026-06-11 11:16:36');
+(55, 'App\\Models\\User', 9, 'auth_token', '10c3c2ccccec64ff22a85f23f9f1ca2dec0cedf0fb203b7c152a2fe742548e26', '[\"*\"]', '2026-06-12 08:46:44', NULL, '2026-06-12 08:46:43', '2026-06-12 08:46:44'),
+(58, 'App\\Models\\User', 4, 'auth_token', '0e62bc962c63dee24c28d23a62a179eacbbe5ad90736e80febdf2be11965fafe', '[\"*\"]', '2026-06-14 07:24:05', NULL, '2026-06-12 20:22:28', '2026-06-14 07:24:05'),
+(59, 'App\\Models\\User', 5, 'auth_token', '2ded0a8cf62a5f9af442a30a0ee9e73463ff441437d6a491006112fc5f75612a', '[\"*\"]', '2026-06-14 07:34:50', NULL, '2026-06-14 07:24:16', '2026-06-14 07:34:50');
 
 -- --------------------------------------------------------
 
@@ -1554,7 +1601,13 @@ INSERT INTO `session` (`idSession`, `libelle`, `description`, `idTrimestre`, `id
 (3, 'Session 1 — T2', 'Première session du 2ème trimestre', 2, 1, '2026-05-18 08:42:30'),
 (4, 'Session 2 — T2', 'Deuxième session du 2ème trimestre', 2, 1, '2026-05-18 08:42:30'),
 (5, 'Session 1 — T3', 'Première session du 3ème trimestre', 3, 1, '2026-05-18 08:42:30'),
-(6, 'Session 2 — T3', 'Deuxième session du 3ème trimestre', 3, 1, '2026-05-18 08:42:30');
+(6, 'Session 2 — T3', 'Deuxième session du 3ème trimestre', 3, 1, '2026-05-18 08:42:30'),
+(7, 'Séquence 1', NULL, 8, 1, '2026-06-12 21:36:12'),
+(8, 'Séquence 2', NULL, 8, 1, '2026-06-12 21:36:12'),
+(9, 'Séquence 3', NULL, 9, 1, '2026-06-12 21:36:12'),
+(10, 'Séquence 4', NULL, 9, 1, '2026-06-12 21:36:12'),
+(11, 'Séquence 5', NULL, 10, 1, '2026-06-12 21:36:12'),
+(12, 'Séquence 6', NULL, 10, 1, '2026-06-12 21:36:12');
 
 -- --------------------------------------------------------
 
@@ -1645,7 +1698,10 @@ INSERT INTO `tranches` (`idTranche`, `libelle`, `montant`, `delai_mois`, `delai_
 (5, 'tranche 1', 200000, '10', '30', 4, 1, 1),
 (6, 'tranche 2', 300000, '11', '30', 4, 1, 1),
 (7, 'inscription', 50000, '09', '30', 2, 1, 1),
-(8, 'pension', 250000, '10', '30', 2, 1, 1);
+(8, 'pension', 250000, '10', '30', 2, 1, 1),
+(9, 'inscription', 100000, '09', '30', 3, 1, 1),
+(10, 'tranche 1', 100000, '10', '30', 3, 1, 1),
+(11, 'tranche 3', 150000, '11', '30', 3, 1, 1);
 
 -- --------------------------------------------------------
 
@@ -1671,7 +1727,13 @@ INSERT INTO `trimestre` (`idTrimes`, `libelle`, `periode`, `idAca`, `idAdmin`) V
 (1, '1er Trimestre', 'Septembre - Décembre 2024', 2, 1),
 (2, '2ème Trimestre', 'Janvier - Mars 2025', 2, 1),
 (3, '3ème Trimestre', 'Avril - Juillet 2025', 2, 1),
-(4, 'trimestre 1', 'Septembre 2023-Decembre 2024', 1, 1);
+(4, 'trimestre 1', 'Septembre 2023-Decembre 2024', 1, 1),
+(5, '1er trimestre', 'septembre-decembre 2025', 3, 1),
+(6, '2 eme triemstre', 'janvier- mars 2026', 3, 1),
+(7, '3 eme trimestre', 'avril-juin 2026', 3, 1),
+(8, '1er Trimestre', 'Octobre - Décembre', 4, 1),
+(9, '2ème Trimestre', 'Janvier - Mars', 4, 1),
+(10, '3ème Trimestre', 'Avril - Juillet', 4, 1);
 
 -- --------------------------------------------------------
 
