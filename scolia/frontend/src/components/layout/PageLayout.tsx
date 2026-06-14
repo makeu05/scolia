@@ -1,16 +1,17 @@
-// src/components/layout/PageLayout.tsx
-// Header de page réutilisable — s'insère dans AppLayout
-
+// src/components/layout/PageLayout.tsx — Header premium réutilisable
 import { ArrowLeft } from "lucide-react";
 import { useNavigate } from "react-router-dom";
 
 interface PageLayoutProps {
-  title: string;
-  subtitle?: string;
-  backTo?: string;
-  actions?: React.ReactNode;
-  children: React.ReactNode;
-  maxWidth?: "sm" | "md" | "lg" | "xl" | "full";
+  title:      string;
+  subtitle?:  string;
+  backTo?:    string;         // chemin explicite — si absent, utilise navigate(-1)
+  backLabel?: string;
+  actions?:   React.ReactNode;
+  children:   React.ReactNode;
+  maxWidth?:  "sm" | "md" | "lg" | "xl" | "full";
+  noPad?:     boolean;
+  accent?:    string;         // couleur CSS de la barre d'accent en haut
 }
 
 const MAX_WIDTHS = {
@@ -22,42 +23,61 @@ const MAX_WIDTHS = {
 };
 
 export default function PageLayout({
-  title, subtitle, backTo, actions, children, maxWidth = "xl",
+  title, subtitle, backTo, backLabel = "Retour",
+  actions, children, maxWidth = "xl", noPad = false, accent,
 }: PageLayoutProps) {
   const navigate = useNavigate();
 
+  function handleBack() {
+    backTo ? navigate(backTo) : navigate(-1);
+  }
+
   return (
-    <div className="min-h-[calc(100vh-56px)] bg-slate-50">
-      <div className={`${MAX_WIDTHS[maxWidth]} mx-auto px-6 py-6 space-y-6`}>
+    <div className="min-h-[calc(100vh-56px)]" style={{ background: "var(--bg-app)" }}>
 
-        {/* Header */}
-        <div className="flex items-start justify-between gap-4">
-          <div className="flex items-center gap-3">
-            {backTo && (
-              <button
-                onClick={() => navigate(backTo)}
-                className="p-2 rounded-xl hover:bg-white border border-transparent hover:border-slate-200 text-slate-400 hover:text-slate-700 transition-all"
-              >
-                <ArrowLeft className="w-4 h-4" />
+      {/* Barre d'accent colorée (optionnelle, pour chaque module) */}
+      {accent && <div className="h-[3px] w-full" style={{ background: accent }} />}
+
+      {/* Header sticky */}
+      <div
+        className="sticky top-0 z-10 border-b"
+        style={{
+          background: "rgba(247,248,252,0.92)",
+          backdropFilter: "blur(16px) saturate(180%)",
+          WebkitBackdropFilter: "blur(16px) saturate(180%)",
+          borderColor: "var(--border)",
+        }}
+      >
+        <div className={`${MAX_WIDTHS[maxWidth]} mx-auto px-5`}>
+          <div className="flex items-center justify-between h-[52px] gap-4">
+
+            {/* Gauche : bouton retour + titre */}
+            <div className="flex items-center gap-2.5 min-w-0">
+              <button onClick={handleBack} className="btn-back flex-shrink-0">
+                <ArrowLeft className="w-3.5 h-3.5" />
+                <span className="hidden sm:inline text-xs">{backLabel}</span>
               </button>
-            )}
-            <div>
-              <h1 className="text-xl font-bold text-slate-900" style={{ letterSpacing: "-0.02em" }}>
-                {title}
-              </h1>
-              {subtitle && (
-                <p className="text-sm text-slate-400 mt-0.5">{subtitle}</p>
-              )}
-            </div>
-          </div>
-          {actions && (
-            <div className="flex items-center gap-2 flex-shrink-0">
-              {actions}
-            </div>
-          )}
-        </div>
 
-        {/* Contenu */}
+              <div className="w-px h-4 flex-shrink-0" style={{ background: "var(--border)" }} />
+
+              <div className="min-w-0">
+                <h1 className="page-title truncate">{title}</h1>
+                {subtitle && <p className="page-subtitle hidden sm:block truncate">{subtitle}</p>}
+              </div>
+            </div>
+
+            {/* Droite : actions */}
+            {actions && (
+              <div className="flex items-center gap-2 flex-shrink-0">
+                {actions}
+              </div>
+            )}
+          </div>
+        </div>
+      </div>
+
+      {/* Contenu */}
+      <div className={`${MAX_WIDTHS[maxWidth]} mx-auto ${noPad ? "" : "px-5 py-5"} space-y-5 animate-fade-in`}>
         {children}
       </div>
     </div>

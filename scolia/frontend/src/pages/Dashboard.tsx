@@ -1,18 +1,18 @@
-// src/pages/Dashboard.tsx — SCOLIA SGS
-import { useEffect, useState } from "react";
+import { useEffect, useState, useRef } from "react";
 import { useNavigate } from "react-router-dom";
 import {
-  Users, BookOpen, UserCheck, Wallet,
-  AlertTriangle, Award, TrendingUp, ArrowUpRight,
-  ArrowRight, BarChart3, Plus, ClipboardList,
-  FileText, CreditCard, Sparkles,
+  Users, BookOpen, UserCheck, Wallet, AlertTriangle, Award,
+  TrendingUp, ArrowUpRight, ArrowRight, BarChart3, Plus,
+  ClipboardList, FileText, CreditCard, CalendarDays, ChevronRight,
+  ChevronLeft,
 } from "lucide-react";
-import { authFetch, getUser } from "../service/auth";
+import { getUser } from "../service/auth";
 import { useAnnee } from "../context/AnneeContext";
 
 const API = import.meta.env.VITE_API_URL ?? "http://localhost:8000/api";
 
-function Counter({ value }: { value: number | string }) {
+/* ── Compteur animé ─────────────────────────────── */
+function Counter({ value, duration = 900 }: { value: number | string; duration?: number }) {
   const [display, setDisplay] = useState(0);
   const numVal = typeof value === "number" ? value : parseFloat(String(value).replace(/[^0-9.]/g, "")) || 0;
   const isText = typeof value === "string" && isNaN(Number(String(value).replace(/[^0-9.]/g, "")));
@@ -20,8 +20,8 @@ function Counter({ value }: { value: number | string }) {
   useEffect(() => {
     if (isText) return;
     const start = performance.now();
-    const step = (now: number) => {
-      const p = Math.min((now - start) / 1000, 1);
+    const step  = (now: number) => {
+      const p    = Math.min((now - start) / duration, 1);
       const ease = 1 - Math.pow(1 - p, 3);
       setDisplay(Math.round(numVal * ease));
       if (p < 1) requestAnimationFrame(step);
@@ -33,50 +33,105 @@ function Counter({ value }: { value: number | string }) {
   return <span>{display.toLocaleString("fr-FR")}</span>;
 }
 
+/* ── Slides diaporama ───────────────────────────── */
+const SLIDES = [
+  {
+    photo:   "https://images.unsplash.com/photo-1580582932707-520aed937b7b?w=1600&q=80",
+    overlay: "linear-gradient(125deg,rgba(8,12,35,0.97) 0%,rgba(15,31,61,0.82) 45%,rgba(79,70,229,0.28) 100%)",
+    accent:  "#a5b4fc",
+    tag:     "Tableau de bord",
+    caption: "Vue globale de votre établissement",
+  },
+  {
+    photo:   "https://images.unsplash.com/photo-1509062522246-3755977927d7?w=1600&q=80",
+    overlay: "linear-gradient(125deg,rgba(5,20,50,0.97) 0%,rgba(14,165,233,0.42) 52%,rgba(6,182,212,0.2) 100%)",
+    accent:  "#67e8f9",
+    tag:     "Communauté scolaire",
+    caption: "Des milliers d'élèves, une seule plateforme",
+  },
+  {
+    photo:   "https://images.unsplash.com/photo-1503676260728-1c00da094a0b?w=1600&q=80",
+    overlay: "linear-gradient(125deg,rgba(20,5,45,0.97) 0%,rgba(139,92,246,0.44) 52%,rgba(236,72,153,0.2) 100%)",
+    accent:  "#c4b5fd",
+    tag:     "Apprentissage continu",
+    caption: "Suivez la progression de chaque apprenant",
+  },
+  {
+    photo:   "https://images.unsplash.com/photo-1571260899304-425eee4c7efc?w=1600&q=80",
+    overlay: "linear-gradient(125deg,rgba(5,25,20,0.97) 0%,rgba(16,185,129,0.42) 52%,rgba(6,182,212,0.18) 100%)",
+    accent:  "#6ee7b7",
+    tag:     "Réussite & Excellence",
+    caption: "Construire l'avenir du Cameroun, ensemble",
+  },
+];
+const SLIDE_MS = 6000;
+
+/* ── Types ──────────────────────────────────────── */
 interface DashData {
   totalEleves: number; totalClasses: number; totalEnseignants: number;
   totalCollecte: number; nbDebiteurs: number; tauxReussite: number;
   recents: any[]; parMois: { mois: string; total: number }[];
-  elevesActifs: number; paiementsMois: number; montantImpaye: number;
+  elevesActifs: number; montantImpaye: number;
 }
 
-const MOIS = ["Jan","Fév","Mar","Avr","Mai","Jun","Jul","Aoû","Sep","Oct","Nov","Déc"];
+const MOIS_FR = ["Jan","Fév","Mar","Avr","Mai","Jun","Jul","Aoû","Sep","Oct","Nov","Déc"];
 
-const KPI_CONFIG = [
-  { label: "Élèves inscrits",  icon: Users,          gradient: "linear-gradient(135deg,#667eea,#764ba2)", bg: "rgba(102,126,234,0.12)", iconColor: "#667eea", trend: "+12%", shadow: "rgba(102,126,234,0.3)", path: "/eleves" },
-  { label: "Classes actives",  icon: BookOpen,        gradient: "linear-gradient(135deg,#f093fb,#f5576c)", bg: "rgba(240,147,251,0.12)", iconColor: "#f093fb", trend: "",     shadow: "rgba(240,147,251,0.3)", path: "/classes" },
-  { label: "Enseignants",      icon: UserCheck,       gradient: "linear-gradient(135deg,#4facfe,#00f2fe)", bg: "rgba(79,172,254,0.12)",  iconColor: "#4facfe", trend: "",     shadow: "rgba(79,172,254,0.3)",  path: "/enseignants" },
-  { label: "Collecté (FCFA)",  icon: Wallet,          gradient: "linear-gradient(135deg,#43e97b,#38f9d7)", bg: "rgba(67,233,123,0.12)",  iconColor: "#43e97b", trend: "+8%",  shadow: "rgba(67,233,123,0.3)",  path: "/finance" },
-  { label: "Débiteurs",        icon: AlertTriangle,   gradient: "linear-gradient(135deg,#f6d365,#fda085)", bg: "rgba(246,211,101,0.12)", iconColor: "#fda085", trend: "",     shadow: "rgba(253,160,133,0.3)", path: "/paiements/par-classe" },
-  { label: "Taux de réussite", icon: Award,           gradient: "linear-gradient(135deg,#a18cd1,#fbc2eb)", bg: "rgba(161,140,209,0.12)", iconColor: "#a18cd1", trend: "+18%", shadow: "rgba(161,140,209,0.3)", path: "/notes/classement" },
+const KPI_CFG = [
+  { label: "Élèves",       icon: Users,        g1: "#6366f1", g2: "#8b5cf6", path: "/eleves"               },
+  { label: "Classes",      icon: BookOpen,     g1: "#ec4899", g2: "#f43f5e", path: "/classes"              },
+  { label: "Enseignants",  icon: UserCheck,    g1: "#0ea5e9", g2: "#06b6d4", path: "/enseignants"          },
+  { label: "Collecté (F)", icon: Wallet,       g1: "#10b981", g2: "#059669", path: "/finance"              },
+  { label: "Débiteurs",    icon: AlertTriangle,g1: "#f59e0b", g2: "#ef4444", path: "/paiements/par-classe" },
+  { label: "Réussite",     icon: Award,        g1: "#a855f7", g2: "#ec4899", path: "/notes/classement"     },
 ];
 
-const AVATAR_GRADIENTS = [
-  "linear-gradient(135deg,#667eea,#764ba2)",
-  "linear-gradient(135deg,#f093fb,#f5576c)",
-  "linear-gradient(135deg,#4facfe,#00f2fe)",
-  "linear-gradient(135deg,#43e97b,#38f9d7)",
-  "linear-gradient(135deg,#f6d365,#fda085)",
+const ACTIONS = [
+  { label: "Inscrire un élève",    sub: "Créer un dossier", path: "/eleves/nouveau",    icon: Users,        g1: "#6366f1", g2: "#8b5cf6" },
+  { label: "Saisir les notes",     sub: "Évaluations",      path: "/notes/saisie",      icon: ClipboardList,g1: "#ec4899", g2: "#f43f5e" },
+  { label: "Enregistrer paiement", sub: "Scolarité",        path: "/paiements/nouveau", icon: CreditCard,   g1: "#10b981", g2: "#059669" },
+  { label: "Générer un bulletin",  sub: "Notes & résultats",path: "/notes/bulletin",    icon: FileText,     g1: "#f59e0b", g2: "#f97316" },
 ];
 
+const GRAD_AVA = [
+  ["#6366f1","#8b5cf6"],["#ec4899","#f43f5e"],["#0ea5e9","#06b6d4"],
+  ["#10b981","#059669"],["#f59e0b","#f97316"],
+];
+
+/* ══════════════════════════════════════════════════
+   COMPOSANT PRINCIPAL
+══════════════════════════════════════════════════ */
 export default function Dashboard() {
   const navigate = useNavigate();
   const user     = getUser();
-
-  // ✅ Tout depuis le contexte — plus de state local idAca/annees
-  const { annees, idAca, anneeActive } = useAnnee();
+  const { idAca, anneeActive } = useAnnee();
 
   const [data, setData]       = useState<DashData | null>(null);
   const [loading, setLoading] = useState(true);
-  const [mounted, setMounted] = useState(false);
 
-  useEffect(() => { setMounted(true); }, []);
+  /* ── Diaporama ── */
+  const [slideIdx, setSlideIdx] = useState(0);
+  const timerRef = useRef<ReturnType<typeof setInterval> | null>(null);
 
-  // ✅ Recharger quand idAca change (depuis TopNav ou contexte)
+  function startTimer() {
+    if (timerRef.current) clearInterval(timerRef.current);
+    timerRef.current = setInterval(() => {
+      setSlideIdx(i => (i + 1) % SLIDES.length);
+    }, SLIDE_MS);
+  }
+
   useEffect(() => {
-    if (!idAca) return;
-    loadData();
-  }, [idAca]);
+    startTimer();
+    return () => { if (timerRef.current) clearInterval(timerRef.current); };
+  }, []);
+
+  function goTo(i: number) {
+    if (i === slideIdx) return;
+    setSlideIdx(i);
+    startTimer();
+  }
+
+  /* ── Données ── */
+  useEffect(() => { if (idAca) loadData(); }, [idAca]);
 
   async function loadData() {
     setLoading(true);
@@ -84,7 +139,6 @@ export default function Dashboard() {
       const token = localStorage.getItem("token") ?? "";
       const h = { Authorization: `Bearer ${token}` };
       const get = (url: string) => fetch(url, { headers: h }).then(r => r.json());
-
       const [eleves, classes, enseignants, dash, stats] = await Promise.all([
         get(`${API}/eleves?actif=1`),
         get(`${API}/classes`),
@@ -92,10 +146,6 @@ export default function Dashboard() {
         get(`${API}/paiements/dashboard?idAca=${idAca}`),
         get(`${API}/paiements/stats?idAca=${idAca}`),
       ]);
-
-      const now     = new Date();
-      const moisKey = `${now.getFullYear()}-${String(now.getMonth()+1).padStart(2,"0")}`;
-
       setData({
         totalEleves:      eleves.total ?? 0,
         totalClasses:     (classes.data ?? classes).length ?? 0,
@@ -106,7 +156,6 @@ export default function Dashboard() {
         recents:          dash.recents ?? [],
         parMois:          stats.parMois ?? [],
         elevesActifs:     eleves.total ?? 0,
-        paiementsMois:    stats.parMois?.find((m: any) => m.mois === moisKey)?.nb ?? 0,
         montantImpaye:    Math.max(0, (stats.totalAttendu ?? 0) - (stats.totalCollecte ?? 0)),
       });
     } catch (e) { console.error(e); }
@@ -114,228 +163,433 @@ export default function Dashboard() {
   }
 
   function fmt(n: number) {
-    if (n >= 1_000_000) return `${(n/1_000_000).toFixed(1)}M`;
-    if (n >= 1_000)     return `${(n/1_000).toFixed(0)}K`;
+    if (n >= 1_000_000) return `${(n / 1_000_000).toFixed(1)}M`;
+    if (n >= 1_000)     return `${(n / 1_000).toFixed(0)}K`;
     return String(n);
   }
-
   function timeAgo(d: string) {
     const diff = Date.now() - new Date(d).getTime();
-    const m = Math.floor(diff / 60000);
-    if (m < 1) return "À l'instant";
+    const m    = Math.floor(diff / 60000);
+    if (m < 1)  return "À l'instant";
     if (m < 60) return `${m}min`;
     const h = Math.floor(m / 60);
     if (h < 24) return `${h}h`;
-    return `${Math.floor(h/24)}j`;
+    return `${Math.floor(h / 24)}j`;
   }
 
-  const maxMois    = data?.parMois?.length ? Math.max(...data.parMois.map(m => m.total), 1) : 1;
-  const now        = new Date();
-  const moisCourant = `${now.getFullYear()}-${String(now.getMonth()+1).padStart(2,"0")}`;
+  const greeting = (() => {
+    const h = new Date().getHours();
+    if (h < 5)  return "Bonne nuit";
+    if (h < 12) return "Bonjour";
+    if (h < 18) return "Bon après-midi";
+    return "Bonsoir";
+  })();
 
-  const kpiValues = data ? [
-    data.totalEleves, data.totalClasses, data.totalEnseignants,
-    fmt(data.totalCollecte), data.nbDebiteurs, `${data.tauxReussite}%`,
-  ] : [0, 0, 0, "0", 0, "0%"];
+  const dateStr = new Date().toLocaleDateString("fr-FR", {
+    weekday: "long", day: "numeric", month: "long", year: "numeric",
+  });
+
+  const kpiVals = data
+    ? [data.totalEleves, data.totalClasses, data.totalEnseignants,
+       fmt(data.totalCollecte), data.nbDebiteurs, `${data.tauxReussite}%`]
+    : [0, 0, 0, "0", 0, "0%"];
+
+  const maxMois = data?.parMois?.length ? Math.max(...data.parMois.map(m => m.total), 1) : 1;
+  const moisCur = `${new Date().getFullYear()}-${String(new Date().getMonth() + 1).padStart(2, "0")}`;
+  const txPaie  = data && data.elevesActifs > 0
+    ? Math.round(((data.elevesActifs - data.nbDebiteurs) / data.elevesActifs) * 100) : 0;
+
+  /* SVG ring */
+  const R    = 34;
+  const CIRC = 2 * Math.PI * R;
+  const DASH = ((100 - txPaie) / 100) * CIRC;
+
+  const slide = SLIDES[slideIdx];
+
+  /* ─── Delays stagger pour KPI (inline) ─── */
+  const kpiDelay = [0, 70, 140, 210, 280, 350];
 
   return (
-    <div className="max-w-[1400px] mx-auto px-6 py-6 space-y-6">
+    <div style={{ background: "var(--bg-app)", minHeight: "100vh" }}>
 
-      {/* Bannière */}
-      <div className={`transition-all duration-500 ${mounted ? "opacity-100 translate-y-0" : "opacity-0 translate-y-3"}`}>
-        <div className="rounded-2xl p-5 flex items-center justify-between overflow-hidden relative"
-          style={{ background: "linear-gradient(135deg,#0f1f3d 0%,#1a3a5c 50%,#16324f 100%)", boxShadow: "0 4px 24px rgba(15,31,61,0.2)" }}>
-          <div className="absolute inset-0 pointer-events-none"
-            style={{ backgroundImage: "linear-gradient(rgba(255,255,255,0.03) 1px,transparent 1px),linear-gradient(90deg,rgba(255,255,255,0.03) 1px,transparent 1px)", backgroundSize: "40px 40px" }} />
-          <div className="absolute -right-16 -top-16 w-64 h-64 rounded-full pointer-events-none"
-            style={{ background: "radial-gradient(circle,rgba(59,130,246,0.15) 0%,transparent 70%)" }} />
+      {/* ══════════════════════════════════════════
+          HÉRO DIAPORAMA
+      ══════════════════════════════════════════ */}
+      <div className="relative overflow-hidden select-none" style={{ minHeight: 310 }}>
 
-          <div className="relative z-10">
-            <div className="flex items-center gap-2 mb-1">
-              <Sparkles className="w-4 h-4 text-blue-300" />
-              <p className="text-blue-300 text-xs font-semibold uppercase tracking-wider">Tableau de bord</p>
+        {/* Photos empilées */}
+        {SLIDES.map((s, i) => (
+          <img
+            key={i}
+            src={s.photo}
+            alt=""
+            className="absolute inset-0 w-full h-full object-cover"
+            style={{
+              opacity:    i === slideIdx ? 1 : 0,
+              transition: "opacity 1.6s cubic-bezier(0.4,0,0.2,1)",
+              filter:     "brightness(0.22) saturate(1.15)",
+              animation:  i === slideIdx ? `kenburns ${SLIDE_MS}ms ease-out forwards` : "none",
+            }}
+          />
+        ))}
+
+        {/* Overlays gradient */}
+        {SLIDES.map((s, i) => (
+          <div key={i} className="absolute inset-0"
+            style={{ background: s.overlay, opacity: i === slideIdx ? 1 : 0, transition: "opacity 1.6s ease", pointerEvents: "none" }} />
+        ))}
+
+        {/* Dots décoratifs */}
+        <div className="absolute inset-0 pointer-events-none" style={{
+          backgroundImage: "radial-gradient(circle,rgba(255,255,255,0.055) 1px,transparent 1px)",
+          backgroundSize: "26px 26px",
+        }} />
+
+        {/* Glow latéral dynamique */}
+        <div className="absolute inset-0 pointer-events-none"
+          style={{ backgroundImage: `radial-gradient(ellipse at 80% 50%,${slide.accent}26 0%,transparent 55%)`, transition: "all 1.5s ease" }} />
+
+        {/* ── Contenu héro (re-animé à chaque changement de slide) ── */}
+        <div key={slideIdx} className="relative z-10 px-6 md:px-10 pt-10 pb-20 flex flex-col md:flex-row items-start md:items-end justify-between gap-6">
+          <div>
+            {/* Tag */}
+            <div className="animate-hero-slide flex items-center gap-2 mb-3">
+              <span className="w-1.5 h-1.5 rounded-full animate-pulse" style={{ background: slide.accent }} />
+              <span className="text-[11px] font-bold tracking-[0.2em] uppercase" style={{ color: `${slide.accent}cc` }}>
+                {slide.tag}
+              </span>
             </div>
-            <h1 className="text-white text-2xl font-bold" style={{ letterSpacing: "-0.03em" }}>
-              Bonjour, {user?.name} 👋
+
+            {/* Greeting */}
+            <h1 className="animate-hero-slide font-black text-white leading-none mb-2"
+              style={{ animationDelay: "60ms", fontSize: "clamp(2rem,4vw,3.2rem)", letterSpacing: "-0.045em" }}>
+              {greeting},<br />
+              <span style={{ background: `linear-gradient(90deg,${slide.accent},rgba(255,255,255,0.6))`, WebkitBackgroundClip: "text", WebkitTextFillColor: "transparent" }}>
+                {user?.name}
+              </span>
             </h1>
-            {/* ✅ Affiche l'année sélectionnée dans le contexte + badge statut */}
-            <p className="text-slate-400 text-sm mt-1 flex items-center gap-2">
-              {anneeActive?.libelle ?? "—"}
-              {anneeActive?.statut === 'active' && (
-                <span className="text-[10px] font-bold px-2 py-0.5 rounded-full bg-emerald-500/20 text-emerald-300 inline-flex items-center gap-1">
-                  <span className="w-1.5 h-1.5 rounded-full bg-emerald-400 inline-block" /> Active
+
+            {/* Caption */}
+            <p className="animate-hero-slide text-sm mb-4"
+              style={{ animationDelay: "120ms", color: "rgba(255,255,255,0.38)" }}>
+              {slide.caption}
+            </p>
+
+            {/* Date + année */}
+            <div className="animate-hero-slide flex items-center gap-3 flex-wrap"
+              style={{ animationDelay: "180ms" }}>
+              <span className="flex items-center gap-1.5 text-xs" style={{ color: "rgba(255,255,255,0.35)" }}>
+                <CalendarDays style={{ width: 12, height: 12 }} /> {dateStr}
+              </span>
+              {anneeActive?.libelle && (
+                <span className="text-[11px] font-bold px-2.5 py-1 rounded-full"
+                  style={{ background: "rgba(255,255,255,0.08)", color: "rgba(255,255,255,0.55)", border: "1px solid rgba(255,255,255,0.12)" }}>
+                  {anneeActive.libelle}
                 </span>
               )}
-              {anneeActive?.statut === 'cloturee' && (
-                <span className="text-[10px] font-bold px-2 py-0.5 rounded-full bg-red-500/20 text-red-300">🔒 Clôturée</span>
-              )}
-              <span className="text-slate-500">· Vue d'ensemble</span>
-            </p>
-          </div>
-
-          {/* ✅ Supprimé le select ici — il est dans TopNav maintenant */}
-          <div className="relative z-10 hidden md:flex items-center gap-3">
-            <div className="text-right">
-              <p className="text-xs text-slate-400">{annees.length} année{annees.length > 1 ? 's' : ''} disponible{annees.length > 1 ? 's' : ''}</p>
-              <p className="text-xs text-white font-medium mt-0.5">Sélecteur en haut à droite →</p>
             </div>
           </div>
+
+          {/* Mini stats */}
+          {data && (
+            <div className="animate-hero-slide flex gap-2 flex-wrap flex-shrink-0" style={{ animationDelay: "240ms" }}>
+              {[
+                { v: data.totalEleves,           l: "Élèves",   c: slide.accent },
+                { v: data.totalClasses,           l: "Classes",  c: "rgba(255,255,255,0.6)" },
+                { v: fmt(data.totalCollecte)+" F",l: "Collecté", c: "#6ee7b7" },
+              ].map(s => (
+                <div key={s.l} className="px-4 py-3 rounded-2xl text-center"
+                  style={{ background: "rgba(255,255,255,0.07)", backdropFilter: "blur(12px)", border: "1px solid rgba(255,255,255,0.1)", minWidth: 72 }}>
+                  <p className="font-black text-xl leading-none" style={{ color: s.c }}>{s.v}</p>
+                  <p className="text-[10px] font-semibold mt-1 uppercase tracking-wide" style={{ color: "rgba(255,255,255,0.3)" }}>{s.l}</p>
+                </div>
+              ))}
+            </div>
+          )}
         </div>
-      </div>
 
-      {loading ? (
-        <div className="grid grid-cols-2 md:grid-cols-3 xl:grid-cols-6 gap-4">
-          {Array.from({ length: 6 }).map((_, i) => (
-            <div key={i} className="bg-white rounded-2xl p-5 border border-slate-100 space-y-3">
-              <div className="skeleton w-10 h-10 rounded-xl" />
-              <div className="skeleton h-8 w-16 rounded-lg" />
-              <div className="skeleton h-3 w-20 rounded" />
-            </div>
+        {/* ── Indicateurs de slide ── */}
+        <div className="absolute bottom-5 left-1/2 -translate-x-1/2 z-20 flex items-center gap-2">
+          {SLIDES.map((_, i) => (
+            <button
+              key={i}
+              onClick={() => goTo(i)}
+              className="rounded-full transition-all duration-500 cursor-pointer"
+              style={{
+                height:     6,
+                width:      i === slideIdx ? 28 : 6,
+                background: i === slideIdx ? slide.accent : "rgba(255,255,255,0.25)",
+                boxShadow:  i === slideIdx ? `0 0 10px ${slide.accent}bb` : "none",
+              }}
+            />
           ))}
         </div>
-      ) : (
-        <>
-          {/* KPI Cards */}
-          <div className="grid grid-cols-2 md:grid-cols-3 xl:grid-cols-6 gap-4 stagger">
-            {KPI_CONFIG.map((kpi, i) => (
-              <button key={i} onClick={() => navigate(kpi.path)}
-                className="relative bg-white rounded-2xl p-4 border border-slate-100 text-left overflow-hidden group animate-fade-in"
-                style={{ boxShadow: "0 2px 8px rgba(15,31,61,0.06)", transition: "all 0.2s ease" }}
-                onMouseEnter={e => { (e.currentTarget as HTMLElement).style.transform = "translateY(-3px)"; (e.currentTarget as HTMLElement).style.boxShadow = `0 8px 24px ${kpi.shadow}`; }}
-                onMouseLeave={e => { (e.currentTarget as HTMLElement).style.transform = "translateY(0)"; (e.currentTarget as HTMLElement).style.boxShadow = "0 2px 8px rgba(15,31,61,0.06)"; }}>
-                <div className="absolute inset-0 opacity-0 group-hover:opacity-100 transition-opacity duration-300 rounded-2xl" style={{ background: kpi.bg }} />
-                <div className="absolute top-0 left-0 right-0 h-1 rounded-t-2xl" style={{ background: kpi.gradient }} />
-                <div className="relative z-10">
-                  <div className="flex items-start justify-between mb-3 mt-1">
-                    <div className="w-10 h-10 rounded-xl flex items-center justify-center flex-shrink-0" style={{ background: kpi.bg }}>
-                      <kpi.icon className="w-5 h-5" style={{ color: kpi.iconColor }} />
-                    </div>
-                    {kpi.trend && <span className="text-[10px] font-bold px-2 py-1 rounded-full bg-emerald-50 text-emerald-600">{kpi.trend}</span>}
+
+        {/* Flèches */}
+        {(["left","right"] as const).map(dir => (
+          <button
+            key={dir}
+            onClick={() => goTo(dir === "left"
+              ? (slideIdx - 1 + SLIDES.length) % SLIDES.length
+              : (slideIdx + 1) % SLIDES.length)}
+            className={`absolute ${dir === "left" ? "left-4" : "right-4"} top-1/2 -translate-y-1/2 z-20 w-9 h-9 rounded-full flex items-center justify-center transition-all`}
+            style={{ background: "rgba(255,255,255,0.1)", backdropFilter: "blur(8px)", border: "1px solid rgba(255,255,255,0.15)" }}
+            onMouseEnter={e => { (e.currentTarget as HTMLElement).style.background = "rgba(255,255,255,0.22)"; }}
+            onMouseLeave={e => { (e.currentTarget as HTMLElement).style.background = "rgba(255,255,255,0.1)"; }}
+          >
+            {dir === "left"
+              ? <ChevronLeft style={{ width: 16, height: 16, color: "#fff" }} />
+              : <ChevronRight style={{ width: 16, height: 16, color: "#fff" }} />}
+          </button>
+        ))}
+      </div>
+
+      {/* ══════════════════════════════════════════
+          KPI CARDS — flottent sur le héro
+      ══════════════════════════════════════════ */}
+      <div className="px-6 md:px-10 -mt-10 relative z-10">
+        {loading ? (
+          <div className="grid grid-cols-2 md:grid-cols-3 xl:grid-cols-6 gap-4">
+            {Array.from({ length: 6 }).map((_, i) => (
+              <div key={i} className="bg-white rounded-2xl p-5 space-y-3" style={{ boxShadow: "var(--shadow-xl)" }}>
+                <div className="skeleton w-12 h-12 rounded-2xl" />
+                <div className="skeleton h-8 w-14 rounded-lg" />
+                <div className="skeleton h-3 w-20 rounded" />
+              </div>
+            ))}
+          </div>
+        ) : (
+          <div className="grid grid-cols-2 md:grid-cols-3 xl:grid-cols-6 gap-4">
+            {KPI_CFG.map((k, i) => (
+              <button
+                key={i}
+                onClick={() => navigate(k.path)}
+                className="group relative bg-white rounded-2xl text-left overflow-hidden animate-float-up"
+                style={{
+                  boxShadow:       "var(--shadow-xl)",
+                  border:          "1px solid rgba(255,255,255,0.85)",
+                  animationDelay:  `${kpiDelay[i]}ms`,
+                  transition:      "all 0.25s cubic-bezier(0.34,1.56,0.64,1)",
+                }}
+                onMouseEnter={e => {
+                  const el = e.currentTarget as HTMLElement;
+                  el.style.transform = "translateY(-8px) scale(1.03)";
+                  el.style.boxShadow = `0 28px 60px ${k.g1}44, 0 8px 20px rgba(0,0,0,0.1)`;
+                }}
+                onMouseLeave={e => {
+                  const el = e.currentTarget as HTMLElement;
+                  el.style.transform = "";
+                  el.style.boxShadow = "var(--shadow-xl)";
+                }}
+              >
+                {/* Gradient stripe top */}
+                <div className="absolute top-0 left-0 right-0 h-[3px]"
+                  style={{ background: `linear-gradient(90deg,${k.g1},${k.g2})` }} />
+                {/* Hover glow */}
+                <div className="absolute inset-0 opacity-0 group-hover:opacity-100 pointer-events-none transition-opacity duration-300"
+                  style={{ background: `radial-gradient(ellipse at 50% 0%,${k.g1}1c 0%,transparent 70%)` }} />
+
+                <div className="p-4 pt-5">
+                  <div className="w-12 h-12 rounded-2xl flex items-center justify-center mb-3"
+                    style={{ background: `linear-gradient(135deg,${k.g1},${k.g2})`, boxShadow: `0 4px 16px ${k.g1}66` }}>
+                    <k.icon style={{ width: 20, height: 20, color: "#fff" }} />
                   </div>
-                  <p className="text-2xl font-bold text-slate-900" style={{ letterSpacing: "-0.03em" }}>
-                    <Counter value={kpiValues[i]} />
+                  <p className="font-black leading-none mb-1" style={{ fontSize: "2rem", color: "var(--text-900)", letterSpacing: "-0.05em" }}>
+                    <Counter value={kpiVals[i]} />
                   </p>
-                  <p className="text-xs text-slate-400 mt-1 font-medium">{kpi.label}</p>
-                  <div className="mt-2.5 w-full h-1 bg-slate-100 rounded-full overflow-hidden">
-                    <div className="h-full rounded-full transition-all duration-1000"
-                      style={{ width: `${Math.min(100, Math.max(10, (Number(kpiValues[i]) / (i === 0 ? 50 : i === 5 ? 100 : 20)) * 100))}%`, background: kpi.gradient }} />
+                  <p className="text-[11px] font-semibold" style={{ color: "var(--text-400)" }}>{k.label}</p>
+                  <div className="mt-3 h-1 rounded-full overflow-hidden" style={{ background: "var(--border)" }}>
+                    <div className="h-full rounded-full"
+                      style={{
+                        width: `${Math.min(100, Math.max(6, (Number(String(kpiVals[i]).replace(/[^0-9]/g,"")) / (i === 0 ? 50 : i === 5 ? 100 : 20)) * 100))}%`,
+                        background: `linear-gradient(90deg,${k.g1},${k.g2})`,
+                        transition: "width 1.4s cubic-bezier(0.4,0,0.2,1)",
+                      }} />
                   </div>
                 </div>
               </button>
             ))}
           </div>
+        )}
+      </div>
 
-          {/* Main grid */}
+      {/* ══════════════════════════════════════════
+          MAIN CONTENT
+      ══════════════════════════════════════════ */}
+      {!loading && data && (
+        <div className="px-6 md:px-10 mt-5 space-y-5 pb-10">
+
+          {/* Row : Chart + Panneau droit */}
           <div className="grid grid-cols-1 xl:grid-cols-3 gap-5">
 
-            {/* Graphique paiements */}
-            <div className="xl:col-span-2 bg-white rounded-2xl border border-slate-100 p-5 animate-fade-in"
-              style={{ boxShadow: "0 2px 8px rgba(15,31,61,0.06)" }}>
-              <div className="flex items-center justify-between mb-5">
+            {/* ── Bar chart avec barres animées ── */}
+            <div className="xl:col-span-2 bg-white rounded-2xl overflow-hidden animate-fade-in" style={{ boxShadow: "var(--shadow-md)" }}>
+              <div className="flex items-center justify-between px-6 pt-5 pb-4" style={{ borderBottom: "1px solid var(--border)" }}>
                 <div>
-                  <h2 className="text-sm font-bold text-slate-900">Paiements par mois</h2>
-                  <p className="text-xs text-slate-400 mt-0.5">{anneeActive?.libelle}</p>
+                  <p className="font-bold text-sm" style={{ color: "var(--text-900)" }}>Évolution des paiements</p>
+                  <p className="text-xs mt-0.5" style={{ color: "var(--text-400)" }}>{anneeActive?.libelle ?? "Année en cours"}</p>
                 </div>
                 <button onClick={() => navigate("/paiements/stats")}
-                  className="flex items-center gap-1.5 text-xs font-medium text-blue-600 hover:text-blue-700 transition-colors">
-                  Voir tout <ArrowRight className="w-3.5 h-3.5" />
+                  className="flex items-center gap-1 text-xs font-semibold" style={{ color: "#6366f1" }}>
+                  Voir tout <ArrowRight style={{ width: 12, height: 12 }} />
                 </button>
               </div>
 
-              {data?.parMois && data.parMois.length > 0 ? (
-                <div className="flex items-end gap-2 h-48">
-                  {data.parMois.map((m) => {
-                    const pct   = Math.round((m.total / maxMois) * 100);
-                    const label = MOIS[parseInt(m.mois.split("-")[1]) - 1] ?? m.mois;
-                    const isCurrent = m.mois === moisCourant;
-                    return (
-                      <div key={m.mois} className="flex-1 flex flex-col items-center gap-1.5 group">
-                        <span className="text-[10px] text-slate-400 opacity-0 group-hover:opacity-100 transition-opacity font-medium">{fmt(m.total)}</span>
-                        <div className="w-full flex items-end rounded-t-lg overflow-hidden" style={{ height: "140px" }}>
-                          <div className="w-full rounded-t-lg transition-all duration-700 group-hover:opacity-90"
-                            style={{
-                              height: `${Math.max(pct, 4)}%`,
-                              background: isCurrent ? "linear-gradient(180deg,#667eea,#764ba2)" : "linear-gradient(180deg,#e2e8f0,#f1f5f9)",
-                              boxShadow: isCurrent ? "0 -2px 12px rgba(102,126,234,0.4)" : "none",
-                            }} />
-                        </div>
-                        <span className={`text-[10px] font-semibold ${isCurrent ? "text-violet-600" : "text-slate-400"}`}>{label}</span>
+              <div className="px-6 pt-5 pb-4">
+                {data.parMois && data.parMois.length > 0 ? (
+                  <div className="relative" style={{ height: 200 }}>
+                    {/* Lignes horizontales */}
+                    {[0, 25, 50, 75, 100].map(pct => (
+                      <div key={pct} className="absolute left-0 right-0 flex items-center gap-2"
+                        style={{ bottom: `${pct}%` }}>
+                        <span className="text-[9px] font-semibold w-7 text-right shrink-0" style={{ color: "var(--text-300)" }}>
+                          {pct === 0 ? "" : `${Math.round((maxMois * pct) / 100 / 1000)}k`}
+                        </span>
+                        <div className="flex-1 border-t"
+                          style={{ borderColor: pct === 0 ? "var(--border-hover)" : "var(--border)", borderStyle: pct === 0 ? "solid" : "dashed" }} />
                       </div>
-                    );
-                  })}
-                </div>
-              ) : (
-                <div className="h-48 rounded-2xl border-2 border-dashed border-slate-100 flex flex-col items-center justify-center text-slate-400 gap-2">
-                  <BarChart3 className="w-8 h-8 opacity-20" />
-                  <p className="text-sm">Aucune donnée pour cette année</p>
-                </div>
-              )}
-            </div>
+                    ))}
 
-            {/* Résumé + Actions */}
-            <div className="flex flex-col gap-4">
-
-              {/* Résumé financier */}
-              <div className="rounded-2xl p-5 animate-fade-in text-white relative overflow-hidden"
-                style={{ background: "linear-gradient(135deg,#0f1f3d,#1e3a8a)", boxShadow: "0 4px 20px rgba(15,31,61,0.2)" }}>
-                <div className="absolute -right-8 -top-8 w-40 h-40 rounded-full"
-                  style={{ background: "radial-gradient(circle,rgba(99,102,241,0.2) 0%,transparent 70%)" }} />
-                <h2 className="text-sm font-bold text-white mb-4 relative z-10">Résumé financier</h2>
-                <div className="space-y-3 relative z-10">
-                  {[
-                    { label: "Élèves inscrits", value: String(data?.elevesActifs ?? 0),          color: "text-blue-200"   },
-                    { label: "Total collecté",  value: `${fmt(data?.totalCollecte ?? 0)} FCFA`,  color: "text-emerald-300"},
-                    { label: "Montant impayé",  value: `${fmt(data?.montantImpaye ?? 0)} FCFA`,  color: (data?.montantImpaye ?? 0) > 0 ? "text-red-300" : "text-emerald-300" },
-                    { label: "Débiteurs",       value: `${data?.nbDebiteurs ?? 0} élève(s)`,     color: (data?.nbDebiteurs ?? 0) > 0 ? "text-orange-300" : "text-emerald-300" },
-                  ].map(row => (
-                    <div key={row.label} className="flex justify-between items-center">
-                      <span className="text-xs text-blue-200/60">{row.label}</span>
-                      <span className={`text-xs font-bold ${row.color}`}>{row.value}</span>
-                    </div>
-                  ))}
-                  <div className="pt-2 border-t border-white/10">
-                    <div className="flex justify-between text-xs mb-1.5">
-                      <span className="text-blue-200/60">Taux de paiement</span>
-                      <span className="text-white font-bold">
-                        {data && data.elevesActifs > 0 ? Math.round(((data.elevesActifs - data.nbDebiteurs) / data.elevesActifs) * 100) : 0}%
-                      </span>
-                    </div>
-                    <div className="w-full h-2 bg-white/10 rounded-full overflow-hidden">
-                      <div className="h-full rounded-full transition-all duration-1000"
-                        style={{
-                          width: `${data && data.elevesActifs > 0 ? Math.round(((data.elevesActifs - data.nbDebiteurs) / data.elevesActifs) * 100) : 0}%`,
-                          background: "linear-gradient(90deg,#43e97b,#38f9d7)",
-                        }} />
+                    {/* Barres */}
+                    <div className="absolute inset-0 pl-9 flex items-end gap-1">
+                      {data.parMois.map((m, bi) => {
+                        const pct   = Math.round((m.total / maxMois) * 100);
+                        const label = MOIS_FR[parseInt(m.mois.split("-")[1]) - 1] ?? m.mois;
+                        const isCur = m.mois === moisCur;
+                        return (
+                          <div key={m.mois} className="flex-1 flex flex-col items-center gap-1 group relative">
+                            {/* Tooltip */}
+                            <div className="absolute bottom-full mb-1 opacity-0 group-hover:opacity-100 pointer-events-none z-10 transition-all"
+                              style={{ transform: "translateY(4px)", transition: "all 0.15s" }}>
+                              <div className="text-[10px] font-bold text-white px-2 py-1 rounded-lg whitespace-nowrap"
+                                style={{ background: isCur ? "linear-gradient(135deg,#6366f1,#8b5cf6)" : "#1e293b" }}>
+                                {fmt(m.total)} F
+                              </div>
+                            </div>
+                            {/* Barre animée */}
+                            <div
+                              className="w-full rounded-t-lg animate-bar-fill"
+                              style={{
+                                height:          `${Math.max(pct, 3)}%`,
+                                animationDelay:  `${bi * 45}ms`,
+                                background:      isCur
+                                  ? "linear-gradient(180deg,#818cf8 0%,#6366f1 50%,#4f46e5 100%)"
+                                  : "linear-gradient(180deg,#e2e8f0 0%,#cbd5e1 100%)",
+                                boxShadow:       isCur ? "0 -3px 16px rgba(99,102,241,0.5)" : "none",
+                                cursor:          "default",
+                                transition:      "opacity 0.2s",
+                              }}
+                              onMouseEnter={e => { (e.currentTarget as HTMLElement).style.opacity = "0.72"; }}
+                              onMouseLeave={e => { (e.currentTarget as HTMLElement).style.opacity = "1"; }}
+                            />
+                            <span className="text-[9px] font-bold"
+                              style={{ color: isCur ? "#6366f1" : "var(--text-300)" }}>{label}</span>
+                          </div>
+                        );
+                      })}
                     </div>
                   </div>
+                ) : (
+                  <div className="h-44 flex flex-col items-center justify-center gap-3" style={{ color: "var(--text-300)" }}>
+                    <BarChart3 style={{ width: 36, height: 36, opacity: 0.18 }} />
+                    <p className="text-sm">Aucune donnée disponible</p>
+                  </div>
+                )}
+              </div>
+            </div>
+
+            {/* ── Panneau droit ── */}
+            <div className="flex flex-col gap-4">
+
+              {/* Finance card avec ring SVG */}
+              <div className="rounded-2xl overflow-hidden relative animate-fade-in" style={{ boxShadow: "var(--shadow-lg)" }}>
+                <img
+                  src="https://images.unsplash.com/photo-1509062522246-3755977927d7?w=600&q=70"
+                  alt="" className="absolute inset-0 w-full h-full object-cover"
+                  style={{ filter: "brightness(0.12) saturate(0.7)" }}
+                />
+                <div className="absolute inset-0" style={{ background: "linear-gradient(160deg,#0f1f3d 0%,#1e3a8a 100%)" }} />
+                <div className="absolute inset-0" style={{ backgroundImage: "radial-gradient(ellipse at 100% 0%,rgba(99,102,241,0.35) 0%,transparent 60%)" }} />
+
+                <div className="relative z-10 p-5">
+                  <p className="font-black text-sm text-white mb-4 flex items-center gap-2">
+                    <TrendingUp style={{ width: 14, height: 14, color: "#6ee7b7" }} />
+                    Résumé financier
+                  </p>
+
+                  {/* Ring + stats */}
+                  <div className="flex items-center gap-4 mb-4">
+                    <div className="relative flex-shrink-0">
+                      <svg width="84" height="84" viewBox="0 0 84 84">
+                        <circle cx="42" cy="42" r={R} fill="none" stroke="rgba(255,255,255,0.08)" strokeWidth="8" />
+                        <circle cx="42" cy="42" r={R} fill="none"
+                          stroke={txPaie > 80 ? "#10b981" : txPaie > 50 ? "#f59e0b" : "#ef4444"}
+                          strokeWidth="8" strokeLinecap="round"
+                          strokeDasharray={CIRC} strokeDashoffset={DASH}
+                          transform="rotate(-90 42 42)"
+                          style={{ transition: "stroke-dashoffset 1.4s cubic-bezier(0.4,0,0.2,1)" }}
+                        />
+                      </svg>
+                      <div className="absolute inset-0 flex flex-col items-center justify-center">
+                        <span className="text-lg font-black text-white leading-none">{txPaie}%</span>
+                        <span className="text-[9px] font-semibold" style={{ color: "rgba(255,255,255,0.35)" }}>payé</span>
+                      </div>
+                    </div>
+                    <div className="space-y-2.5 flex-1">
+                      {[
+                        { l: "Inscrits",  v: String(data.elevesActifs),         c: "#93c5fd" },
+                        { l: "Collecté",  v: `${fmt(data.totalCollecte)} F`,    c: "#6ee7b7" },
+                        { l: "Impayé",    v: `${fmt(data.montantImpaye)} F`,    c: data.montantImpaye > 0 ? "#fca5a5" : "#6ee7b7" },
+                      ].map(row => (
+                        <div key={row.l} className="flex justify-between items-center">
+                          <span className="text-[10px]" style={{ color: "rgba(255,255,255,0.35)" }}>{row.l}</span>
+                          <span className="text-[11px] font-black" style={{ color: row.c }}>{row.v}</span>
+                        </div>
+                      ))}
+                    </div>
+                  </div>
+
+                  {data.nbDebiteurs > 0 && (
+                    <div className="flex items-center justify-between rounded-xl p-2.5 mb-3"
+                      style={{ background: "rgba(245,158,11,0.12)", border: "1px solid rgba(245,158,11,0.2)" }}>
+                      <span className="text-[11px]" style={{ color: "rgba(255,255,255,0.45)" }}>Débiteurs</span>
+                      <span className="text-[11px] font-black" style={{ color: "#fcd34d" }}>{data.nbDebiteurs} élève(s)</span>
+                    </div>
+                  )}
+
+                  <button onClick={() => navigate("/paiements/stats")}
+                    className="w-full py-2 rounded-xl text-xs font-semibold transition-all"
+                    style={{ background: "rgba(255,255,255,0.07)", color: "rgba(255,255,255,0.6)", border: "1px solid rgba(255,255,255,0.1)" }}
+                    onMouseEnter={e => { (e.currentTarget as HTMLElement).style.background = "rgba(255,255,255,0.14)"; }}
+                    onMouseLeave={e => { (e.currentTarget as HTMLElement).style.background = "rgba(255,255,255,0.07)"; }}
+                  >
+                    Voir les statistiques →
+                  </button>
                 </div>
-                <button onClick={() => navigate("/paiements/stats")}
-                  className="mt-4 w-full py-2.5 rounded-xl text-xs font-semibold text-white border border-white/20 hover:bg-white/10 transition-colors relative z-10">
-                  Voir les statistiques →
-                </button>
               </div>
 
               {/* Actions rapides */}
-              <div className="bg-white rounded-2xl border border-slate-100 p-4 animate-fade-in"
-                style={{ boxShadow: "0 2px 8px rgba(15,31,61,0.06)" }}>
-                <h2 className="text-sm font-bold text-slate-900 mb-3">Actions rapides</h2>
-                <div className="grid grid-cols-2 gap-2">
-                  {[
-                    { label: "Inscrire élève", path: "/eleves/nouveau",    icon: Users,         gradient: "linear-gradient(135deg,#667eea,#764ba2)", shadow: "rgba(102,126,234,0.3)" },
-                    { label: "Saisir notes",   path: "/notes/saisie",      icon: ClipboardList, gradient: "linear-gradient(135deg,#f093fb,#f5576c)", shadow: "rgba(240,147,251,0.3)" },
-                    { label: "Paiement",       path: "/paiements/nouveau", icon: CreditCard,    gradient: "linear-gradient(135deg,#43e97b,#38f9d7)", shadow: "rgba(67,233,123,0.3)" },
-                    { label: "Bulletin",       path: "/notes/bulletin",    icon: FileText,      gradient: "linear-gradient(135deg,#f6d365,#fda085)", shadow: "rgba(253,160,133,0.3)" },
-                  ].map(item => (
-                    <button key={item.path} onClick={() => navigate(item.path)}
-                      className="flex flex-col items-start gap-2.5 p-3.5 rounded-2xl text-left transition-all duration-150 active:scale-[0.97]"
-                      style={{ background: "rgba(248,250,252,1)" }}
-                      onMouseEnter={e => { (e.currentTarget as HTMLElement).style.boxShadow = `0 4px 16px ${item.shadow}`; (e.currentTarget as HTMLElement).style.transform = "translateY(-1px)"; }}
-                      onMouseLeave={e => { (e.currentTarget as HTMLElement).style.boxShadow = "none"; (e.currentTarget as HTMLElement).style.transform = "translateY(0)"; }}>
-                      <div className="w-8 h-8 rounded-xl flex items-center justify-center"
-                        style={{ background: item.gradient, boxShadow: `0 2px 8px ${item.shadow}` }}>
-                        <item.icon className="w-4 h-4 text-white" />
+              <div className="bg-white rounded-2xl animate-fade-in" style={{ boxShadow: "var(--shadow-md)" }}>
+                <div className="px-4 pt-4 pb-3" style={{ borderBottom: "1px solid var(--border)" }}>
+                  <p className="font-bold text-sm" style={{ color: "var(--text-900)" }}>Actions rapides</p>
+                </div>
+                <div className="p-2 space-y-0.5">
+                  {ACTIONS.map((a, ai) => (
+                    <button key={a.path} onClick={() => navigate(a.path)}
+                      className="w-full flex items-center gap-3 px-3 py-2.5 rounded-xl text-left animate-pay-feed"
+                      style={{ animationDelay: `${ai * 60}ms`, transition: "background 0.15s" }}
+                      onMouseEnter={e => { (e.currentTarget as HTMLElement).style.background = "var(--bg-app)"; }}
+                      onMouseLeave={e => { (e.currentTarget as HTMLElement).style.background = ""; }}
+                    >
+                      <div className="w-8 h-8 rounded-xl flex items-center justify-center flex-shrink-0"
+                        style={{ background: `linear-gradient(135deg,${a.g1},${a.g2})`, boxShadow: `0 2px 8px ${a.g1}55` }}>
+                        <a.icon style={{ width: 13, height: 13, color: "#fff" }} />
                       </div>
-                      <p className="text-xs font-semibold text-slate-700 leading-tight">{item.label}</p>
+                      <div className="flex-1 min-w-0">
+                        <p className="text-xs font-bold truncate" style={{ color: "var(--text-900)" }}>{a.label}</p>
+                        <p className="text-[10px]" style={{ color: "var(--text-300)" }}>{a.sub}</p>
+                      </div>
+                      <ChevronRight style={{ width: 12, height: 12, color: "var(--text-300)", flexShrink: 0 }} />
                     </button>
                   ))}
                 </div>
@@ -343,54 +597,62 @@ export default function Dashboard() {
             </div>
           </div>
 
-          {/* Paiements récents */}
-          <div className="bg-white rounded-2xl border border-slate-100 p-5 animate-fade-in"
-            style={{ boxShadow: "0 2px 8px rgba(15,31,61,0.06)" }}>
-            <div className="flex items-center justify-between mb-4">
+          {/* ── Paiements récents ── */}
+          <div className="bg-white rounded-2xl overflow-hidden animate-fade-in" style={{ boxShadow: "var(--shadow-md)" }}>
+            <div className="flex items-center justify-between px-6 py-4" style={{ borderBottom: "1px solid var(--border)" }}>
               <div>
-                <h2 className="text-sm font-bold text-slate-900">Paiements récents</h2>
-                <p className="text-xs text-slate-400 mt-0.5">Dernières transactions enregistrées</p>
+                <p className="font-bold text-sm" style={{ color: "var(--text-900)" }}>Paiements récents</p>
+                <p className="text-xs mt-0.5" style={{ color: "var(--text-400)" }}>Dernières transactions enregistrées</p>
               </div>
               <button onClick={() => navigate("/paiements")}
-                className="flex items-center gap-1.5 text-xs font-medium text-blue-600 hover:text-blue-700 transition-colors">
-                Tout voir <ArrowRight className="w-3.5 h-3.5" />
+                className="flex items-center gap-1.5 text-xs font-semibold px-3 py-1.5 rounded-lg"
+                style={{ color: "#6366f1", background: "rgba(99,102,241,0.08)" }}>
+                Tout voir <ArrowRight style={{ width: 12, height: 12 }} />
               </button>
             </div>
 
-            {data?.recents && data.recents.length > 0 ? (
-              <div className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-3 gap-2">
+            {data.recents && data.recents.length > 0 ? (
+              <div className="divide-y" style={{ borderColor: "var(--border)" }}>
                 {data.recents.slice(0, 6).map((p: any, i: number) => (
-                  <button key={p.idPaie} onClick={() => navigate(`/paiements/${p.idPaie}`)}
-                    className="flex items-center gap-3 p-3 rounded-xl hover:bg-slate-50 transition-colors text-left group">
-                    <div className="w-9 h-9 rounded-xl flex items-center justify-center text-xs font-bold text-white flex-shrink-0"
-                      style={{ background: AVATAR_GRADIENTS[i % AVATAR_GRADIENTS.length] }}>
+                  <button key={p.idPaie}
+                    onClick={() => navigate(`/paiements/${p.idPaie}`)}
+                    className="w-full flex items-center gap-4 px-6 py-3.5 text-left animate-pay-feed"
+                    style={{ animationDelay: `${i * 70}ms`, transition: "background 0.15s" }}
+                    onMouseEnter={e => { (e.currentTarget as HTMLElement).style.background = "var(--bg-app)"; }}
+                    onMouseLeave={e => { (e.currentTarget as HTMLElement).style.background = ""; }}
+                  >
+                    <div className="w-10 h-10 rounded-full flex items-center justify-center text-sm font-black text-white flex-shrink-0"
+                      style={{ background: `linear-gradient(135deg,${GRAD_AVA[i % GRAD_AVA.length][0]},${GRAD_AVA[i % GRAD_AVA.length][1]})`, boxShadow: `0 3px 10px ${GRAD_AVA[i % GRAD_AVA.length][0]}55` }}>
                       {p.eleve?.prenom?.[0]}{p.eleve?.nom?.[0]}
                     </div>
                     <div className="flex-1 min-w-0">
-                      <p className="text-sm font-semibold text-slate-800 truncate">{p.eleve?.prenom} {p.eleve?.nom}</p>
-                      <p className="text-xs text-slate-400">{p.mode?.libelle ?? "—"} · {timeAgo(p.datePaie)}</p>
+                      <p className="text-sm font-bold truncate" style={{ color: "var(--text-900)" }}>{p.eleve?.prenom} {p.eleve?.nom}</p>
+                      <p className="text-xs" style={{ color: "var(--text-400)" }}>{p.mode?.libelle ?? "—"} · {timeAgo(p.datePaie)}</p>
                     </div>
                     <div className="text-right flex-shrink-0">
-                      <p className="text-sm font-bold" style={{ color: "#43e97b" }}>+{p.montant?.toLocaleString("fr-FR")}</p>
-                      <p className="text-[10px] text-slate-400">FCFA</p>
+                      <p className="text-base font-black" style={{ color: "#10b981", letterSpacing: "-0.03em" }}>
+                        +{p.montant?.toLocaleString("fr-FR")}
+                      </p>
+                      <p className="text-[10px] font-bold" style={{ color: "var(--text-300)" }}>FCFA</p>
                     </div>
-                    <ArrowUpRight className="w-3.5 h-3.5 text-slate-300 group-hover:text-slate-500 transition-colors flex-shrink-0" />
+                    <ArrowUpRight style={{ width: 14, height: 14, color: "var(--text-300)", flexShrink: 0 }} />
                   </button>
                 ))}
               </div>
             ) : (
-              <div className="flex flex-col items-center justify-center py-10 text-slate-400 gap-2">
-                <TrendingUp className="w-8 h-8 opacity-20" />
+              <div className="flex flex-col items-center justify-center py-14 gap-3" style={{ color: "var(--text-300)" }}>
+                <TrendingUp style={{ width: 36, height: 36, opacity: 0.18 }} />
                 <p className="text-sm">Aucun paiement récent</p>
                 <button onClick={() => navigate("/paiements/nouveau")}
-                  className="flex items-center gap-1.5 text-xs font-semibold text-white px-4 py-2 rounded-xl mt-1"
-                  style={{ background: "linear-gradient(135deg,#43e97b,#38f9d7)" }}>
-                  <Plus className="w-3.5 h-3.5" /> Enregistrer un paiement
+                  className="flex items-center gap-1.5 text-sm font-semibold text-white px-4 py-2 rounded-xl mt-1"
+                  style={{ background: "linear-gradient(135deg,#10b981,#059669)", boxShadow: "0 4px 14px rgba(16,185,129,0.3)" }}>
+                  <Plus style={{ width: 14, height: 14 }} /> Enregistrer un paiement
                 </button>
               </div>
             )}
           </div>
-        </>
+
+        </div>
       )}
     </div>
   );
