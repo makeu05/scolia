@@ -113,58 +113,6 @@ class PaiementController extends Controller
     }
 
     // Suivi des paiements d'un élève pour une année
-    public function suiviEleve(Request $request, $matricule)
-    {
-        $request->validate([
-            'idAca' => 'required|integer',
-        ]);
-
-        // Paiements de l'élève
-        $paiements = Paiement::with(['mode'])
-            ->where('matricule', $matricule)
-            ->where('idAca', $request->idAca)
-            ->orderBy('datePaie')
-            ->get();
-
-        $totalPaye = $paiements->sum('montant');
-
-        // Scolarité du cycle de l'élève
-        $scolarite = DB::table('Frequente')
-            ->join('Salle', 'Frequente.idSalle', '=', 'Salle.idSalle')
-            ->join('Classe', 'Salle.idClasse', '=', 'Classe.idClasse')
-            ->join('Scolarite', 'Classe.idCycle', '=', 'Scolarite.idCycle')
-            ->where('Frequente.matricule', $matricule)
-            ->where('Frequente.idAcademi', $request->idAca)
-            ->select('Scolarite.*')
-            ->first();
-
-        $montantTotal = $scolarite
-            ? $scolarite->inscription + $scolarite->pension
-            : 0;
-
-        $resteAPayer = max(0, $montantTotal - $totalPaye);
-
-        // Tranches
-        $tranches = $scolarite
-            ? DB::table('Tranches')
-                ->where('idScolarite', $scolarite->idScolarite)
-                ->where('actif', 1)
-                ->get()
-            : collect();
-
-        return response()->json([
-            'matricule'    => $matricule,
-            'paiements'    => $paiements,
-            'totalPaye'    => round($totalPaye, 0),
-            'montantTotal' => round($montantTotal, 0),
-            'resteAPayer'  => round($resteAPayer, 0),
-            'tauxRecouvrement' => $montantTotal > 0
-                ? round(($totalPaye / $montantTotal) * 100, 1)
-                : 0,
-            'scolarite'    => $scolarite,
-            'tranches'     => $tranches,
-        ]);
-    }
 
     // Dashboard paiements
     public function dashboard(Request $request)
@@ -363,6 +311,116 @@ public function parClasse(Request $request)
         'tauxRecouvrement' => $montantAttendu > 0 && count($eleves) > 0
             ? round(($totalCollecte / ($montantAttendu * count($eleves))) * 100, 1)
             : 0,
+    ]);
+}
+
+public function suiviEleve(Request $request, $matricule)
+{
+    $idAca = $request->query('idAca');
+ 
+    // ── 1. Infos élève ────────────────────────────────────────────────────────
+    $eleve = DB::table('eleve')
+        ->where('matricule', $matricule)
+        ->select('matricule', 'nom', 'prenom', 'sexe', 'photoURL', 'actif')
+        ->first();
+ 
+    if (!$eleve) {
+        return response()->json(['message' => 'Élève introuvable'], 404);
+    }
+ 
+    // ── 2. Inscription active (via Frequente → Salle → Classe → Cycle → Scolarite) ──
+    $inscriptionQuery = DB::table('frequente')
+        ->join('salle',       'frequente.idSalle',    '=', 'salle.idSalle')
+        ->join('classe',      'salle.idClasse',        '=', 'classe.idClasse')
+        ->join('cycle',       'classe.idCycle',        '=', 'cycle.idCycle')
+        ->join('scolarite',   'cycle.idCycle',         '=', 'scolarite.idCycle')
+        ->join('anneeacademique', 'frequente.idAcademi', '=', 'anneeacademique.idAnnee')
+        ->where('frequente.matricule', $matricule)
+        ->select(
+            'frequente.idFrequente',
+            'frequente.idAcademi',
+            'salle.libelle as salle_libelle',
+            'classe.idClasse',
+            'classe.libelle as classe_libelle',
+            'cycle.idCycle',
+            'cycle.libelle as cycle_libelle',
+            'scolarite.idScolarite',
+            'scolarite.inscription',
+            'scolarite.pension',
+            'scolarite.nbreTranche',
+            'anneeacademique.libelle as annee_libelle'
+        );
+ 
+    if ($idAca) {
+        $inscriptionQuery->where('frequente.idAcademi', $idAca);
+    }
+ 
+    $inscription = $inscriptionQuery->latest('frequente.created_at')->first();
+ 
+    // ── 3. Total dû ───────────────────────────────────────────────────────────
+    $totalDu = $inscription
+        ? ($inscription->inscription + $inscription->pension)
+        : 0;
+ 
+    // ── 4. Paiements effectués ────────────────────────────────────────────────
+    $paiementsQuery = DB::table('paiement')
+        ->join('mode', 'paiement.idMode', '=', 'mode.idMode', 'left')
+        ->join('personne', 'paiement.idPers', '=', 'personne.idPers', 'left')
+        ->where('paiement.matricule', $matricule)
+        ->select(
+            'paiement.idPaie',
+            'paiement.montant',
+            'paiement.datePaie',
+            'paiement.dateEnregistrer',
+            'paiement.comentaire',
+            'paiement.operation_ID',
+            'paiement.idAca',
+            'mode.libelle as mode_libelle',
+            DB::raw("CONCAT(personne.prenom, ' ', personne.nom) as enregistre_par")
+        )
+        ->orderByDesc('paiement.datePaie');
+ 
+    if ($idAca) {
+        $paiementsQuery->where('paiement.idAca', $idAca);
+    }
+ 
+    $paiements   = $paiementsQuery->get();
+    $totalPaye   = $paiements->sum('montant');
+    $resteAPayer = max(0, $totalDu - $totalPaye);
+ 
+    // ── 5. Tranches de la scolarité ───────────────────────────────────────────
+    $tranches = $inscription
+        ? DB::table('tranches')
+            ->where('idScolarite', $inscription->idScolarite)
+            ->where('actif', 1)
+            ->orderBy('delai_mois')
+            ->get()
+        : collect();
+ 
+    // ── 6. Statut paiement ────────────────────────────────────────────────────
+    $statut = 'en_retard';
+    if ($totalDu === 0)           $statut = 'non_configure';
+    elseif ($resteAPayer === 0)   $statut = 'solde';
+    elseif ($totalPaye >= $inscription?->inscription) $statut = 'partiel';
+ 
+    return response()->json([
+        'eleve'       => $eleve,
+        'inscription' => $inscription,
+        'scolarite'   => $inscription ? [
+            'total_du'        => $totalDu,
+            'inscription'     => $inscription->inscription,
+            'pension'         => $inscription->pension,
+            'nbre_tranches'   => $inscription->nbreTranche,
+        ] : null,
+        'paiements'   => $paiements,
+        'tranches'    => $tranches,
+        'resume'      => [
+            'total_du'      => $totalDu,
+            'total_paye'    => $totalPaye,
+            'reste_a_payer' => $resteAPayer,
+            'pourcentage'   => $totalDu > 0 ? round(($totalPaye / $totalDu) * 100) : 0,
+            'statut'        => $statut,
+        ],
     ]);
 }
 

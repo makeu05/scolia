@@ -2,41 +2,73 @@ import { useEffect, useState } from "react";
 import { useNavigate, useParams } from "react-router-dom";
 import { Save, GraduationCap } from "lucide-react";
 import PageLayout from "../../components/layout/PageLayout";
-import { createClasse, getCycles, getClasse, updateClasse } from "../../service/classe_service";
+import { authFetch } from "../../service/auth";
+import {
+  createClasse, getCycles, getClasse, updateClasse,
+} from "../../service/classe_service";
+
+const API = import.meta.env.VITE_API_URL ?? "http://localhost:8000/api";
 
 export default function ClasseForm() {
   const navigate  = useNavigate();
   const { id }    = useParams();
   const isEdit    = !!id;
 
-  const [cycles, setCycles]   = useState<any[]>([]);
-  const [loading, setLoading] = useState(false);
-  const [saving, setSaving]   = useState(false);
-  const [error, setError]     = useState("");
+  const [cycles, setCycles]     = useState<any[]>([]);
+  const [sections, setSections] = useState<any[]>([]);
+  const [loading, setLoading]   = useState(false);
+  const [saving, setSaving]     = useState(false);
+  const [error, setError]       = useState("");
 
-  const [form, setForm] = useState({ libelle: "", idCycle: "", idAdmin: "1" });
+  const [form, setForm] = useState({
+    libelle:   "",
+    idCycle:   "",
+    idSection: "",
+    idAdmin:   "1",
+  });
 
-  useEffect(() => {
-    const load = async () => {
-      setLoading(true);
-      try {
-        const c = await getCycles();
-        setCycles(c);
-        if (isEdit && id) {
-          const cl = await getClasse(Number(id));
-          setForm({ libelle: cl.libelle, idCycle: String(cl.idCycle), idAdmin: "1" });
-        }
-      } catch (err) { console.error(err); }
-      finally { setLoading(false); }
-    };
-    load();
-  }, [id]);
+  async function load() {
+    setLoading(true);
+    try {
+      const [c, s] = await Promise.all([
+        getCycles(),
+        authFetch(`${API}/sections`).then(r => r.json()),
+      ]);
+      setCycles(Array.isArray(c) ? c : []);
+      setSections(Array.isArray(s) ? s : (s.data ?? []));
+
+      if (isEdit && id) {
+        const cl = await getClasse(Number(id));
+        setForm({
+          libelle:   cl.libelle,
+          idCycle:   String(cl.idCycle),
+          idSection: String(cl.idSection ?? ""),
+          idAdmin:   "1",
+        });
+      }
+    } catch (err) {
+      console.error(err);
+    } finally {
+      setLoading(false);
+    }
+  }
+
+  useEffect(() => { load(); }, [id]);
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
-    setSaving(true); setError("");
+    setSaving(true);
+    setError("");
     try {
-      isEdit ? await updateClasse(Number(id), form) : await createClasse(form);
+      const payload = {
+        ...form,
+        idSection: form.idSection || null,
+      };
+      if (isEdit) {
+        await updateClasse(Number(id), payload);
+      } else {
+        await createClasse(payload);
+      }
       navigate("/classes");
     } catch (err: any) {
       setError(err.message || "Une erreur est survenue");
@@ -133,6 +165,25 @@ export default function ClasseForm() {
                   </button>
                 ))}
               </div>
+            </div>
+
+            <div className="space-y-1.5">
+              <label className="block text-sm font-medium text-slate-700">
+                Section <span className="text-slate-400 font-normal text-xs">(optionnel)</span>
+              </label>
+              <select
+                value={form.idSection}
+                onChange={e => setForm({ ...form, idSection: e.target.value })}
+                className="input w-full"
+              >
+                <option value="">— Aucune section —</option>
+                {sections.map(s => (
+                  <option key={s.idSection} value={s.idSection}>{s.libelle}</option>
+                ))}
+              </select>
+              {sections.length === 0 && (
+                <p className="text-xs text-slate-400">Aucune section configurée.</p>
+              )}
             </div>
 
             <div className="flex gap-3 pt-2">

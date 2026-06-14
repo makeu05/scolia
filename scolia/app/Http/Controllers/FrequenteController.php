@@ -111,34 +111,66 @@ class FrequenteController extends Controller
     }
 
     // Élèves d'une classe pour une année — utilisé dans saisie notes
-    public function elevesByClasse(Request $request)
-    {
-        $request->validate([
-            'idClasse'  => 'required|integer',
-            'idAcademi' => 'required|integer',
-        ]);
-
-        $eleves = DB::table('Frequente')
-            ->join('Eleve', 'Frequente.matricule', '=', 'Eleve.matricule')
-            ->join('Salle', 'Frequente.idSalle', '=', 'Salle.idSalle')
-            ->where('Salle.idClasse', $request->idClasse)
-            ->where('Frequente.idAcademi', $request->idAcademi)
-            ->where('Eleve.actif', 1)
-            ->select(
-                'Eleve.matricule',
-                'Eleve.nom',
-                'Eleve.prenom',
-                'Eleve.sexe',
-                'Salle.libelle as salle',
-                'Frequente.idFrequente',
-                'Frequente.commentaire'
-            )
-            ->orderBy('Eleve.nom')
-            ->get();
-
-        return response()->json($eleves);
+   public function elevesByClasse(Request $request)
+{
+    // ✅ Lire depuis query string (GET) sans validate() qui cause le 422
+    $idClasse = $request->query('idClasse');
+ 
+    if (!$idClasse) {
+        return response()->json(['message' => 'idClasse requis'], 422);
     }
-
+ 
+    try {
+        $eleves = DB::table('frequente')
+            ->join('salle',           'frequente.idSalle',   '=', 'salle.idSalle')
+            ->join('eleve',           'frequente.matricule', '=', 'eleve.matricule')
+            ->join('anneeacademique', 'frequente.idAcademi', '=', 'anneeacademique.idAnnee')
+            ->where('salle.idClasse', $idClasse)
+            ->select(
+                'frequente.idFrequente',
+                'frequente.matricule',
+                'frequente.commentaire',
+                'eleve.nom',
+                'eleve.prenom',
+                'eleve.sexe',
+                'eleve.photoURL',
+                'eleve.actif',
+                'salle.idSalle',
+                'salle.libelle as salle_libelle',
+                'anneeacademique.idAnnee',
+                'anneeacademique.libelle as annee_libelle'
+            )
+            ->orderBy('eleve.nom')
+            ->get()
+            ->map(fn($row) => [
+                'idFrequente' => $row->idFrequente,
+                'matricule'   => $row->matricule,
+                'commentaire' => $row->commentaire,
+                'eleve' => [
+                    'matricule' => $row->matricule,
+                    'nom'       => $row->nom,
+                    'prenom'    => $row->prenom,
+                    'sexe'      => $row->sexe ?? null,
+                    'photoURL'     => $row->photoURL ?? null,
+                    'actif'     => $row->actif,
+                ],
+                'salle' => [
+                    'idSalle' => $row->idSalle,
+                    'libelle' => $row->salle_libelle,
+                ],
+                'anneeAcademique' => [
+                    'idAnnee' => $row->idAnnee,
+                    'libelle' => $row->annee_libelle,
+                ],
+            ]);
+ 
+        return response()->json($eleves);
+ 
+    } catch (\Exception $e) {
+        return response()->json(['message' => 'Erreur : ' . $e->getMessage()], 500);
+    }
+}
+ 
     /**
  * Afficher une inscription spécifique (détail)
  */

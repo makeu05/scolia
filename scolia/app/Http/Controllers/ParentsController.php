@@ -134,4 +134,30 @@ class ParentsController extends Controller
         'data'    => $enfants,
     ]);
 }
+
+public function monId(Request $request)
+{
+    // Récupérer le username depuis le token Sanctum
+    $user     = $request->user();
+    $username = str_replace('@scolia.local', '', $user->email);
+
+    // Trouver l'idPers de cette personne
+    $personne = DB::table('personne')
+        ->where('username', $username)
+        ->first();
+
+    if (!$personne) {
+        return response()->json(['idParent' => null], 404);
+    }
+
+    // Chercher dans parents par idPers
+    $parent = DB::table('parents')
+        ->where('idPers', $personne->idPers)
+        ->first();
+
+    return response()->json([
+        'idParent' => $parent?->idParent,
+        'idPers'   => $personne->idPers,
+    ]);
+}
 }

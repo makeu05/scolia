@@ -11,13 +11,19 @@ class Eleve extends Model {
     public $timestamps = false;
  
     protected $fillable = [
-        'matricule', 'nom', 'prenom', 'dateNaissance', 'lieuNaissance',
-        'sexe', 'langue', 'photoURL', 'actif', 'idVilleNaissance', 'idAdmin',
-    ];
+    'matricule', 'nom', 'prenom', 'dateNaissance', 'lieuNaissance',
+    'sexe', 'langue', 'photoURL', 'actif', 'idAdmin',
+    // ✅ Ajouter ces lignes
+    'religion',
+    'situation_familiale',
+    'contact_urgence_nom',
+    'contact_urgence_tel',
+    'contact_urgence_lien',
+    'tuteur_nom',
+    'tuteur_tel',
+    'tuteur_profession',
+];
  
-    public function villeNaissance() {
-        return $this->belongsTo(VilleNaissance::class, 'idVilleNaissance', 'idVille');
-    }
  
     public function parents() {
         return $this->hasMany(Parents::class, 'matricule', 'matricule');
@@ -38,4 +44,13 @@ class Eleve extends Model {
     public function rapports() {
         return $this->hasMany(Rapport::class, 'matricule', 'matricule');
     }
+    public function sante()
+{
+    return $this->hasOne(EleveSante::class, 'matricule', 'matricule');
+}
+
+public function scolariteAnterieure()
+{
+    return $this->hasMany(EleveScolariteAnterieure::class, 'matricule', 'matricule');
+}
 }

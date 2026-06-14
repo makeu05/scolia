@@ -205,67 +205,146 @@ class EvaluationController extends Controller
     }
 
     // ── BULLETIN ──────────────────────────────────────────────────────────────
-    public function bulletin($matricule, Request $request)
-    {
-        $request->validate(['idTrimestre' => 'required|integer']);
 
-        $eleve = \App\Models\Eleve::findOrFail($matricule);
+public function bulletin($matricule, Request $request)
+{
+    // ✅ idAca est optionnel, ne pas le valider comme required
+    $request->validate(['idTrimestre' => 'required|integer']);
 
-        $frequente = DB::table('Frequente')
-            ->join('Salle', 'Frequente.idSalle', '=', 'Salle.idSalle')
-            ->join('Classe', 'Salle.idClasse', '=', 'Classe.idClasse')
-            ->join('AnneeAcademique', 'Frequente.idAcademi', '=', 'AnneeAcademique.idAnnee')
-            ->where('Frequente.matricule', $matricule)
-            ->select('Classe.*', 'AnneeAcademique.libelle as annee')
-            ->latest('AnneeAcademique.idAnnee')
-            ->first();
+    $eleve = \App\Models\Eleve::findOrFail($matricule);
 
-        $trimestre = DB::table('Trimestre')->where('idTrimes', $request->idTrimestre)->first();
+    // Inscription de l'élève
+    $frequenteQuery = DB::table('Frequente')
+        ->join('Salle',           'Frequente.idSalle',   '=', 'Salle.idSalle')
+        ->join('Classe',          'Salle.idClasse',       '=', 'Classe.idClasse')
+        ->join('AnneeAcademique', 'Frequente.idAcademi', '=', 'AnneeAcademique.idAnnee')
+        ->where('Frequente.matricule', $matricule)
+        ->select('Classe.*', 'AnneeAcademique.libelle as annee', 'AnneeAcademique.idAnnee');
 
-        $sessions = DB::table('Session')
-            ->where('idTrimestre', $request->idTrimestre)
-            ->pluck('idSession');
-
-        $evaluations = Evaluation::with(['cours', 'epreuve.nature'])
-            ->where('matricule', $matricule)
-            ->whereIn('idSession', $sessions)
-            ->get();
-
-        $parCours     = $evaluations->groupBy('idCours');
-        $resultats    = [];
-        $totalPondere = 0;
-        $totalCoeff   = 0;
-
-        foreach ($parCours as $idCours => $notes) {
-            $cours       = $notes->first()->cours;
-            $coefficient = $cours->coefficient ?? 1;
-            $moyenne     = $notes->avg('note');
-
-            $totalPondere += $moyenne * $coefficient;
-            $totalCoeff   += $coefficient;
-
-            $resultats[] = [
-                'cours'        => $cours->libelle,
-                'coefficient'  => $coefficient,
-                'moyenne'      => round($moyenne, 2),
-                'appreciation' => $this->getAppreciation($moyenne),
-            ];
-        }
-
-        $moyenneGenerale = $totalCoeff > 0 ? round($totalPondere / $totalCoeff, 2) : 0;
-        $classement      = $this->getClassement($matricule, $request->idTrimestre, $frequente?->idClasse);
-
-        return response()->json([
-            'eleve'           => $eleve,
-            'classe'          => $frequente,
-            'trimestre'       => $trimestre,
-            'resultats'       => $resultats,
-            'moyenneGenerale' => $moyenneGenerale,
-            'mention'         => $this->getMention($moyenneGenerale),
-            'classement'      => $classement,
-        ]);
+    // Filtrer par année si fournie
+    if ($request->filled('idAca')) {
+        $frequenteQuery->where('Frequente.idAcademi', $request->idAca);
     }
 
+    $frequente = $frequenteQuery->latest('AnneeAcademique.idAnnee')->first();
+
+    $trimestre = DB::table('Trimestre')->where('idTrimes', $request->idTrimestre)->first();
+
+    $sessions = DB::table('Session')
+        ->where('idTrimestre', $request->idTrimestre)
+        ->pluck('idSession');
+
+    $evaluations = Evaluation::with(['cours', 'epreuve.nature'])
+        ->where('matricule', $matricule)
+        ->whereIn('idSession', $sessions)
+        ->get();
+
+    $parCours     = $evaluations->groupBy('idCours');
+    $matieres     = [];  // ✅ renommé resultats → matieres
+    $totalPondere = 0;
+    $totalCoeff   = 0;
+
+    foreach ($parCours as $idCours => $notes) {
+        $cours       = $notes->first()->cours;
+        $coefficient = $cours->coefficient ?? 1;
+        $moyenne     = round($notes->avg('note'), 2);
+
+        $totalPondere += $moyenne * $coefficient;
+        $totalCoeff   += $coefficient;
+
+        // ✅ Récupérer l'enseignant du cours
+        $enseignant = DB::table('Enseignant')
+            ->join('Personne', 'Enseignant.idPers', '=', 'Personne.idPers')
+            ->where('Enseignant.idCours', $idCours)
+            ->select('Personne.nom', 'Personne.prenom')
+            ->first();
+
+        // ✅ Moyenne de la classe pour cette matière
+        $moyenneClasse = null;
+        if ($frequente?->idClasse) {
+            $matriculesClasse = DB::table('Frequente')
+                ->join('Salle', 'Frequente.idSalle', '=', 'Salle.idSalle')
+                ->where('Salle.idClasse', $frequente->idClasse)
+                ->pluck('Frequente.matricule');
+
+            $evalsClasse = Evaluation::where('idCours', $idCours)
+                ->whereIn('idSession', $sessions)
+                ->whereIn('matricule', $matriculesClasse)
+                ->get();
+
+            if ($evalsClasse->count() > 0) {
+                // Moyenne des moyennes par élève
+                $moyennesEleves = $evalsClasse->groupBy('matricule')
+                    ->map(fn($e) => $e->avg('note'));
+                $moyenneClasse = round($moyennesEleves->avg(), 2);
+            }
+        }
+
+        $matieres[] = [
+            'idCours'        => $idCours,
+            'libelle'        => $cours->libelle,
+            'coefficient'    => $coefficient,
+            'moyenne'        => $moyenne,
+            'moyenne_classe' => $moyenneClasse,
+            'note_max'       => $cours->note ?? 20,
+            'appreciation'   => $this->getAppreciation($moyenne),
+            'enseignant'     => $enseignant ? [
+                'nom'    => $enseignant->nom,
+                'prenom' => $enseignant->prenom,
+            ] : null,
+            // Détail des notes (épreuves)
+            'notes'          => $notes->map(fn($e) => [
+                'note'     => $e->note,
+                'epreuve'  => $e->epreuve?->libelle ?? '',
+                'nature'   => $e->epreuve?->nature?->libelle ?? '',
+            ])->values(),
+        ];
+    }
+
+    $moyenneGenerale = $totalCoeff > 0 ? round($totalPondere / $totalCoeff, 2) : 0;
+    $classement      = $this->getClassement($matricule, $request->idTrimestre, $frequente?->idClasse);
+
+    // ✅ Moyenne de classe globale
+    $moyenneClasseGlobale = null;
+    if ($frequente?->idClasse) {
+        $matriculesClasse = DB::table('Frequente')
+            ->join('Salle', 'Frequente.idSalle', '=', 'Salle.idSalle')
+            ->where('Salle.idClasse', $frequente->idClasse)
+            ->pluck('Frequente.matricule');
+
+        $moyennesEleves = [];
+        foreach ($matriculesClasse as $mat) {
+            $evals = Evaluation::with('cours')
+                ->where('matricule', $mat)
+                ->whereIn('idSession', $sessions)
+                ->get();
+            $tp = 0; $tc = 0;
+            foreach ($evals->groupBy('idCours') as $ev) {
+                $c   = $ev->first()->cours->coefficient ?? 1;
+                $tp += $ev->avg('note') * $c;
+                $tc += $c;
+            }
+            if ($tc > 0) $moyennesEleves[] = $tp / $tc;
+        }
+        if (count($moyennesEleves) > 0) {
+            $moyenneClasseGlobale = round(array_sum($moyennesEleves) / count($moyennesEleves), 2);
+        }
+    }
+
+    return response()->json([
+        'eleve'            => $eleve,
+        'classe'           => $frequente,
+        'trimestre'        => $trimestre,
+        'matieres'         => $matieres,          // ✅ matieres (pas resultats)
+        'resultats'        => $matieres,           // ✅ compatibilité avec l'ancien code
+        'moyenneGenerale'  => $moyenneGenerale,
+        'moyenneClasse'    => $moyenneClasseGlobale,
+        'mention'          => $this->getMention($moyenneGenerale),
+        'rang'             => $classement['rang'],
+        'effectif'         => $classement['total'],
+        'classement'       => $classement,
+    ]);
+}
     // ── CLASSEMENT ────────────────────────────────────────────────────────────
     public function classement(Request $request)
     {
