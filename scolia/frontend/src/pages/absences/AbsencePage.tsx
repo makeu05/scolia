@@ -3,10 +3,11 @@
 import { useEffect, useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import {
-  UserX, Plus, Search, Filter, CheckCircle,
-  AlertTriangle, Clock, Trash2, Edit, ChevronRight,
+  UserX, Plus, CheckCircle,
+  AlertTriangle, Clock, Trash2,
 } from 'lucide-react';
 import { authFetch } from '../../service/auth';
+import { useAnnee } from '../../context/AnneeContext'; // ✅ import contexte
 
 const API = import.meta.env.VITE_API_URL ?? 'http://localhost:8000/api';
 
@@ -22,18 +23,20 @@ const STATUT_CONFIG = {
 
 export default function AbsencePage() {
   const navigate = useNavigate();
+
+  // ✅ Année depuis le contexte global
+  const { idAca, annees, setIdAca } = useAnnee();
+
   const [absences, setAbsences]   = useState<any[]>([]);
   const [meta, setMeta]           = useState<any>(null);
   const [loading, setLoading]     = useState(true);
-  const [annees, setAnnees]       = useState<any[]>([]);
   const [cours, setCours]         = useState<any[]>([]);
+  const [classes, setClasses]     = useState<any[]>([]);
 
-  // Filtres
-  const [search, setSearch]       = useState('');
-  const [statut, setStatut]       = useState('');
-  const [mode, setMode]           = useState('');
-  const [idAca, setIdAca]         = useState('');
-  const [page, setPage]           = useState(1);
+  // Filtres locaux
+  const [statut, setStatut]   = useState('');
+  const [mode, setMode]       = useState('');
+  const [page, setPage]       = useState(1);
 
   // Modal saisie
   const [showForm, setShowForm]   = useState(false);
@@ -42,7 +45,7 @@ export default function AbsencePage() {
   // Form individuelle
   const [form, setForm] = useState({
     matricule: '', nom_eleve: '',
-    idAca: '', date_absence: new Date().toISOString().split('T')[0],
+    date_absence: new Date().toISOString().split('T')[0],
     mode: 'journee', statut: 'non_justifiee',
     idCours: '', motif: '', nb_heures: '1',
   });
@@ -52,7 +55,6 @@ export default function AbsencePage() {
   const [errForm, setErrForm]             = useState('');
 
   // Form classe (bulk)
-  const [classes, setClasses]             = useState<any[]>([]);
   const [idClasseSelected, setIdClasseSelected] = useState('');
   const [elevesClasse, setElevesClasse]   = useState<any[]>([]);
   const [absencesBulk, setAbsencesBulk]  = useState<Record<string, { checked: boolean; statut: string; motif: string }>>({});
@@ -77,23 +79,14 @@ export default function AbsencePage() {
   };
 
   useEffect(() => {
-    load();
-    authFetch(`${API}/annees`).then(r => r.json()).then(d => {
-      const list = Array.isArray(d) ? d : (d.data ?? []);
-      setAnnees(list);
-      if (list.length > 0) {
-        const derniere = list[list.length - 1];
-        setIdAca(String(derniere.idAnnee));
-        setForm(f => ({ ...f, idAca: String(derniere.idAnnee) }));
-      }
-    });
+    // ✅ Plus besoin de charger les années ici, elles viennent du contexte
     authFetch(`${API}/cours?paginate=false`).then(r => r.json()).then(d => setCours(Array.isArray(d) ? d : (d.data ?? [])));
     authFetch(`${API}/classes?paginate=false`).then(r => r.json()).then(d => setClasses(Array.isArray(d) ? d : (d.data ?? [])));
   }, []);
 
-  useEffect(() => { load(); }, [page, statut, mode, idAca]);
+  // ✅ Recharger quand idAca change (depuis le contexte)
+  useEffect(() => { if (idAca) load(); }, [page, statut, mode, idAca]);
 
-  // Recherche élève
   const searchEleve = async () => {
     if (elevesSearch.length < 2) return;
     const res  = await authFetch(`${API}/eleves?search=${encodeURIComponent(elevesSearch)}`);
@@ -101,7 +94,6 @@ export default function AbsencePage() {
     setElevesResults(data.data ?? []);
   };
 
-  // Charger élèves d'une classe
   const loadElevesClasse = async (idClasse: string) => {
     if (!idClasse) return;
     const res  = await authFetch(`${API}/inscriptions/eleves-classe?idClasse=${idClasse}`);
@@ -115,7 +107,6 @@ export default function AbsencePage() {
     setAbsencesBulk(init);
   };
 
-  // Saisie individuelle
   const handleStore = async (e: React.FormEvent) => {
     e.preventDefault();
     setSaving(true); setErrForm('');
@@ -127,7 +118,7 @@ export default function AbsencePage() {
         body: JSON.stringify({
           ...form,
           matricule: Number(form.matricule),
-          idAca:     Number(form.idAca),
+          idAca:     Number(idAca), // ✅ depuis le contexte
           idCours:   form.idCours ? Number(form.idCours) : null,
           nb_heures: Number(form.nb_heures),
           idPers,
@@ -141,7 +132,6 @@ export default function AbsencePage() {
     finally { setSaving(false); }
   };
 
-  // Saisie en masse
   const handleBulk = async () => {
     setSaving(true); setErrForm('');
     try {
@@ -157,7 +147,7 @@ export default function AbsencePage() {
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
           absences:     absents,
-          idAca:        Number(form.idAca),
+          idAca:        Number(idAca), // ✅ depuis le contexte
           date_absence: bulkDate,
           mode:         bulkMode,
           idCours:      bulkIdCours ? Number(bulkIdCours) : null,
@@ -193,7 +183,13 @@ export default function AbsencePage() {
               <p className="text-orange-100 text-xs font-semibold uppercase tracking-wider">Suivi</p>
             </div>
             <h1 className="text-white text-2xl font-bold" style={{ letterSpacing: '-0.03em' }}>Absences & Retards</h1>
-            <p className="text-orange-100/70 text-sm mt-1">{meta?.total ?? 0} enregistrement(s)</p>
+            {/* ✅ Affiche l'année active */}
+            <p className="text-orange-100/70 text-sm mt-1">
+              {meta?.total ?? 0} enregistrement(s)
+              {annees.find(a => String(a.idAnnee) === idAca)?.libelle
+                ? ` · ${annees.find(a => String(a.idAnnee) === idAca)?.libelle}`
+                : ''}
+            </p>
           </div>
           <button onClick={() => setShowForm(true)}
             className="flex items-center gap-2 bg-white text-orange-600 font-semibold text-sm px-5 py-3 rounded-xl hover:bg-orange-50 transition-all"
@@ -205,9 +201,13 @@ export default function AbsencePage() {
 
       {/* Filtres */}
       <div className="flex gap-3 flex-wrap">
+        {/* ✅ Sélecteur d'année lié au contexte global */}
         <select value={idAca} onChange={e => setIdAca(e.target.value)} className="input min-w-[200px]">
-          <option value="">Toutes les années</option>
-          {annees.map((a: any) => <option key={a.idAnnee} value={a.idAnnee}>{a.libelle}</option>)}
+          {annees.map((a: any) => (
+            <option key={a.idAnnee} value={a.idAnnee}>
+              {a.libelle}{a.statut === 'active' ? ' ✓' : a.statut === 'cloturee' ? ' 🔒' : ''}
+            </option>
+          ))}
         </select>
         <select value={statut} onChange={e => setStatut(e.target.value)} className="input min-w-[160px]">
           <option value="">Tous les statuts</option>
@@ -302,12 +302,18 @@ export default function AbsencePage() {
         <div className="fixed inset-0 bg-black/30 z-50 flex items-center justify-center p-4">
           <div className="bg-white rounded-2xl w-full max-w-2xl max-h-[90vh] overflow-y-auto p-6 space-y-5 shadow-2xl">
             <div className="flex items-center justify-between">
-              <h3 className="text-base font-bold text-slate-900">Saisir une absence</h3>
+              <div>
+                <h3 className="text-base font-bold text-slate-900">Saisir une absence</h3>
+                {/* ✅ Rappel de l'année active dans le modal */}
+                <p className="text-xs text-slate-400 mt-0.5">
+                  {annees.find(a => String(a.idAnnee) === idAca)?.libelle}
+                </p>
+              </div>
               <button onClick={() => { setShowForm(false); setErrForm(''); }}
                 className="p-1.5 hover:bg-slate-100 rounded-lg text-slate-400">✕</button>
             </div>
 
-            {/* Onglets mode saisie */}
+            {/* Onglets */}
             <div className="flex gap-1 p-1 bg-slate-100 rounded-xl w-fit">
               {(['individuelle', 'classe'] as const).map(m => (
                 <button key={m} onClick={() => setFormMode(m)}
@@ -319,12 +325,13 @@ export default function AbsencePage() {
               ))}
             </div>
 
-            {errForm && <div className="p-3 bg-red-50 border border-red-200 rounded-xl text-sm text-red-600">{errForm}</div>}
+            {errForm && (
+              <div className="p-3 bg-red-50 border border-red-200 rounded-xl text-sm text-red-600">{errForm}</div>
+            )}
 
             {/* ── Individuelle ── */}
             {formMode === 'individuelle' && (
               <form onSubmit={handleStore} className="space-y-4">
-                {/* Recherche élève */}
                 <div className="space-y-1">
                   <label className="text-xs font-semibold text-slate-600 uppercase tracking-wide">Élève *</label>
                   {form.matricule ? (
@@ -386,11 +393,13 @@ export default function AbsencePage() {
                     </div>
                   )}
                 </div>
+
                 <div className="space-y-1">
                   <label className="text-xs font-semibold text-slate-600 uppercase tracking-wide">Motif</label>
                   <input type="text" value={form.motif} onChange={e => setForm(f => ({ ...f, motif: e.target.value }))}
                     placeholder="Optionnel" className="input w-full" />
                 </div>
+
                 <div className="flex gap-3">
                   <button type="button" onClick={() => setShowForm(false)} className="btn-secondary flex-1">Annuler</button>
                   <button type="submit" disabled={saving || !form.matricule} className="btn-primary flex-1 gap-2">
@@ -476,7 +485,7 @@ export default function AbsencePage() {
                     <div className="flex gap-3">
                       <button onClick={() => setShowForm(false)} className="btn-secondary flex-1">Annuler</button>
                       <button onClick={handleBulk} disabled={saving} className="btn-primary flex-1">
-                        {saving ? 'Enregistrement…' : `Enregistrer les absences`}
+                        {saving ? 'Enregistrement…' : 'Enregistrer les absences'}
                       </button>
                     </div>
                   </>

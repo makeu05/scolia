@@ -12,34 +12,24 @@ class FrequenteController extends Controller
 {
     // Liste des élèves inscrits — filtrable par classe et année
     public function index(Request $request)
-    {
-        $query = Frequente::with([
-            'eleve',
-            'salle.classe.cycle',
-            'anneeAcademique'
-        ]);
+{
+    $query = Frequente::with(['eleve', 'salle.classe', 'anneeAcademique']);
 
-        if ($request->filled('idAcademi')) {
-            $query->where('idAcademi', $request->idAcademi);
-        }
-
-        if ($request->filled('idClasse')) {
-            $query->whereHas('salle', function ($q) use ($request) {
-                $q->where('idClasse', $request->idClasse);
-            });
-        }
-
-        if ($request->filled('search')) {
-            $search = $request->search;
-            $query->whereHas('eleve', function ($q) use ($search) {
-                $q->where('nom', 'like', "%$search%")
-                  ->orWhere('prenom', 'like', "%$search%")
-                  ->orWhere('matricule', 'like', "%$search%");
-            });
-        }
-
-        return response()->json($query->paginate(15));
+    // ✅ Filtrer par année
+    if ($request->filled('idAca')) {
+        $query->where('idAcademi', $request->idAca);
     }
+    if ($request->filled('search')) {
+        $s = $request->search;
+        $query->whereHas('eleve', fn($q) =>
+            $q->where('nom', 'like', "%$s%")
+              ->orWhere('prenom', 'like', "%$s%")
+              ->orWhere('matricule', 'like', "%$s%")
+        );
+    }
+
+    return response()->json($query->paginate(15));
+}
 
     // Inscrire un élève dans une classe
     public function store(Request $request)

@@ -1,43 +1,31 @@
-// src/components/layout/AppLayout.tsx
-// Layout principal — TopNav + contenu de la page
-
-import { useState, useEffect } from "react";
-import { authFetch } from "../../service/auth";
+// src/components/layout/AppLayout.tsx — Sidebar + Header layout
+import { useState } from "react";
 import TopNav from "./TopNav";
-
-const API = import.meta.env.VITE_API_URL ?? "http://localhost:8000/api";
+import Sidebar from "../../pages/composants/sidebar";
 
 interface AppLayoutProps {
   children: React.ReactNode;
 }
 
 export default function AppLayout({ children }: AppLayoutProps) {
-  const [annees, setAnnees]         = useState<{ idAnnee: number; libelle: string }[]>([]);
-  const [selectedAnnee, setSelectedAnnee] = useState<string>("");
-
-  useEffect(() => {
-    authFetch(`${API}/annees`)
-      .then(r => r.json())
-      .then((data: any) => {
-        const list = Array.isArray(data) ? data : (data.data ?? []);
-        setAnnees(list);
-        if (list.length > 0) {
-          setSelectedAnnee(String(list[list.length - 1].idAnnee));
-        }
-      })
-      .catch(() => {});
-  }, []);
+  // Open by default on desktop, closed on mobile (lg = 1024px)
+  const [sidebarOpen, setSidebarOpen] = useState(() => window.innerWidth >= 1024);
 
   return (
-    <div className="min-h-screen bg-slate-50 flex flex-col">
-      <TopNav
-        annees={annees}
-        selectedAnnee={selectedAnnee}
-        onAnneeChange={setSelectedAnnee}
+    <div className="flex h-screen overflow-hidden bg-[#f7f8fc]">
+
+      <Sidebar
+        open={sidebarOpen}
+        onClose={() => setSidebarOpen(false)}
       />
-      <main className="flex-1">
-        {children}
-      </main>
+
+      {/* Main area */}
+      <div className="flex-1 flex flex-col min-w-0 overflow-hidden">
+        <TopNav onMenuToggle={() => setSidebarOpen(v => !v)} />
+        <main className="flex-1 overflow-y-auto">
+          {children}
+        </main>
+      </div>
     </div>
   );
 }

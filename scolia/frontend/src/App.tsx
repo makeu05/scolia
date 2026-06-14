@@ -103,6 +103,8 @@ import MonProfil          from "./pages/mon-profil/MonProfil";
 // ==================== NOTIFICATIONS ====================
 import NotificationsPage from "./pages/notifications/NotificationsPage";
 
+import PromotionPage from './pages/annees/PromotionPage';
+
 
 
 import { getUser } from './service/auth';
@@ -159,6 +161,7 @@ export default function App() {
 
       {/* ── ANNÉES ──────────────────────────────────────── */}
       <Route path="/annees" element={<Page roles={ADMIN_ROLES}><AnneesPage /></Page>} />
+<Route path="/promotions" element={<Page roles={["root","admin","directeur"]}><PromotionPage /></Page>} />
 
       {/* ── CLASSES ─────────────────────────────────────── */}
       <Route path="/classes"              element={<Page roles={ADMIN_ROLES}><ClassesPage /></Page>} />
