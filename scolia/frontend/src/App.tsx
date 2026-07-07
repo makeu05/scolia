@@ -104,6 +104,8 @@ import MonProfil          from "./pages/mon-profil/MonProfil";
 import NotificationsPage from "./pages/notifications/NotificationsPage";
 
 import PromotionPage from './pages/annees/PromotionPage';
+import EtablissementPage from './pages/etablissement/EtablissementPage';
+
 
 
 
@@ -256,6 +258,7 @@ export default function App() {
       <Route path="/communication"   element={<Page><CommunicationPage /></Page>} />
       <Route path="/mon-profil"      element={<Page><MonProfil /></Page>} />
       <Route path="/notifications"   element={<Page><NotificationsPage /></Page>} />
+      <Route path="/etablissement" element={<Page roles={["root","admin"]}><EtablissementPage /></Page>} />
 
       {/* ── 404 ─────────────────────────────────────────── */}
       <Route path="*" element={

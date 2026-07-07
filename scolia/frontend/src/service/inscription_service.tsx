@@ -166,9 +166,9 @@ export async function getElevesByClasse(
 // ─── Données annexes ─────────────────────────────────────────────────────────
 
 export async function getClasses(): Promise<Classe[]> {
-  const res = await fetch(`${API}/classes`, { headers: authHeaders() });
+  const res = await fetch(`${API}/classes?paginate=false`, { headers: authHeaders() });
   const data = await handleResponse<any>(res);
-  return data.data ?? data;
+  return Array.isArray(data) ? data : (data.data ?? []);
 }
 
 export async function getSallesByClasse(idClasse: number | string): Promise<Salle[]> {

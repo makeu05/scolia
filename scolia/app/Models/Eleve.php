@@ -22,6 +22,7 @@ class Eleve extends Model {
     'tuteur_nom',
     'tuteur_tel',
     'tuteur_profession',
+    'region'
 ];
  
  

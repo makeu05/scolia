@@ -6,8 +6,11 @@ import {
   Plus, Upload, Loader2, FileText, Download, X, Phone,
   User, Droplets, AlertTriangle, CheckCircle, Shield,
   Calendar, MapPin, Globe, BookOpen, Activity, Users,
+  IdCard, Award,
 } from "lucide-react";
 import ParentsSection from "./ParentsSection";
+import { imprimerCarteEtudiant, imprimerCertificatScolarite } from "../../utils/documents_officiels";
+import { useAnnee } from "../../context/AnneeContext";
 
 const API    = import.meta.env.VITE_API_URL ?? "http://localhost:8000/api";
 const SERVER = import.meta.env.VITE_API_URL
@@ -48,6 +51,7 @@ const TABS: { id: Tab; label: string; icon: React.ElementType; color: string }[]
 export default function EleveDetails() {
   const { matricule } = useParams<{ matricule: string }>();
   const navigate      = useNavigate();
+  const { anneeActive } = useAnnee();
 
   const [eleve, setEleve]                     = useState<any>(null);
   const [sante, setSante]                     = useState<any>(null);
@@ -56,6 +60,10 @@ export default function EleveDetails() {
   const [error, setError]                     = useState('');
   const [tab, setTab]                         = useState<Tab>("infos");
   const [santeDisponible, setSanteDisponible] = useState(true);
+
+  // ✅ Établissement + scolarité actuelle (pour carte & certificat)
+  const [etab, setEtab]           = useState<any>(null);
+  const [scolarite, setScolarite] = useState<{ classe?: string; annee?: string }>({});
 
   const [editingSante, setEditingSante]   = useState(false);
   const [santeForm, setSanteForm]         = useState<any>({});
@@ -107,6 +115,29 @@ export default function EleveDetails() {
         setAnterieur(Array.isArray(antData) ? antData : []);
       }
     } catch { setAnterieur([]); }
+
+    // ✅ Infos établissement (carte + certificat)
+    try {
+      const etabRes = await authFetch(`${API}/etablissement`);
+      if (etabRes.ok) setEtab(await etabRes.json());
+    } catch { /* ignore */ }
+
+    // ✅ Classe + année actuelle de l'élève (depuis ses inscriptions)
+    try {
+      const inscRes = await authFetch(`${API}/inscriptions?search=${matricule}`);
+      if (inscRes.ok) {
+        const inscData = await inscRes.json();
+        const list = Array.isArray(inscData) ? inscData : (inscData.data ?? []);
+        const insc = list.find((i: any) => String(i.matricule) === String(matricule)) ?? list[0];
+        if (insc) {
+          setScolarite({
+            classe: insc.salle?.classe?.libelle ?? insc.salle?.libelle ?? '',
+            annee:  insc.anneeAcademique?.libelle ?? '',
+          });
+        }
+      }
+    } catch { /* ignore */ }
+
     setLoading(false);
   };
 
@@ -250,11 +281,9 @@ export default function EleveDetails() {
             boxShadow: '0 16px 48px rgba(15,31,61,0.35)',
           }}
         >
-          {/* Dots pattern */}
           <div className="absolute inset-0 opacity-[0.06] pointer-events-none"
             style={{ backgroundImage: 'radial-gradient(circle, #fff 1px, transparent 1px)', backgroundSize: '18px 18px' }}
           />
-          {/* Right glow */}
           <div className="absolute right-0 top-0 w-64 h-64 rounded-full opacity-[0.08] pointer-events-none"
             style={{ background: 'radial-gradient(circle, #4f46e5, transparent)', transform: 'translate(30%, -30%)' }}
           />
@@ -309,7 +338,6 @@ export default function EleveDetails() {
                 </span>
               </div>
 
-              {/* Info chips */}
               <div className="flex flex-wrap gap-2 mt-3 justify-center sm:justify-start">
                 {eleve.dateNaissance && (
                   <span className="flex items-center gap-1 text-xs text-white/65 bg-white/10 px-2.5 py-1 rounded-full backdrop-blur-sm">
@@ -344,7 +372,7 @@ export default function EleveDetails() {
             </div>
 
             {/* Actions */}
-            <div className="flex flex-row sm:flex-col gap-2 flex-shrink-0">
+            <div className="flex flex-row sm:flex-col gap-2 flex-shrink-0 flex-wrap justify-center">
               <button
                 onClick={() => navigate(`/eleves/${matricule}/paiements`)}
                 className="flex items-center justify-center gap-1.5 text-sm font-semibold px-3 py-2 rounded-xl transition-all"
@@ -353,6 +381,33 @@ export default function EleveDetails() {
                 <CreditCard style={{ width: 14, height: 14 }} />
                 <span className="hidden sm:inline">Paiements</span>
               </button>
+
+              {/* ✅ Carte d'étudiant */}
+              <button
+                onClick={() => imprimerCarteEtudiant(eleve, etab, {
+                  classe: scolarite.classe ?? '',
+                  annee: scolarite.annee || anneeActive?.libelle || '',
+                })}
+                className="flex items-center justify-center gap-1.5 text-sm font-semibold px-3 py-2 rounded-xl transition-all"
+                style={{ background: 'rgba(16,185,129,0.25)', color: '#6ee7b7', border: '1px solid rgba(16,185,129,0.35)', backdropFilter: 'blur(8px)' }}
+              >
+                <IdCard style={{ width: 14, height: 14 }} />
+                <span className="hidden sm:inline">Carte</span>
+              </button>
+
+              {/* ✅ Certificat de scolarité */}
+              <button
+                onClick={() => imprimerCertificatScolarite(eleve, etab, {
+                  classe: scolarite.classe ?? '',
+                  annee: scolarite.annee || anneeActive?.libelle || '',
+                })}
+                className="flex items-center justify-center gap-1.5 text-sm font-semibold px-3 py-2 rounded-xl transition-all"
+                style={{ background: 'rgba(99,102,241,0.25)', color: '#a5b4fc', border: '1px solid rgba(99,102,241,0.35)', backdropFilter: 'blur(8px)' }}
+              >
+                <Award style={{ width: 14, height: 14 }} />
+                <span className="hidden sm:inline">Certificat</span>
+              </button>
+
               <Link
                 to={`/eleves/${matricule}/modifier`}
                 className="flex items-center justify-center gap-1.5 text-sm font-semibold px-3 py-2 rounded-xl transition-all"
@@ -379,7 +434,6 @@ export default function EleveDetails() {
           <ParentsSection matricule={eleve.matricule} />
         </div>
 
-
         {/* ── Tab bar ── */}
         <div
           className="mt-5 flex gap-0 border-b"
@@ -405,7 +459,6 @@ export default function EleveDetails() {
                 {!santeDisponible && (t.id === 'sante' || t.id === 'anterieur') && (
                   <span className="w-1.5 h-1.5 rounded-full bg-amber-400 absolute top-2.5 right-2" />
                 )}
-                {/* Active underline */}
                 <span
                   className="absolute bottom-0 left-0 right-0 h-0.5 rounded-full transition-all duration-300"
                   style={{ background: isActive ? t.color : 'transparent' }}
@@ -415,14 +468,13 @@ export default function EleveDetails() {
           })}
         </div>
 
-        {/* ── Tab content (animated) ── */}
+        {/* ── Tab content ── */}
         <div key={tab} className="mt-5 animate-fade-in">
 
           {/* ══ INFOS ══ */}
           {tab === "infos" && (
             <div className="grid grid-cols-1 md:grid-cols-5 gap-4">
 
-              {/* Personal info — 3 cols */}
               <div className="md:col-span-3 card-elevated" style={{ padding: 0, overflow: 'hidden' }}>
                 <div className="flex items-center gap-2.5 px-5 py-4" style={{ borderBottom: '1px solid var(--border)', background: 'rgba(15,31,61,0.03)' }}>
                   <div className="w-7 h-7 rounded-lg flex items-center justify-center" style={{ background: 'rgba(15,31,61,0.08)' }}>
@@ -453,10 +505,8 @@ export default function EleveDetails() {
                 </div>
               </div>
 
-              {/* Right column — 2 cols */}
               <div className="md:col-span-2 space-y-4">
 
-                {/* Contact urgence */}
                 <div className="card-elevated" style={{ padding: 0, overflow: 'hidden' }}>
                   <div className="flex items-center gap-2.5 px-5 py-4" style={{ borderBottom: '1px solid var(--border)', background: 'rgba(220,38,38,0.03)' }}>
                     <div className="w-7 h-7 rounded-lg flex items-center justify-center" style={{ background: 'rgba(220,38,38,0.1)' }}>
@@ -483,7 +533,6 @@ export default function EleveDetails() {
                   </div>
                 </div>
 
-                {/* Tuteur légal */}
                 {eleve.tuteur_nom && (
                   <div className="card-elevated" style={{ padding: 0, overflow: 'hidden' }}>
                     <div className="flex items-center gap-2.5 px-5 py-4" style={{ borderBottom: '1px solid var(--border)', background: 'rgba(79,70,229,0.03)' }}>
@@ -524,7 +573,6 @@ export default function EleveDetails() {
               </div>
             ) : (
               <div className="space-y-4">
-                {/* Save/edit bar */}
                 <div className="flex justify-between items-center">
                   <div className="flex items-center gap-2">
                     <Activity style={{ width: 16, height: 16, color: '#dc2626' }} />
@@ -549,7 +597,6 @@ export default function EleveDetails() {
                 </div>
 
                 <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                  {/* Général */}
                   <div className="card-elevated" style={{ padding: 0, overflow: 'hidden' }}>
                     <div className="px-5 py-4 font-bold text-sm" style={{ borderBottom: '1px solid var(--border)', color: 'var(--text-900)', background: 'rgba(220,38,38,0.03)' }}>
                       Informations générales
@@ -596,7 +643,6 @@ export default function EleveDetails() {
                     </div>
                   </div>
 
-                  {/* Médecin & assurance */}
                   <div className="card-elevated" style={{ padding: 0, overflow: 'hidden' }}>
                     <div className="px-5 py-4 font-bold text-sm" style={{ borderBottom: '1px solid var(--border)', color: 'var(--text-900)', background: 'rgba(220,38,38,0.03)' }}>
                       Médecin & Assurance
@@ -627,7 +673,6 @@ export default function EleveDetails() {
                   </div>
                 </div>
 
-                {/* Vaccins */}
                 <div className="card-elevated" style={{ padding: 0, overflow: 'hidden' }}>
                   <div className="flex items-center justify-between px-5 py-4" style={{ borderBottom: '1px solid var(--border)', background: 'rgba(220,38,38,0.03)' }}>
                     <p className="font-bold text-sm" style={{ color: 'var(--text-900)' }}>
@@ -831,7 +876,6 @@ export default function EleveDetails() {
                           {a.motif_depart && (
                             <p className="text-xs" style={{ color: 'var(--text-400)' }}>Motif de départ : {a.motif_depart}</p>
                           )}
-                          {/* Bulletins */}
                           <div>
                             <div className="flex items-center justify-between mb-2">
                               <p className="text-xs font-bold uppercase tracking-wide" style={{ color: 'var(--text-300)' }}>

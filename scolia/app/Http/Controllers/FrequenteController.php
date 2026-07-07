@@ -164,22 +164,17 @@ class FrequenteController extends Controller
     /**
  * Afficher une inscription spécifique (détail)
  */
+/**
+ * Afficher une inscription spécifique (détail)
+ */
 public function show($id)
 {
     $inscription = \App\Models\Frequente::with([
-        'eleve' => function($q) {
-            $q->select('matricule', 'nom', 'prenom', 'sexe', 'photoURL', 'actif');
-        },
-        'classe' => function($q) {
-            $q->select('idClasse', 'libelle', 'idCycle');
-        },
-        'salle',
+        'eleve:matricule,nom,prenom,sexe,photoURL,actif',
+        'salle.classe',
         'anneeAcademique'
     ])->findOrFail($id);
 
-    return response()->json([
-        'success' => true,
-        'data' => $inscription
-    ]);
+    return response()->json($inscription);
 }
 }
