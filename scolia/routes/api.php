@@ -35,6 +35,7 @@ use App\Http\Controllers\SectionController;
 use App\Http\Controllers\FraisAnnexeController;
 use App\Http\Controllers\AbsenceController;
 use App\Http\Controllers\PromotionController;
+use App\Http\Controllers\EtablissementController;
 
 // ── PUBLIC ────────────────────────────────────────────────────────────────────
 Route::post('/login',          [AuthController::class, 'login']);
@@ -77,7 +78,10 @@ Route::middleware('auth:sanctum')->group(function () {
     // Auth
     Route::post('/logout', [AuthController::class, 'logout']);
     Route::get('/me',      [AuthController::class, 'me']);
-
+   Route::get('/etablissement',   [EtablissementController::class, 'show']);
+Route::post('/etablissement',  [EtablissementController::class, 'update']);
+Route::put('/etablissement',   [EtablissementController::class, 'update']);  // ← ajouter
+Route::match(['put','post'], '/etablissement', [EtablissementController::class, 'update']); // alternative
     // Fiches enseignants
     Route::get('/enseignants/{idEnseignant}/fiches',  [FicheEnseignantController::class, 'fichesByEnseignant']);
     Route::post('/enseignants/{idEnseignant}/fiches', [FicheEnseignantController::class, 'store']);

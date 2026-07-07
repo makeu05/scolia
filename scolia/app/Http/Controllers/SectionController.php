@@ -7,13 +7,13 @@ use Illuminate\Http\Request;
 class SectionController extends Controller
 {
     public function index()
-    {
-        return response()->json(
-            Section::with(['classes', 'scolarites.tranches'])
-                ->where('actif', true)
-                ->get()
-        );
-    }
+{
+    $sections = Section::withCount(['classes', 'scolarites'])
+        ->with(['classes:idClasse,libelle,idSection'])
+        ->get();
+
+    return response()->json($sections);
+}
 
     public function store(Request $request)
     {

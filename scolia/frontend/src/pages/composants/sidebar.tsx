@@ -6,6 +6,7 @@ import {
   CreditCard, GraduationCap, LogOut, ChevronDown, ChevronRight,
   X, BarChart2, UserCircle, Building2, Calendar,
   Home, Shield, Clock, MessageSquare, FileText, User,
+  Settings,
 } from "lucide-react";
 import Logo from "../../components/ui/Logo";
 import { useAuth } from "../../service/auth";
@@ -82,15 +83,16 @@ const NAV_GROUPS: NavGroup[] = [
     ],
   },
   {
-    id: "administration",
-    label: "Administration",
-    color: "#ef4444",
-    items: [
-      { id: "annees",       label: "Années scolaires", icon: Calendar, path: "/annees",             roles: ["root","admin"] },
-      { id: "salles",       label: "Salles",           icon: Home,     path: "/salles",             roles: ["root","admin","directeur"] },
-      { id: "utilisateurs", label: "Utilisateurs",     icon: Users,    path: "/admin/utilisateurs", roles: ["root","admin"] },
-    ],
-  },
+  id: "administration",
+  label: "Administration",
+  color: "#ef4444",
+  items: [
+    { id: "etablissement", label: "Établissement",    icon: Settings,  path: "/etablissement",      roles: ["root","admin"] },  // ← nouvelle ligne
+    { id: "annees",        label: "Années scolaires", icon: Calendar,  path: "/annees",             roles: ["root","admin"] },
+    { id: "salles",        label: "Salles",           icon: Home,      path: "/salles",             roles: ["root","admin","directeur"] },
+    { id: "utilisateurs",  label: "Utilisateurs",     icon: Users,     path: "/admin/utilisateurs", roles: ["root","admin"] },
+  ],
+},
 ];
 
 const ROLE_COLORS: Record<string, string> = {

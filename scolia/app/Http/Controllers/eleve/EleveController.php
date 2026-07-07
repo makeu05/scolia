@@ -67,6 +67,7 @@ class EleveController extends Controller
             'tuteur_nom'           => 'nullable|string|max:100',
             'tuteur_tel'           => 'nullable|string|max:20',
             'tuteur_profession'    => 'nullable|string|max:100',
+            'region' => 'nullable|string|max:5',
         ]);
 
         // Matricule auto
