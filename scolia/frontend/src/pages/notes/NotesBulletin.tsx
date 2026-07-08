@@ -1,4 +1,5 @@
-import { useEffect, useRef, useState } from 'react';
+import { useEffect, useState } from 'react';
+import { authFetch } from '../../service/auth';
 import {
   getAnnees,
   getTrimestres,
@@ -11,44 +12,40 @@ import {
   type EleveSimple,
   type BulletinData,
 } from '../../service/evaluation_service';
+import { imprimerBulletin } from '../../utils/imprimer_bulletin';
+
+const API = import.meta.env.VITE_API_URL ?? 'http://localhost:8000/api';
 
 export default function NotesBulletin() {
-  const printRef = useRef<HTMLDivElement>(null);
-
   const [annees, setAnnees] = useState<AnneeAcademique[]>([]);
   const [trimestres, setTrimestres] = useState<Trimestre[]>([]);
   const [classes, setClasses] = useState<Classe[]>([]);
   const [eleves, setEleves] = useState<EleveSimple[]>([]);
   const [bulletin, setBulletin] = useState<BulletinData | null>(null);
+  const [etab, setEtab] = useState<any>(null);
 
   const [idAcademi, setIdAcademi] = useState('');
   const [idTrimestre, setIdTrimestre] = useState('');
   const [idClasse, setIdClasse] = useState('');
   const [matricule, setMatricule] = useState('');
-  
+
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState('');
 
   useEffect(() => {
     getAnnees().then(setAnnees).catch(() => {});
     getClasses().then(setClasses).catch(() => {});
+    // Charger la config établissement (pour l'impression)
+    authFetch(`${API}/etablissement`).then(r => r.json()).then(setEtab).catch(() => {});
   }, []);
 
   useEffect(() => {
-    if (!idAcademi) { 
-      setTrimestres([]); 
-      setIdTrimestre(''); 
-      return; 
-    }
+    if (!idAcademi) { setTrimestres([]); setIdTrimestre(''); return; }
     getTrimestres(idAcademi).then(setTrimestres).catch(() => {});
   }, [idAcademi]);
 
   useEffect(() => {
-    if (!idClasse || !idAcademi) { 
-      setEleves([]); 
-      setMatricule(''); 
-      return; 
-    }
+    if (!idClasse || !idAcademi) { setEleves([]); setMatricule(''); return; }
     getElevesByClasse(idClasse, idAcademi).then(setEleves).catch(() => {});
   }, [idClasse, idAcademi]);
 
@@ -58,7 +55,6 @@ export default function NotesBulletin() {
       setLoading(true);
       setError('');
       setBulletin(null);
-      
       const data = await getBulletin(matricule, idTrimestre);
       setBulletin(data);
     } catch (err: any) {
@@ -69,13 +65,13 @@ export default function NotesBulletin() {
   }
 
   function handlePrint() {
-    window.print();
+    if (bulletin) imprimerBulletin(bulletin, etab);
   }
 
   return (
     <div className="p-6 max-w-5xl mx-auto">
       {/* Header */}
-      <div className="flex justify-between items-center mb-8 print:hidden">
+      <div className="flex justify-between items-center mb-8">
         <div>
           <h1 className="text-3xl font-bold">Bulletin de Notes</h1>
           <p className="text-gray-500 mt-1">Génération du bulletin officiel</p>
@@ -92,13 +88,13 @@ export default function NotesBulletin() {
       </div>
 
       {error && (
-        <div className="bg-red-50 border border-red-200 text-red-700 px-4 py-3 rounded-xl mb-6 print:hidden">
+        <div className="bg-red-50 border border-red-200 text-red-700 px-4 py-3 rounded-xl mb-6">
           {error}
         </div>
       )}
 
       {/* Filtres */}
-      <div className="bg-white border border-gray-200 rounded-2xl p-6 mb-8 print:hidden">
+      <div className="bg-white border border-gray-200 rounded-2xl p-6 mb-8">
         <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-5">
           <div>
             <label className="block text-sm font-medium mb-2">Année Académique</label>
@@ -170,15 +166,15 @@ export default function NotesBulletin() {
         </button>
       </div>
 
-      {/* ====================== BULLETIN (Zone imprimable) ====================== */}
+      {/* ====================== APERÇU BULLETIN (écran) ====================== */}
       {bulletin && (
-        <div ref={printRef} className="bg-white p-10 border-2 border-gray-900 rounded-none print:shadow-none">
-          
-          {/* En-tête officiel */}
+        <div className="bg-white p-10 border-2 border-gray-900">
+
+          {/* En-tête */}
           <div className="flex justify-between items-start border-b-2 border-black pb-6 mb-8">
             <div>
-              <h1 className="text-4xl font-bold tracking-tight">SCOLIA</h1>
-              <p className="text-sm text-gray-600">Établissement d'Enseignement Secondaire</p>
+              <h1 className="text-4xl font-bold tracking-tight">{etab?.nom ?? 'SCOLIA'}</h1>
+              <p className="text-sm text-gray-600">{etab?.type_etablissement ?? "Établissement d'Enseignement"}</p>
             </div>
             <div className="text-center">
               <h2 className="text-2xl font-bold uppercase">Bulletin Trimestriel</h2>
@@ -190,7 +186,7 @@ export default function NotesBulletin() {
             </div>
           </div>
 
-          {/* Informations Élève */}
+          {/* Infos élève */}
           <div className="grid grid-cols-2 gap-10 mb-10">
             <div>
               <p className="text-gray-600 text-sm">Nom et Prénom</p>
@@ -208,7 +204,7 @@ export default function NotesBulletin() {
             </div>
           </div>
 
-          {/* Tableau des Notes */}
+          {/* Tableau */}
           <table className="w-full border-collapse border border-gray-800 mb-10 text-sm">
             <thead>
               <tr className="bg-gray-100">
@@ -222,7 +218,7 @@ export default function NotesBulletin() {
             <tbody>
               {bulletin.resultats?.map((r: any, i: number) => (
                 <tr key={i} className="border-b border-gray-800">
-                  <td className="border border-gray-800 px-4 py-3 font-medium">{r.cours}</td>
+                  <td className="border border-gray-800 px-4 py-3 font-medium">{r.libelle ?? r.cours}</td>
                   <td className="border border-gray-800 px-4 py-3 text-center">{r.coefficient}</td>
                   <td className={`border border-gray-800 px-4 py-3 text-center font-bold ${r.moyenne >= 10 ? 'text-emerald-700' : 'text-red-700'}`}>
                     {Number(r.moyenne).toFixed(2)}
@@ -236,24 +232,13 @@ export default function NotesBulletin() {
             </tbody>
           </table>
 
-          {/* Moyenne Générale */}
+          {/* Moyenne générale */}
           <div className="flex justify-end mb-12">
             <div className="border-2 border-black px-12 py-6 text-center">
               <p className="uppercase text-xs tracking-widest">Moyenne Générale</p>
               <p className="text-5xl font-bold mt-2">{bulletin.moyenneGenerale}</p>
               <p className="text-xl font-medium mt-1 text-[#1a3a5c]">{bulletin.mention}</p>
             </div>
-          </div>
-
-          {/* Signatures */}
-          <div className="grid grid-cols-3 gap-12 text-center mt-16">
-            {['Le Directeur', 'Le Professeur Principal', 'Parent / Tuteur'].map((title, i) => (
-              <div key={i}>
-                <div className="h-16 border-b-2 border-black mb-6" />
-                <p className="font-semibold text-sm">{title}</p>
-                <p className="text-xs text-gray-500 mt-1">Signature et Cachet</p>
-              </div>
-            ))}
           </div>
         </div>
       )}
