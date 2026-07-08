@@ -32,7 +32,7 @@ cd scolia
 3. Nom : `scolia` · Interclassement : `utf8mb4_unicode_ci` · Cliquer **Créer**
 4. Sélectionner la base `scolia` dans le panneau gauche
 5. Cliquer sur l'onglet **Importer**
-6. Cliquer **Choisir un fichier** → sélectionner `scolia_bd_version_finale.sql`
+6. Cliquer **Choisir un fichier** → sélectionner `scolia_bd.sql`
 7. Cliquer **Importer** en bas de page
 8. ✅ Message de succès : *L'importation s'est terminée avec succès*
 
