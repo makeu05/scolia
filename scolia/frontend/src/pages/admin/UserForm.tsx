@@ -29,6 +29,7 @@ export default function UserForm() {
     nom: "", prenom: "", username: "", password: "",
     role: "admin", mobile: "", dateNaissance: "",
     lieuNaissance: "", type: "admin",
+    alanyaID: "",
   });
 
   useEffect(() => {
@@ -47,6 +48,7 @@ export default function UserForm() {
           dateNaissance: data.dateNaissance || "",
           lieuNaissance: "",
           type: data.source || "admin",
+          alanyaID: data.alanyaID || "",
         });
       })
       .catch(() => setError("Impossible de charger l'utilisateur"))
@@ -66,6 +68,7 @@ export default function UserForm() {
         password: form.password || undefined,
         role: form.role,
         mobile: form.mobile,
+        alanyaID: form.alanyaID,
         dateNaissance: form.type === "personne" ? form.dateNaissance : undefined,
         lieuNaissance: form.type === "personne" ? "INDEFINI" : undefined,
       };
@@ -231,6 +234,21 @@ export default function UserForm() {
                 className="input"
                 autoComplete="off"
               />
+            </div>
+
+            {/* ✅ Alanya ID — identifiant système externe, saisi manuellement */}
+            <div className="space-y-1.5">
+              <label className="block text-sm font-medium text-slate-700">Alanya ID *</label>
+              <input
+                required
+                value={form.alanyaID}
+                onChange={e => update("alanyaID", e.target.value)}
+                placeholder="Identifiant du système externe"
+                className="input"
+                maxLength={15}
+                autoComplete="off"
+              />
+              <p className="text-xs text-slate-400">Identifiant lié au système externe (max. 15 caractères)</p>
             </div>
 
             <div className="space-y-1.5">

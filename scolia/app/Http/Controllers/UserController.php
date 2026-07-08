@@ -13,75 +13,78 @@ class UserController extends Controller
     // LIST — tous les utilisateurs (admin + personne)
     // ─────────────────────────────────────────────
     public function index(Request $request)
-{
-    $search = $request->query('search', '');
-    $type   = $request->query('type', 'all');
+    {
+        $search = $request->query('search', '');
+        $type   = $request->query('type', 'all');
 
-    $users = [];
+        $users = [];
 
-    // Admins
-    if (in_array($type, ['all', 'admin'])) {
-        $query = DB::table('admin')
-            ->select('ID as sourceId', 'nom', 'username', 'typeAdmin', 'actif', 'mobile', 'created_at')
-            ->when($search, function($q) use ($search) {
-                $q->where('nom', 'like', "%$search%")
-                  ->orWhere('username', 'like', "%$search%");
-            });
+        // Admins
+        if (in_array($type, ['all', 'admin'])) {
+            $query = DB::table('admin')
+                ->select('ID as sourceId', 'nom', 'username', 'typeAdmin', 'actif', 'mobile', 'alanyaID', 'created_at')
+                ->when($search, function($q) use ($search) {
+                    $q->where('nom', 'like', "%$search%")
+                      ->orWhere('username', 'like', "%$search%");
+                });
 
-        $admins = $query->get()->map(function ($a) {
-            $roles = [0 => 'root', 1 => 'admin', 2 => 'fondateur', 3 => 'directeur'];
-            return [
-                'id'       => 'a_' . $a->sourceId,
-                'sourceId' => $a->sourceId,
-                'source'   => 'admin',
-                'nom'      => $a->nom,
-                'username' => $a->username,
-                'role'     => $roles[$a->typeAdmin] ?? 'admin',
-                'actif'    => $a->actif,
-                'mobile'   => $a->mobile,
-                'created'  => $a->created_at,
-            ];
-        })->toArray();
+            $admins = $query->get()->map(function ($a) {
+                $roles = [0 => 'root', 1 => 'admin', 2 => 'fondateur', 3 => 'directeur'];
+                return [
+                    'id'       => 'a_' . $a->sourceId,
+                    'sourceId' => $a->sourceId,
+                    'source'   => 'admin',
+                    'nom'      => $a->nom,
+                    'username' => $a->username,
+                    'role'     => $roles[$a->typeAdmin] ?? 'admin',
+                    'actif'    => $a->actif,
+                    'mobile'   => $a->mobile,
+                    'alanyaID' => $a->alanyaID,
+                    'created'  => $a->created_at,
+                ];
+            })->toArray();
 
-        $users = array_merge($users, $admins);
+            $users = array_merge($users, $admins);
+        }
+
+        // Personnes (Enseignants + Parents)
+        if (in_array($type, ['all', 'personne'])) {
+            $query = DB::table('personne')
+                ->select('idPers as sourceId', 'nom', 'prenom', 'username', 'typePersonne', 'mobile', 'alanyaID', 'created_at')
+                ->when($search, function($q) use ($search) {
+                    $q->where('nom', 'like', "%$search%")
+                      ->orWhere('prenom', 'like', "%$search%")
+                      ->orWhere('username', 'like', "%$search%");
+                });
+
+            $personnes = $query->get()->map(function ($p) {
+                $roles = [1 => 'enseignant', 4 => 'parent'];
+                return [
+                    'id'       => 'p_' . $p->sourceId,
+                    'sourceId' => $p->sourceId,
+                    'source'   => 'personne',
+                    'nom'      => trim($p->nom . ' ' . ($p->prenom ?? '')),
+                    'username' => $p->username,
+                    'role'     => $roles[$p->typePersonne] ?? 'personne',
+                    'actif'    => 1,
+                    'mobile'   => $p->mobile,
+                    'alanyaID' => $p->alanyaID,
+                    'created'  => $p->created_at,
+                ];
+            })->toArray();
+
+            $users = array_merge($users, $personnes);
+        }
+
+        // Tri par nom
+        usort($users, fn($a, $b) => strcmp($a['nom'], $b['nom']));
+
+        return response()->json([
+            'data'  => $users,
+            'total' => count($users),
+        ]);
     }
 
-    // Personnes (Enseignants + Parents)
-    if (in_array($type, ['all', 'personne'])) {
-        $query = DB::table('personne')
-            ->select('idPers as sourceId', 'nom', 'prenom', 'username', 'typePersonne', 'mobile', 'created_at')
-            ->when($search, function($q) use ($search) {
-                $q->where('nom', 'like', "%$search%")
-                  ->orWhere('prenom', 'like', "%$search%")
-                  ->orWhere('username', 'like', "%$search%");
-            });
-
-        $personnes = $query->get()->map(function ($p) {
-            $roles = [1 => 'enseignant', 4 => 'parent'];
-            return [
-                'id'       => 'p_' . $p->sourceId,
-                'sourceId' => $p->sourceId,
-                'source'   => 'personne',
-                'nom'      => trim($p->nom . ' ' . ($p->prenom ?? '')),
-                'username' => $p->username,
-                'role'     => $roles[$p->typePersonne] ?? 'personne',
-                'actif'    => 1,
-                'mobile'   => $p->mobile,
-                'created'  => $p->created_at,
-            ];
-        })->toArray();
-
-        $users = array_merge($users, $personnes);
-    }
-
-    // Tri par nom
-    usort($users, fn($a, $b) => strcmp($a['nom'], $b['nom']));
-
-    return response()->json([
-        'data' => $users,
-        'total' => count($users),
-    ]);
-}
     // ─────────────────────────────────────────────
     // STORE — créer un utilisateur
     // ─────────────────────────────────────────────
@@ -93,6 +96,7 @@ class UserController extends Controller
             'password' => 'required|string|min:6',
             'role'     => 'required|in:root,admin,fondateur,directeur,enseignant,parent',
             'mobile'   => 'nullable|string|max:15',
+            'alanyaID' => 'required|string|max:15',
             // Champs spécifiques enseignant/parent
             'prenom'        => 'required_if:role,enseignant,parent|string|max:100',
             'dateNaissance' => 'required_if:role,enseignant,parent|date',
@@ -114,13 +118,13 @@ class UserController extends Controller
         if (isset($adminRoles[$request->role])) {
             // Créer dans table admin
             $id = DB::table('admin')->insertGetId([
-                'nom'       => $request->nom,
-                'username'  => $username,
-                'password'  => $password,
-                'typeAdmin' => $adminRoles[$request->role],
-                'mobile'    => $request->mobile ?? '000',
-                'alanyaID'  => 'SCO' . rand(1000, 9999),
-                'actif'     => 1,
+                'nom'        => $request->nom,
+                'username'   => $username,
+                'password'   => $password,
+                'typeAdmin'  => $adminRoles[$request->role],
+                'mobile'     => $request->mobile ?? '000',
+                'alanyaID'   => $request->alanyaID,
+                'actif'      => 1,
                 'created_at' => now(),
             ]);
 
@@ -153,7 +157,7 @@ class UserController extends Controller
             'typePersonne'  => $typePersonne,
             'username'      => $username,
             'password'      => $password,
-            'alanyaID'      => 'SCO' . rand(1000, 9999),
+            'alanyaID'      => $request->alanyaID,
             'idAdmin'       => $request->user()->id,
             'created_at'    => now(),
         ]);
@@ -179,9 +183,10 @@ class UserController extends Controller
     public function update(Request $request, string $id)
     {
         $request->validate([
-            'nom'    => 'sometimes|string|max:100',
-            'mobile' => 'sometimes|string|max:15',
-            'role'   => 'sometimes|in:root,admin,fondateur,directeur,enseignant,parent',
+            'nom'      => 'sometimes|string|max:100',
+            'mobile'   => 'sometimes|string|max:15',
+            'role'     => 'sometimes|in:root,admin,fondateur,directeur,enseignant,parent',
+            'alanyaID' => 'sometimes|string|max:15',
         ]);
 
         [$source, $sourceId] = explode('_', $id, 2);
@@ -189,8 +194,9 @@ class UserController extends Controller
         if ($source === 'a') {
             $adminRoles = ['root' => 0, 'admin' => 1, 'fondateur' => 2, 'directeur' => 3];
             $data = [];
-            if ($request->has('nom'))    $data['nom']    = $request->nom;
-            if ($request->has('mobile')) $data['mobile'] = $request->mobile;
+            if ($request->has('nom'))      $data['nom']      = $request->nom;
+            if ($request->has('mobile'))   $data['mobile']   = $request->mobile;
+            if ($request->has('alanyaID')) $data['alanyaID'] = $request->alanyaID;
             if ($request->has('role') && isset($adminRoles[$request->role])) {
                 $data['typeAdmin'] = $adminRoles[$request->role];
             }
@@ -204,8 +210,9 @@ class UserController extends Controller
             }
         } else {
             $data = [];
-            if ($request->has('nom'))    $data['nom']    = $request->nom;
-            if ($request->has('mobile')) $data['mobile'] = $request->mobile;
+            if ($request->has('nom'))      $data['nom']      = $request->nom;
+            if ($request->has('mobile'))   $data['mobile']   = $request->mobile;
+            if ($request->has('alanyaID')) $data['alanyaID'] = $request->alanyaID;
             DB::table('personne')->where('idPers', $sourceId)->update($data);
         }
 
@@ -295,6 +302,7 @@ class UserController extends Controller
                 'role'     => $roles[$admin->typeAdmin] ?? 'admin',
                 'actif'    => $admin->actif,
                 'mobile'   => $admin->mobile,
+                'alanyaID' => $admin->alanyaID,
                 'created'  => $admin->created_at,
             ]);
         }
@@ -311,6 +319,7 @@ class UserController extends Controller
             'role'     => $roles[$personne->typePersonne] ?? 'enseignant',
             'actif'    => 1,
             'mobile'   => $personne->mobile,
+            'alanyaID' => $personne->alanyaID,
             'created'  => $personne->created_at,
         ]);
     }
